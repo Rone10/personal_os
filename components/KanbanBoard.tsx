@@ -16,7 +16,7 @@ import {
   DragOverEvent,
   useDroppable, 
   DragOverlay,
-  closestCorners,
+  pointerWithin,
   PointerSensor,
   useSensor,
   useSensors,
@@ -48,13 +48,15 @@ const dropAnimation: DropAnimation = {
   }),
 };
 
-function TaskCard({ task, toggleTask, isOverlay }: { task: Doc<"tasks">, toggleTask?: (args: { id: Id<"tasks"> }) => void, isOverlay?: boolean }) {
+function TaskCard({ task, onAdvance, isOverlay }: { task: Doc<"tasks">, onAdvance?: (task: Doc<"tasks">) => void, isOverlay?: boolean }) {
   return (
     <div 
       className={cn(
-        "group relative flex flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground shadow-sm transition-all hover:shadow-md",
+        "group relative flex flex-col gap-3 rounded-xl border p-4 shadow-sm transition-all hover:shadow-md",
         isOverlay ? "cursor-grabbing shadow-xl rotate-2 scale-105 ring-2 ring-primary/20" : "cursor-grab active:cursor-grabbing",
-        task.status === 'done' && "opacity-60 bg-muted/50"
+        task.status === 'done' ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900" : 
+        task.status === 'in_progress' ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900" :
+        "bg-card text-card-foreground"
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -62,24 +64,29 @@ function TaskCard({ task, toggleTask, isOverlay }: { task: Doc<"tasks">, toggleT
           <Button
             variant="ghost"
             size="icon"
-            className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground hover:text-primary"
+            className={cn(
+              "mt-0.5 h-5 w-5 shrink-0 hover:text-primary",
+              task.status === 'done' ? "text-emerald-600 dark:text-emerald-400" : 
+              task.status === 'in_progress' ? "text-blue-600 dark:text-blue-400" : 
+              "text-muted-foreground"
+            )}
             onClick={(e) => {
               e.stopPropagation();
-              toggleTask?.({ id: task._id });
+              onAdvance?.(task);
             }}
             onPointerDown={(e) => e.stopPropagation()}
           >
             {task.status === 'done' ? (
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <CheckCircle2 className="h-4 w-4" />
             ) : task.status === 'in_progress' ? (
-              <Clock className="h-4 w-4 text-blue-500" />
+              <Clock className="h-4 w-4" />
             ) : (
               <Circle className="h-4 w-4" />
             )}
           </Button>
           <span className={cn(
             "text-sm font-medium leading-tight",
-            task.status === 'done' && "line-through text-muted-foreground"
+            task.status === 'done' && "text-muted-foreground"
           )}>
             {task.title}
           </span>
@@ -108,7 +115,7 @@ function TaskCard({ task, toggleTask, isOverlay }: { task: Doc<"tasks">, toggleT
   );
 }
 
-function SortableTask({ task, toggleTask }: { task: Doc<"tasks">, toggleTask: (args: { id: Id<"tasks"> }) => void }) {
+function SortableTask({ task, onAdvance }: { task: Doc<"tasks">, onAdvance: (task: Doc<"tasks">) => void }) {
   const {
     attributes,
     listeners,
@@ -126,14 +133,14 @@ function SortableTask({ task, toggleTask }: { task: Doc<"tasks">, toggleTask: (a
   if (isDragging) {
     return (
       <div ref={setNodeRef} style={style} className="opacity-0">
-        <TaskCard task={task} toggleTask={toggleTask} />
+        <TaskCard task={task} onAdvance={onAdvance} />
       </div>
     );
   }
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      <TaskCard task={task} toggleTask={toggleTask} />
+      <TaskCard task={task} onAdvance={onAdvance} />
     </div>
   );
 }
@@ -172,13 +179,29 @@ function DroppableColumn({ id, title, count, children, className, headerColor }:
 export function KanbanBoard({ projectId }: KanbanBoardProps) {
   const tasksQuery = useQuery(api.tasks.getByProject, { projectId });
   const createTask = useMutation(api.tasks.create);
-  const toggleTask = useMutation(api.tasks.toggle);
   const moveTask = useMutation(api.tasks.move);
   
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [activeId, setActiveId] = useState<Id<"tasks"> | null>(null);
   const [localTasks, setLocalTasks] = useState<Doc<"tasks">[]>([]);
   const prevTasksQuery = React.useRef(tasksQuery);
+
+  const handleAdvance = (task: Doc<"tasks">) => {
+    const nextStatus: "todo" | "in_progress" | "done" = task.status === 'todo' ? 'in_progress' : task.status === 'in_progress' ? 'done' : 'todo';
+    
+    // Calculate new order (append to end of destination column)
+    const columnTasks = localTasks.filter(t => t.status === nextStatus);
+    const maxOrder = columnTasks.length > 0 ? Math.max(...columnTasks.map(t => t.order || 0)) : 0;
+    const newOrder = maxOrder + 1000;
+
+    // Optimistic update
+    const updatedTasks = localTasks.map(t => 
+      t._id === task._id ? { ...t, status: nextStatus, order: newOrder } : t
+    );
+    setLocalTasks(updatedTasks);
+
+    moveTask({ id: task._id, status: nextStatus, newOrder });
+  };
 
   // Sync local state with backend state when backend updates, 
   // but ONLY if we are not currently dragging to avoid fighting with the drag state
@@ -365,7 +388,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
   return (
     <DndContext 
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={pointerWithin}
       onDragStart={handleDragStart} 
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
@@ -382,7 +405,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
           >
             <SortableContext items={columns.todo.map(t => t._id)} strategy={verticalListSortingStrategy}>
               {columns.todo.map((task) => (
-                <SortableTask key={task._id} task={task} toggleTask={toggleTask} />
+                <SortableTask key={task._id} task={task} onAdvance={handleAdvance} />
               ))}
             </SortableContext>
             
@@ -416,7 +439,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
         >
           <SortableContext items={columns.in_progress.map(t => t._id)} strategy={verticalListSortingStrategy}>
             {columns.in_progress.map((task) => (
-              <SortableTask key={task._id} task={task} toggleTask={toggleTask} />
+              <SortableTask key={task._id} task={task} onAdvance={handleAdvance} />
             ))}
           </SortableContext>
         </DroppableColumn>
@@ -430,7 +453,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
         >
           <SortableContext items={columns.done.map(t => t._id)} strategy={verticalListSortingStrategy}>
             {columns.done.map((task) => (
-              <SortableTask key={task._id} task={task} toggleTask={toggleTask} />
+              <SortableTask key={task._id} task={task} onAdvance={handleAdvance} />
             ))}
           </SortableContext>
         </DroppableColumn>
