@@ -70,6 +70,29 @@ export const create = mutation({
       ...args,
       userId: identity.subject,
       status: "todo",
+      order: Date.now(), // Default order
+    });
+  },
+});
+
+export const move = mutation({
+  args: {
+    id: v.id("tasks"),
+    status: v.union(v.literal("todo"), v.literal("in_progress"), v.literal("done")),
+    newOrder: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const task = await ctx.db.get(args.id);
+    if (!task || task.userId !== identity.subject) {
+      throw new Error("Unauthorized");
+    }
+
+    await ctx.db.patch(args.id, { 
+      status: args.status,
+      order: args.newOrder,
     });
   },
 });
@@ -89,5 +112,23 @@ export const toggle = mutation({
 
     const newStatus = task.status === "done" ? "todo" : "done";
     await ctx.db.patch(args.id, { status: newStatus });
+  },
+});
+
+export const updateStatus = mutation({
+  args: {
+    id: v.id("tasks"),
+    status: v.union(v.literal("todo"), v.literal("in_progress"), v.literal("done")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const task = await ctx.db.get(args.id);
+    if (!task || task.userId !== identity.subject) {
+      throw new Error("Unauthorized");
+    }
+
+    await ctx.db.patch(args.id, { status: args.status });
   },
 });

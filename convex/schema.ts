@@ -18,6 +18,7 @@ export default defineSchema({
     projectId: v.id("projects"),
     status: v.union(v.literal("todo"), v.literal("in_progress"), v.literal("done")),
     priority: v.number(), // 1 (Low) to 3 (High)
+    order: v.optional(v.number()), // For Kanban ordering
     dueDate: v.optional(v.number()),
     tags: v.optional(v.array(v.string())),
   }).index("by_user_project", ["userId", "projectId", "status"]),
