@@ -13,7 +13,6 @@ import {
   DndContext, 
   DragEndEvent, 
   DragStartEvent, 
-  DragOverEvent,
   useDroppable, 
   DragOverlay,
   pointerWithin,
@@ -37,6 +36,7 @@ interface KanbanBoardProps {
 }
 
 type TaskStatus = "todo" | "in_progress" | "done";
+const COLUMN_IDS: TaskStatus[] = ["todo", "in_progress", "done"];
 
 const dropAnimation: DropAnimation = {
   sideEffects: defaultDropAnimationSideEffects({
@@ -278,40 +278,8 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
     setActiveId(event.active.id as Id<"tasks">);
   };
 
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
-    if (!over) return;
-
-    const activeId = active.id as Id<"tasks">;
-    const overId = over.id;
-
-    // Find the containers
-    const activeTask = localTasks.find(t => t._id === activeId);
-    const overTask = localTasks.find(t => t._id === overId);
-    
-    if (!activeTask) return;
-
-    const activeContainer = activeTask.status;
-    // If over a task, use its status, otherwise check if over a column
-    const overContainer = overTask ? overTask.status : (['todo', 'in_progress', 'done'].includes(overId as string) ? overId as TaskStatus : null);
-
-    if (!overContainer || activeContainer === overContainer) {
-      return;
-    }
-
-    // Moving between columns
-    setLocalTasks((prev) => {
-      const activeIndex = prev.findIndex((t) => t._id === activeId);
-      const newTasks = [...prev];
-      
-      // Update the status of the active task to match the new container
-      newTasks[activeIndex] = {
-        ...newTasks[activeIndex],
-        status: overContainer,
-      };
-      
-      return newTasks;
-    });
+  const handleDragOver = () => {
+    // We rely on drag end to reconcile state to avoid shuffling other cards mid-drag
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -324,62 +292,73 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
 
     const overId = over.id;
     const activeTask = localTasks.find(t => t._id === activeId);
-    const originalTask = tasksQuery?.find(t => t._id === activeId);
     
     if (!activeTask) return;
 
-    // If dropped on a column directly
-    if (['todo', 'in_progress', 'done'].includes(overId as string)) {
-      const newStatus = overId as TaskStatus;
-      // If status changed relative to SERVER state, update it
-      if (originalTask?.status !== newStatus) {
-        // Calculate new order (append to end of column)
-        const columnTasks = localTasks.filter(t => t.status === newStatus);
-        const maxOrder = columnTasks.length > 0 ? Math.max(...columnTasks.map(t => t.order || 0)) : 0;
-        const newOrder = maxOrder + 1000;
+    const isColumnTarget = COLUMN_IDS.includes(overId as TaskStatus);
+    const overTask = isColumnTarget ? undefined : localTasks.find(t => t._id === overId);
 
-        moveTask({ id: activeId, status: newStatus, newOrder });
-      }
+    let newStatus: TaskStatus = activeTask.status;
+    if (isColumnTarget) {
+      newStatus = overId as TaskStatus;
+    } else if (overTask) {
+      newStatus = overTask.status;
+    }
+
+    if (isColumnTarget) {
+      const columnTasks = localTasks.filter(t => t.status === newStatus && t._id !== activeId);
+      const maxOrder = columnTasks.length > 0 ? Math.max(...columnTasks.map(t => t.order || 0)) : 0;
+      const newOrder = maxOrder + 1000;
+
+      setLocalTasks(prev => {
+        const next = prev.filter(t => t._id !== activeId);
+        const updatedTask = { ...activeTask, status: newStatus, order: newOrder };
+        return [...next, updatedTask].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      });
+
+      moveTask({ id: activeId, status: newStatus, newOrder });
       return;
     }
 
-    // If dropped on another task
-    const overTask = localTasks.find(t => t._id === overId);
     if (overTask) {
       const activeIndex = localTasks.findIndex(t => t._id === activeId);
-      const overIndex = localTasks.findIndex(t => t._id === overId);
+      const overIndex = localTasks.findIndex(t => t._id === overTask._id);
 
-      if (activeIndex !== overIndex) {
-        const newTasks = arrayMove(localTasks, activeIndex, overIndex);
-        setLocalTasks(newTasks);
-
-        // Calculate new order
-        // We need to find the new neighbors in the *same status* list
-        const statusTasks = newTasks.filter(t => t.status === activeTask.status);
-        const newIndexInStatus = statusTasks.findIndex(t => t._id === activeId);
-        
-        let newOrder;
-        if (newIndexInStatus === 0) {
-          // First item
-          const nextOrder = statusTasks[1]?.order || 0;
-          newOrder = nextOrder - 1000;
-        } else if (newIndexInStatus === statusTasks.length - 1) {
-          // Last item
-          const prevOrder = statusTasks[newIndexInStatus - 1]?.order || 0;
-          newOrder = prevOrder + 1000;
-        } else {
-          // Middle
-          const prevOrder = statusTasks[newIndexInStatus - 1]?.order || 0;
-          const nextOrder = statusTasks[newIndexInStatus + 1]?.order || 0;
-          newOrder = (prevOrder + nextOrder) / 2;
-        }
-
-        moveTask({ 
-          id: activeId, 
-          status: activeTask.status, 
-          newOrder: newOrder || Date.now() 
-        });
+      if (activeIndex === -1 || overIndex === -1 || activeIndex === overIndex) {
+        return;
       }
+
+      const reordered = arrayMove(localTasks, activeIndex, overIndex).map(t =>
+        t._id === activeId ? { ...t, status: newStatus } : t
+      );
+
+      const statusTasks = reordered.filter(t => t.status === newStatus);
+      const newIndexInStatus = statusTasks.findIndex(t => t._id === activeId);
+
+      let newOrder;
+      if (statusTasks.length === 1) {
+        newOrder = statusTasks[0].order ?? Date.now();
+      } else if (newIndexInStatus === 0) {
+        const nextOrder = statusTasks[1]?.order || 0;
+        newOrder = nextOrder - 1000;
+      } else if (newIndexInStatus === statusTasks.length - 1) {
+        const prevOrder = statusTasks[newIndexInStatus - 1]?.order || 0;
+        newOrder = prevOrder + 1000;
+      } else {
+        const prevOrder = statusTasks[newIndexInStatus - 1]?.order || 0;
+        const nextOrder = statusTasks[newIndexInStatus + 1]?.order || 0;
+        newOrder = (prevOrder + nextOrder) / 2;
+      }
+
+      setLocalTasks(reordered.map(t =>
+        t._id === activeId ? { ...t, order: newOrder, status: newStatus } : t
+      ));
+
+      moveTask({ 
+        id: activeId, 
+        status: newStatus, 
+        newOrder: newOrder || Date.now() 
+      });
     }
   };
 
