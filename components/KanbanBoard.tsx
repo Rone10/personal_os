@@ -3,10 +3,12 @@
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Id, Doc } from '@/convex/_generated/dataModel';
-import { Plus } from 'lucide-react';
+import { Plus, GripVertical, CheckCircle2, Circle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useMemo } from 'react';
+import * as React from 'react';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { 
   DndContext, 
   DragEndEvent, 
@@ -18,6 +20,8 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  defaultDropAnimationSideEffects,
+  DropAnimation
 } from '@dnd-kit/core';
 import { 
   SortableContext, 
@@ -26,6 +30,7 @@ import {
   arrayMove
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { cn } from '@/lib/utils';
 
 interface KanbanBoardProps {
   projectId: Id<"projects">;
@@ -33,25 +38,71 @@ interface KanbanBoardProps {
 
 type TaskStatus = "todo" | "in_progress" | "done";
 
+const dropAnimation: DropAnimation = {
+  sideEffects: defaultDropAnimationSideEffects({
+    styles: {
+      active: {
+        opacity: '0.5',
+      },
+    },
+  }),
+};
+
 function TaskCard({ task, toggleTask, isOverlay }: { task: Doc<"tasks">, toggleTask?: (args: { id: Id<"tasks"> }) => void, isOverlay?: boolean }) {
   return (
     <div 
-      className={`bg-white dark:bg-slate-900 p-3 rounded border border-slate-200 dark:border-slate-800 shadow-sm ${isOverlay ? 'cursor-grabbing shadow-xl rotate-2 scale-105' : 'cursor-grab active:cursor-grabbing'} touch-none`}
+      className={cn(
+        "group relative flex flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground shadow-sm transition-all hover:shadow-md",
+        isOverlay ? "cursor-grabbing shadow-xl rotate-2 scale-105 ring-2 ring-primary/20" : "cursor-grab active:cursor-grabbing",
+        task.status === 'done' && "opacity-60 bg-muted/50"
+      )}
     >
-      <p className={`text-sm font-medium ${task.status === 'done' ? 'line-through text-slate-500' : ''}`}>{task.title}</p>
-      <div className="mt-2 flex justify-end">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="h-6 text-xs" 
-          onClick={(e) => {
-            e.stopPropagation(); // Prevent drag start when clicking button
-            toggleTask?.({ id: task._id });
-          }}
-          onPointerDown={(e) => e.stopPropagation()} // Prevent drag start
-        >
-          {task.status === 'todo' ? 'Start' : task.status === 'in_progress' ? 'Done' : 'Undo'}
-        </Button>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground hover:text-primary"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleTask?.({ id: task._id });
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            {task.status === 'done' ? (
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+            ) : task.status === 'in_progress' ? (
+              <Clock className="h-4 w-4 text-blue-500" />
+            ) : (
+              <Circle className="h-4 w-4" />
+            )}
+          </Button>
+          <span className={cn(
+            "text-sm font-medium leading-tight",
+            task.status === 'done' && "line-through text-muted-foreground"
+          )}>
+            {task.title}
+          </span>
+        </div>
+        <div className="opacity-0 transition-opacity group-hover:opacity-100">
+          <GripVertical className="h-4 w-4 text-muted-foreground/50" />
+        </div>
+      </div>
+      
+      <div className="flex items-center justify-between">
+        <div className="flex gap-2">
+          {task.priority === 3 && (
+            <Badge variant="destructive" className="h-5 px-1.5 text-[10px] uppercase">High</Badge>
+          )}
+          {task.priority === 2 && (
+            <Badge variant="secondary" className="h-5 px-1.5 text-[10px] uppercase bg-orange-100 text-orange-700 hover:bg-orange-100/80 dark:bg-orange-900/30 dark:text-orange-400">Medium</Badge>
+          )}
+        </div>
+        {task.dueDate && (
+          <span className="text-[10px] text-muted-foreground">
+            {new Date(task.dueDate).toLocaleDateString()}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -74,7 +125,7 @@ function SortableTask({ task, toggleTask }: { task: Doc<"tasks">, toggleTask: (a
   
   if (isDragging) {
     return (
-      <div ref={setNodeRef} style={style} className="opacity-30">
+      <div ref={setNodeRef} style={style} className="opacity-0">
         <TaskCard task={task} toggleTask={toggleTask} />
       </div>
     );
@@ -87,27 +138,31 @@ function SortableTask({ task, toggleTask }: { task: Doc<"tasks">, toggleTask: (a
   );
 }
 
-function DroppableColumn({ id, title, count, children, className, titleColorClass, badgeColorClass }: { 
+function DroppableColumn({ id, title, count, children, className, headerColor }: { 
   id: string, 
   title: string, 
   count: number, 
   children: React.ReactNode, 
-  className: string,
-  titleColorClass?: string,
-  badgeColorClass?: string
+  className?: string,
+  headerColor?: string
 }) {
   const { setNodeRef } = useDroppable({
     id: id,
   });
 
   return (
-    <div ref={setNodeRef} className={`flex flex-col h-full rounded-lg p-4 ${className}`}>
-      <h3 className={`font-semibold mb-4 flex items-center justify-between ${titleColorClass || ''}`}>
-        {title}
-        <span className={`text-xs px-2 py-1 rounded-full ${badgeColorClass || 'bg-slate-200 dark:bg-slate-800'}`}>{count}</span>
-      </h3>
+    <div ref={setNodeRef} className={cn("flex h-full flex-col rounded-xl bg-muted/50 p-4", className)}>
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className={cn("h-2 w-2 rounded-full", headerColor || "bg-slate-400")} />
+          <h3 className="font-semibold text-sm text-foreground/80">{title}</h3>
+        </div>
+        <Badge variant="secondary" className="bg-background text-muted-foreground hover:bg-background">
+          {count}
+        </Badge>
+      </div>
       
-      <div className="flex-1 overflow-y-auto space-y-3 min-h-0">
+      <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-y-auto pr-2 -mr-2">
         {children}
       </div>
     </div>
@@ -123,11 +178,14 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [activeId, setActiveId] = useState<Id<"tasks"> | null>(null);
   const [localTasks, setLocalTasks] = useState<Doc<"tasks">[]>([]);
+  const prevTasksQuery = React.useRef(tasksQuery);
 
   // Sync local state with backend state when backend updates, 
   // but ONLY if we are not currently dragging to avoid fighting with the drag state
   useEffect(() => {
-    if (tasksQuery && !activeId) {
+    if (!tasksQuery) return;
+    
+    if (tasksQuery !== prevTasksQuery.current && !activeId) {
       // Sort by order if available, otherwise by creation time (id)
       const sorted = [...tasksQuery].sort((a, b) => {
         const orderA = a.order ?? 0;
@@ -135,8 +193,18 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
         return orderA - orderB;
       });
       setLocalTasks(sorted);
+      prevTasksQuery.current = tasksQuery;
+    } else if (localTasks.length === 0 && tasksQuery.length > 0) {
+       // Initial load
+       const sorted = [...tasksQuery].sort((a, b) => {
+        const orderA = a.order ?? 0;
+        const orderB = b.order ?? 0;
+        return orderA - orderB;
+      });
+      setLocalTasks(sorted);
+      prevTasksQuery.current = tasksQuery;
     }
-  }, [tasksQuery, activeId]);
+  }, [tasksQuery, activeId, localTasks.length]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -155,7 +223,19 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
   }, [localTasks]);
 
   if (tasksQuery === undefined) {
-    return <div className="animate-pulse h-64 bg-slate-100 dark:bg-slate-900 rounded-lg" />;
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-full rounded-xl bg-muted/50 p-4 animate-pulse">
+            <div className="h-6 w-24 bg-muted rounded mb-4" />
+            <div className="space-y-3">
+              <div className="h-24 bg-muted rounded-xl" />
+              <div className="h-24 bg-muted rounded-xl" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   }
 
   const handleCreateTask = async (e: React.FormEvent) => {
@@ -221,14 +301,15 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
 
     const overId = over.id;
     const activeTask = localTasks.find(t => t._id === activeId);
+    const originalTask = tasksQuery?.find(t => t._id === activeId);
     
     if (!activeTask) return;
 
     // If dropped on a column directly
     if (['todo', 'in_progress', 'done'].includes(overId as string)) {
       const newStatus = overId as TaskStatus;
-      // If status changed, update it
-      if (activeTask.status !== newStatus) {
+      // If status changed relative to SERVER state, update it
+      if (originalTask?.status !== newStatus) {
         // Calculate new order (append to end of column)
         const columnTasks = localTasks.filter(t => t.status === newStatus);
         const maxOrder = columnTasks.length > 0 ? Math.max(...columnTasks.map(t => t.order || 0)) : 0;
@@ -296,28 +377,34 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
             id="todo" 
             title="To Do" 
             count={columns.todo.length} 
-            className="bg-slate-50 dark:bg-slate-900/50 flex-1"
+            headerColor="bg-slate-500"
+            className="flex-1"
           >
             <SortableContext items={columns.todo.map(t => t._id)} strategy={verticalListSortingStrategy}>
               {columns.todo.map((task) => (
                 <SortableTask key={task._id} task={task} toggleTask={toggleTask} />
               ))}
             </SortableContext>
+            
+            <form onSubmit={handleCreateTask} className="mt-2">
+              <div className="relative">
+                <Input 
+                  placeholder="Add a task..." 
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  className="pr-8 bg-background shadow-sm border-dashed border-muted-foreground/30 focus:border-solid"
+                />
+                <Button 
+                  type="submit" 
+                  size="icon" 
+                  variant="ghost"
+                  className="absolute right-1 top-1 h-7 w-7 text-muted-foreground hover:text-primary"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </form>
           </DroppableColumn>
-
-          <form onSubmit={handleCreateTask} className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-            <div className="flex gap-2">
-              <Input 
-                placeholder="Add task..." 
-                value={newTaskTitle}
-                onChange={(e) => setNewTaskTitle(e.target.value)}
-                className="h-8 text-sm"
-              />
-              <Button type="submit" size="sm" className="h-8 w-8 p-0">
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-          </form>
         </div>
 
         {/* IN PROGRESS Column */}
@@ -325,9 +412,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
           id="in_progress" 
           title="In Progress" 
           count={columns.in_progress.length} 
-          className="bg-blue-50/50 dark:bg-blue-900/10"
-          titleColorClass="text-blue-700 dark:text-blue-400"
-          badgeColorClass="bg-blue-100 dark:bg-blue-900/30"
+          headerColor="bg-blue-500"
         >
           <SortableContext items={columns.in_progress.map(t => t._id)} strategy={verticalListSortingStrategy}>
             {columns.in_progress.map((task) => (
@@ -341,7 +426,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
           id="done" 
           title="Done" 
           count={columns.done.length} 
-          className="bg-slate-50 dark:bg-slate-900/50 opacity-75"
+          headerColor="bg-green-500"
         >
           <SortableContext items={columns.done.map(t => t._id)} strategy={verticalListSortingStrategy}>
             {columns.done.map((task) => (
@@ -351,7 +436,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
         </DroppableColumn>
       </div>
 
-      <DragOverlay>
+      <DragOverlay dropAnimation={dropAnimation}>
         {activeTask ? <TaskCard task={activeTask} isOverlay /> : null}
       </DragOverlay>
     </DndContext>

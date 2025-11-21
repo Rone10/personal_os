@@ -110,7 +110,7 @@ export const toggle = mutation({
       throw new Error("Unauthorized");
     }
 
-    const newStatus = task.status === "done" ? "todo" : "done";
+    const newStatus = task.status === "todo" ? "in_progress" : task.status === "in_progress" ? "done" : "todo";
     await ctx.db.patch(args.id, { status: newStatus });
   },
 });
