@@ -1,3 +1,4 @@
+@import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
@@ -85,7 +86,7 @@
 */
 @layer utilities {
   .font-arabic {
-    font-family: 'Noto Sans Arabic', 'Amiri', serif;
+    font-family: var(--font-noto-arabic), sans-serif;
     line-height: 1.6;
   }
 
