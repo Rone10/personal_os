@@ -18,7 +18,7 @@
     "dev:backend": "convex dev",
     "predev": "convex dev --until-success && convex dashboard",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 3700",
     "lint": "next lint",
     "format": "prettier --write ."
   },

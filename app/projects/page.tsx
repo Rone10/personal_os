@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { ProjectCard } from '@/components/ProjectCard';
@@ -16,6 +16,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 import { Doc } from '@/convex/_generated/dataModel';
 
@@ -24,6 +26,33 @@ export default function ProjectsPage() {
   const createProject = useMutation(api.projects.create);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [iconValue, setIconValue] = useState('');
+  const [showEmojiHint, setShowEmojiHint] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [emojiShortcut, setEmojiShortcut] = useState('Press Windows + . (Win) or Control + Command + Space (macOS) to open the system emoji keyboard.');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const platform = window.navigator.platform.toLowerCase();
+    if (platform.includes('mac')) {
+      setEmojiShortcut('Press Control ⌃ + Command ⌘ + Space to open the emoji keyboard.');
+    } else if (platform.includes('win')) {
+      setEmojiShortcut('Press Windows ⊞ + . (period) to open the emoji keyboard.');
+    } else {
+      setEmojiShortcut('Use your OS emoji panel (e.g., Windows ⊞ + . or Control + Command + Space).');
+    }
+  }, []);
+
+  const emojiOptions = useMemo(
+    () => ['🚀', '🎯', '💡', '🛠️', '📚', '🔥', '🧠', '📦', '✅', '🌀', '⚙️', '🌱', '🛰️', '🎨', '🗺️'],
+    []
+  );
+
+  const resetState = () => {
+    setIconValue('');
+    setShowEmojiHint(false);
+    setPickerOpen(false);
+  };
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -35,9 +64,11 @@ export default function ProjectsPage() {
         name: formData.get('name') as string,
         description: formData.get('description') as string,
         slug: (formData.get('name') as string).toLowerCase().replace(/\s+/g, '-'),
-        icon: formData.get('icon') as string || undefined,
+        icon: iconValue.trim() || undefined,
       });
       setIsOpen(false);
+      e.currentTarget.reset();
+      resetState();
     } finally {
       setIsLoading(false);
     }
@@ -55,7 +86,15 @@ export default function ProjectsPage() {
           <p className="text-muted-foreground">Manage your active projects and ideas.</p>
         </div>
         
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog
+          open={isOpen}
+          onOpenChange={(open) => {
+            setIsOpen(open);
+            if (!open) {
+              resetState();
+            }
+          }}
+        >
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" /> New Project
@@ -75,8 +114,66 @@ export default function ProjectsPage() {
                 <Textarea id="description" name="description" placeholder="What are you building?" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="icon">Icon (Emoji)</Label>
-                <Input id="icon" name="icon" placeholder="🚀" className="w-20" />
+                <Label htmlFor="icon" className="flex items-center justify-between">
+                  <span>Icon (Emoji)</span>
+                  <button
+                    type="button"
+                    className="text-xs text-blue-500 hover:underline"
+                    onClick={() => setShowEmojiHint((prev) => !prev)}
+                  >
+                    {showEmojiHint ? 'Hide keyboard tips' : 'Need keyboard shortcut?'}
+                  </button>
+                </Label>
+                <div className="flex items-center gap-3">
+                  <Input
+                    id="icon"
+                    name="icon"
+                    placeholder="🚀"
+                    className="w-24 text-center text-xl"
+                    value={iconValue}
+                    onChange={(e) => setIconValue(e.target.value)}
+                    onFocus={() => setShowEmojiHint(true)}
+                  />
+                  <div className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-2">
+                    <span className="text-2xl" aria-label="Icon preview">
+                      {iconValue.trim() || '🚀'}
+                    </span>
+                    <span className="text-xs text-slate-500">Preview</span>
+                  </div>
+                  <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+                    <PopoverTrigger asChild>
+                      <Button type="button" variant="outline" size="sm">
+                        Choose Emoji
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-60">
+                      <p className="mb-2 text-xs text-muted-foreground">Quick picks</p>
+                      <div className="grid grid-cols-5 gap-2">
+                        {emojiOptions.map((emoji) => (
+                          <button
+                            type="button"
+                            key={emoji}
+                            className={cn(
+                              'rounded-md border border-transparent bg-slate-100 py-1 text-xl transition hover:border-blue-500 hover:bg-blue-50 dark:bg-slate-800',
+                              iconValue === emoji && 'border-blue-500 bg-blue-50 dark:bg-slate-700'
+                            )}
+                            onClick={() => {
+                              setIconValue(emoji);
+                              setPickerOpen(false);
+                            }}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                {showEmojiHint && (
+                  <p className="text-xs text-muted-foreground">
+                    {emojiShortcut}
+                  </p>
+                )}
               </div>
               <div className="flex justify-end pt-4">
                 <Button type="submit" disabled={isLoading}>
