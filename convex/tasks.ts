@@ -241,6 +241,31 @@ export const updateTask = mutation({
   },
 });
 
+export const deleteTask = mutation({
+  args: {
+    id: v.id("tasks"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const task = await ctx.db.get(args.id);
+    if (!task || task.userId !== identity.subject) {
+      throw new Error("Unauthorized");
+    }
+
+    const links = await ctx.db.query("todoTaskLinks").withIndex("by_task", (q) => q.eq("taskId", args.id)).collect();
+    await ctx.db.delete(args.id);
+
+    if (links.length) {
+      await Promise.all(links.map((link) => ctx.db.delete(link._id)));
+      await Promise.all(links.map((link) => syncTodoStatusInternal(ctx, link.todoId)));
+    }
+
+    return null;
+  },
+});
+
 export const updateStatus = mutation({
   args: {
     id: v.id("tasks"),

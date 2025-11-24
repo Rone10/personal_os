@@ -3,7 +3,7 @@
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Id, Doc } from '@/convex/_generated/dataModel';
-import { Plus, GripVertical, CheckCircle2, Circle, Clock, Link as LinkIcon, RefreshCw, AlignLeft, Calendar, Users, Paperclip, Tag, Flag, PencilLine } from 'lucide-react';
+import { Plus, GripVertical, CheckCircle2, Circle, Clock, Link as LinkIcon, RefreshCw, AlignLeft, Calendar, Users, Paperclip, Tag, Flag, PencilLine, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useMemo, useId } from 'react';
 import * as React from 'react';
@@ -13,6 +13,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { 
   DndContext, 
   DragEndEvent, 
@@ -153,7 +164,7 @@ const dropAnimation: DropAnimation = {
   }),
 };
 
-function TaskCard({ task, onAdvance, isOverlay, linkedTodo, isExpanded = false, onToggleExpand, onSaveTask }: { task: KanbanTask; onAdvance?: (task: KanbanTask) => void; isOverlay?: boolean; linkedTodo?: LinkedTodoMeta; isExpanded?: boolean; onToggleExpand?: () => void; onSaveTask?: (payload: TaskEditPayload) => Promise<void> }) {
+function TaskCard({ task, onAdvance, isOverlay, linkedTodo, isExpanded = false, onToggleExpand, onSaveTask, onDeleteTask }: { task: KanbanTask; onAdvance?: (task: KanbanTask) => void; isOverlay?: boolean; linkedTodo?: LinkedTodoMeta; isExpanded?: boolean; onToggleExpand?: () => void; onSaveTask?: (payload: TaskEditPayload) => Promise<void>; onDeleteTask?: () => Promise<void> }) {
   const priorityMeta = priorityTokens[task.priorityLevel];
   const expanded = Boolean(isExpanded);
 
@@ -231,6 +242,7 @@ function TaskCard({ task, onAdvance, isOverlay, linkedTodo, isExpanded = false, 
         </div>
         <div className="flex items-center gap-1">
           {onSaveTask && <TaskQuickEditDialog task={task} onSave={onSaveTask} />}
+          {onDeleteTask && <TaskDeleteDialog taskTitle={task.title} onDelete={onDeleteTask} />}
           <div className="opacity-0 transition-opacity group-hover:opacity-100">
             <GripVertical className="h-4 w-4 text-muted-foreground/50" />
           </div>
@@ -535,7 +547,61 @@ function TaskQuickEditDialog({ task, onSave }: { task: KanbanTask; onSave: (payl
   );
 }
 
-function SortableTask({ task, onAdvance, linkedTodo, isExpanded, onToggleExpand, onSaveTask }: { task: KanbanTask; onAdvance: (task: KanbanTask) => void; linkedTodo?: LinkedTodoMeta; isExpanded: boolean; onToggleExpand: () => void; onSaveTask: (payload: TaskEditPayload) => Promise<void> }) {
+function TaskDeleteDialog({ taskTitle, onDelete }: { taskTitle: string; onDelete: () => Promise<void> }) {
+  const [open, setOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    setError(null);
+    try {
+      await onDelete();
+      setOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete task.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 text-muted-foreground hover:text-destructive"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete this task?</AlertDialogTitle>
+          <AlertDialogDescription>
+            “{taskTitle}” will be permanently removed along with its linked metadata. This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="bg-destructive text-white hover:bg-destructive/90"
+          >
+            {isDeleting ? "Deleting..." : "Delete task"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+function SortableTask({ task, onAdvance, linkedTodo, isExpanded, onToggleExpand, onSaveTask, onDeleteTask }: { task: KanbanTask; onAdvance: (task: KanbanTask) => void; linkedTodo?: LinkedTodoMeta; isExpanded: boolean; onToggleExpand: () => void; onSaveTask: (payload: TaskEditPayload) => Promise<void>; onDeleteTask: () => Promise<void> }) {
   const {
     attributes,
     listeners,
@@ -560,6 +626,7 @@ function SortableTask({ task, onAdvance, linkedTodo, isExpanded, onToggleExpand,
           isExpanded={isExpanded}
           onToggleExpand={onToggleExpand}
           onSaveTask={onSaveTask}
+          onDeleteTask={onDeleteTask}
         />
       </div>
     );
@@ -574,6 +641,7 @@ function SortableTask({ task, onAdvance, linkedTodo, isExpanded, onToggleExpand,
         isExpanded={isExpanded}
         onToggleExpand={onToggleExpand}
         onSaveTask={onSaveTask}
+        onDeleteTask={onDeleteTask}
       />
     </div>
   );
@@ -615,6 +683,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
   const createTask = useMutation(api.tasks.create);
   const moveTask = useMutation(api.tasks.move);
   const updateTaskMutation = useMutation(api.tasks.updateTask);
+  const deleteTaskMutation = useMutation(api.tasks.deleteTask);
   
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [activeId, setActiveId] = useState<Id<"tasks"> | null>(null);
@@ -670,6 +739,27 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
         attachments: payload.attachments,
         tags: payload.tags,
       });
+    } catch (error) {
+      setLocalTasks(snapshot);
+      throw error;
+    }
+  };
+
+  const deleteTaskOptimistic = async (taskId: Id<"tasks">) => {
+    let snapshot: KanbanTask[] = [];
+    setLocalTasks((prev) => {
+      snapshot = prev;
+      return prev.filter((task) => task._id !== taskId);
+    });
+    setExpandedTasks((prev) => {
+      if (!prev.has(taskId.toString())) return prev;
+      const next = new Set(prev);
+      next.delete(taskId.toString());
+      return next;
+    });
+
+    try {
+      await deleteTaskMutation({ id: taskId });
     } catch (error) {
       setLocalTasks(snapshot);
       throw error;
@@ -908,6 +998,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                   isExpanded={expandedTasks.has(task._id.toString())}
                   onToggleExpand={() => toggleTaskExpansion(task._id)}
                   onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
+                  onDeleteTask={() => deleteTaskOptimistic(task._id)}
                 />
               ))}
             </SortableContext>
@@ -950,6 +1041,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                   isExpanded={expandedTasks.has(task._id.toString())}
                   onToggleExpand={() => toggleTaskExpansion(task._id)}
                   onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
+                  onDeleteTask={() => deleteTaskOptimistic(task._id)}
                 />
             ))}
           </SortableContext>
@@ -972,6 +1064,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                   isExpanded={expandedTasks.has(task._id.toString())}
                   onToggleExpand={() => toggleTaskExpansion(task._id)}
                   onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
+                  onDeleteTask={() => deleteTaskOptimistic(task._id)}
                 />
             ))}
           </SortableContext>
