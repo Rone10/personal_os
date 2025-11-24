@@ -1,14 +1,19 @@
 # Answers to Questions
-1. Yes keep WORKOS
-2. Yes add userId to the schema
-3. No, don't add src folder.
-4. Yes, you should delete it
+1. 
+2. 
+3. 
+4. 
+5. 
+6. 
+7. 
+8. 
+9. 
 
-**IMPORTANT**: You can use /documents/design.md to guide your UI components implementation
+
 
 # Plan Creation Stage
 
-Based on our full exchange, now, produce a markdown plan document (`./app/documents/plans/`).
+Based on our full exchange, now, produce a markdown plan document (`./documents/plans/`).
 
 Requirements for the plan:
 

@@ -3,12 +3,13 @@
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Id, Doc } from '@/convex/_generated/dataModel';
-import { Plus, GripVertical, CheckCircle2, Circle, Clock } from 'lucide-react';
+import { Plus, GripVertical, CheckCircle2, Circle, Clock, Link as LinkIcon, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useMemo } from 'react';
 import * as React from 'react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   DndContext, 
   DragEndEvent, 
@@ -38,6 +39,13 @@ interface KanbanBoardProps {
 type TaskStatus = "todo" | "in_progress" | "done";
 const COLUMN_IDS: TaskStatus[] = ["todo", "in_progress", "done"];
 
+interface LinkedTodoMeta {
+  taskId: Id<"tasks">;
+  todoId: Id<"todos">;
+  todoTitle: string;
+  todoStatus: TaskStatus;
+}
+
 const dropAnimation: DropAnimation = {
   sideEffects: defaultDropAnimationSideEffects({
     styles: {
@@ -48,7 +56,7 @@ const dropAnimation: DropAnimation = {
   }),
 };
 
-function TaskCard({ task, onAdvance, isOverlay }: { task: Doc<"tasks">, onAdvance?: (task: Doc<"tasks">) => void, isOverlay?: boolean }) {
+function TaskCard({ task, onAdvance, isOverlay, linkedTodo }: { task: Doc<"tasks">; onAdvance?: (task: Doc<"tasks">) => void; isOverlay?: boolean; linkedTodo?: LinkedTodoMeta }) {
   return (
     <div 
       className={cn(
@@ -111,11 +119,15 @@ function TaskCard({ task, onAdvance, isOverlay }: { task: Doc<"tasks">, onAdvanc
           </span>
         )}
       </div>
+
+      {linkedTodo && (
+        <LinkedTodoBadge meta={linkedTodo} taskId={task._id} />
+      )}
     </div>
   );
 }
 
-function SortableTask({ task, onAdvance }: { task: Doc<"tasks">, onAdvance: (task: Doc<"tasks">) => void }) {
+function SortableTask({ task, onAdvance, linkedTodo }: { task: Doc<"tasks">; onAdvance: (task: Doc<"tasks">) => void; linkedTodo?: LinkedTodoMeta }) {
   const {
     attributes,
     listeners,
@@ -133,14 +145,14 @@ function SortableTask({ task, onAdvance }: { task: Doc<"tasks">, onAdvance: (tas
   if (isDragging) {
     return (
       <div ref={setNodeRef} style={style} className="opacity-0">
-        <TaskCard task={task} onAdvance={onAdvance} />
+        <TaskCard task={task} onAdvance={onAdvance} linkedTodo={linkedTodo} />
       </div>
     );
   }
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      <TaskCard task={task} onAdvance={onAdvance} />
+      <TaskCard task={task} onAdvance={onAdvance} linkedTodo={linkedTodo} />
     </div>
   );
 }
@@ -244,6 +256,19 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
       done: localTasks.filter((t) => t.status === 'done'),
     };
   }, [localTasks]);
+
+  const taskIds = useMemo(() => {
+    return localTasks.map((task) => task._id).sort((a, b) => a.localeCompare(b));
+  }, [localTasks]);
+
+  const linkedMeta = useQuery(api.todos.getLinkedTodoMeta, { taskIds });
+  const linkedMetaMap = useMemo(() => {
+    const map = new Map<string, LinkedTodoMeta>();
+    (linkedMeta || []).forEach((entry) => {
+      map.set(entry.taskId.toString(), entry as LinkedTodoMeta);
+    });
+    return map;
+  }, [linkedMeta]);
 
   if (tasksQuery === undefined) {
     return (
@@ -384,7 +409,12 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
           >
             <SortableContext items={columns.todo.map(t => t._id)} strategy={verticalListSortingStrategy}>
               {columns.todo.map((task) => (
-                <SortableTask key={task._id} task={task} onAdvance={handleAdvance} />
+                <SortableTask
+                  key={task._id}
+                  task={task}
+                  onAdvance={handleAdvance}
+                  linkedTodo={linkedMetaMap.get(task._id.toString())}
+                />
               ))}
             </SortableContext>
             
@@ -417,8 +447,13 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
           headerColor="bg-blue-500"
         >
           <SortableContext items={columns.in_progress.map(t => t._id)} strategy={verticalListSortingStrategy}>
-            {columns.in_progress.map((task) => (
-              <SortableTask key={task._id} task={task} onAdvance={handleAdvance} />
+              {columns.in_progress.map((task) => (
+                <SortableTask
+                  key={task._id}
+                  task={task}
+                  onAdvance={handleAdvance}
+                  linkedTodo={linkedMetaMap.get(task._id.toString())}
+                />
             ))}
           </SortableContext>
         </DroppableColumn>
@@ -431,8 +466,13 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
           headerColor="bg-green-500"
         >
           <SortableContext items={columns.done.map(t => t._id)} strategy={verticalListSortingStrategy}>
-            {columns.done.map((task) => (
-              <SortableTask key={task._id} task={task} onAdvance={handleAdvance} />
+              {columns.done.map((task) => (
+                <SortableTask
+                  key={task._id}
+                  task={task}
+                  onAdvance={handleAdvance}
+                  linkedTodo={linkedMetaMap.get(task._id.toString())}
+                />
             ))}
           </SortableContext>
         </DroppableColumn>
@@ -442,5 +482,90 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
         {activeTask ? <TaskCard task={activeTask} isOverlay /> : null}
       </DragOverlay>
     </DndContext>
+  );
+}
+
+function LinkedTodoBadge({ meta, taskId }: { meta: LinkedTodoMeta; taskId: Id<"tasks"> }) {
+  return (
+    <div className="mt-2 flex items-center justify-between rounded-lg bg-blue-50 dark:bg-blue-950/30 px-3 py-2 text-xs">
+      <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+        <LinkIcon className="h-3.5 w-3.5" />
+        <span className="font-medium">{meta.todoTitle}</span>
+      </div>
+      <TaskRelinkDialog taskId={taskId} currentTodoId={meta.todoId} />
+    </div>
+  );
+}
+
+function TaskRelinkDialog({ taskId, currentTodoId }: { taskId: Id<"tasks">; currentTodoId: Id<"todos"> }) {
+  const [open, setOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const todos = useQuery(api.todos.listTodos, {});
+  const relinkTask = useMutation(api.todos.relinkTask);
+  const unlinkTask = useMutation(api.todos.unlinkTaskFromTodo);
+
+  const availableTodos = useMemo(() => (todos || []).filter((todo) => todo._id !== currentTodoId), [todos, currentTodoId]);
+
+  const handleRelink = async (targetTodoId: Id<"todos">) => {
+    setIsUpdating(true);
+    await relinkTask({ sourceTodoId: currentTodoId, targetTodoId, taskId });
+    setIsUpdating(false);
+    setOpen(false);
+  };
+
+  const handleUnlink = async () => {
+    setIsUpdating(true);
+    await unlinkTask({ todoId: currentTodoId, taskId });
+    setIsUpdating(false);
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="ghost" className="h-6 px-2 text-blue-600">
+          Manage
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Move task to another todo</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 text-sm">
+          <p className="text-muted-foreground">Select a destination todo or unlink entirely.</p>
+          <div className="max-h-48 overflow-y-auto space-y-2">
+            {availableTodos.length ? (
+              availableTodos.map((todo) => (
+                <Button
+                  key={todo._id}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-between"
+                  disabled={isUpdating}
+                  onClick={() => handleRelink(todo._id)}
+                >
+                  <span className="text-left">
+                    <span className="font-medium">{todo.title}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">{todo.status}</span>
+                  </span>
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              ))
+            ) : (
+              <p className="text-xs text-muted-foreground">No other todos available.</p>
+            )}
+          </div>
+          <Button type="button" variant="ghost" className="text-red-500" disabled={isUpdating} onClick={handleUnlink}>
+            Unlink from todo
+          </Button>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

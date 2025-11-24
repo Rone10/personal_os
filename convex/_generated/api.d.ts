@@ -13,6 +13,7 @@ import type * as projects from "../projects.js";
 import type * as prompts from "../prompts.js";
 import type * as study from "../study.js";
 import type * as tasks from "../tasks.js";
+import type * as todos from "../todos.js";
 
 import type {
   ApiFromModules,
@@ -26,6 +27,7 @@ declare const fullApi: ApiFromModules<{
   prompts: typeof prompts;
   study: typeof study;
   tasks: typeof tasks;
+  todos: typeof todos;
 }>;
 
 /**

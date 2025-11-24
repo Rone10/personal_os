@@ -1,5 +1,16 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, MutationCtx } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
+import { syncTodoStatusInternal } from "./todos";
+
+type TaskStatus = "todo" | "in_progress" | "done";
+
+async function updateLinkedTodoForTask(ctx: MutationCtx, taskId: Id<"tasks">, status: TaskStatus) {
+  const link = await ctx.db.query("todoTaskLinks").withIndex("by_task", (q) => q.eq("taskId", taskId)).unique();
+  if (!link) return;
+  await ctx.db.patch(link._id, { taskStatus: status, updatedAt: Date.now() });
+  await syncTodoStatusInternal(ctx, link.todoId);
+}
 
 export const getByProject = query({
   args: {
@@ -94,6 +105,8 @@ export const move = mutation({
       status: args.status,
       order: args.newOrder,
     });
+
+    await updateLinkedTodoForTask(ctx, args.id, args.status);
   },
 });
 
@@ -112,6 +125,7 @@ export const toggle = mutation({
 
     const newStatus = task.status === "todo" ? "in_progress" : task.status === "in_progress" ? "done" : "todo";
     await ctx.db.patch(args.id, { status: newStatus });
+    await updateLinkedTodoForTask(ctx, args.id, newStatus);
   },
 });
 
@@ -130,5 +144,33 @@ export const updateStatus = mutation({
     }
 
     await ctx.db.patch(args.id, { status: args.status });
+    await updateLinkedTodoForTask(ctx, args.id, args.status);
+  },
+});
+
+export const listForLinking = query({
+  args: {
+    projectId: v.optional(v.id("projects")),
+    status: v.optional(v.union(v.literal("todo"), v.literal("in_progress"), v.literal("done"))),
+    search: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    let q = ctx.db.query("tasks").withIndex("by_user_project", (qb) => qb.eq("userId", identity.subject));
+    if (args.projectId) {
+      q = q.filter((f) => f.eq(f.field("projectId"), args.projectId!));
+    }
+    if (args.status) {
+      q = q.filter((f) => f.eq(f.field("status"), args.status!));
+    }
+
+    const results = await q.collect();
+    const filtered = args.search
+      ? results.filter((task) => task.title.toLowerCase().includes(args.search!.toLowerCase()))
+      : results;
+
+    return filtered.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   },
 });

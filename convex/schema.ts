@@ -23,6 +23,39 @@ export default defineSchema({
     tags: v.optional(v.array(v.string())),
   }).index("by_user_project", ["userId", "projectId", "status"]),
 
+  todos: defineTable({
+    userId: v.string(),
+    title: v.string(),
+    description: v.optional(v.string()),
+    status: v.union(v.literal("todo"), v.literal("in_progress"), v.literal("done")),
+    plannedDate: v.optional(v.number()),
+    pinForToday: v.boolean(),
+    order: v.optional(v.number()),
+  })
+    .index("by_user_status", ["userId", "status"])
+    .index("by_user_planned", ["userId", "plannedDate"])
+    .index("by_user_pin", ["userId", "pinForToday"]),
+
+  todoChecklist: defineTable({
+    userId: v.string(),
+    todoId: v.id("todos"),
+    title: v.string(),
+    status: v.union(v.literal("todo"), v.literal("done")),
+    order: v.optional(v.number()),
+  }).index("by_todo", ["todoId"]).index("by_user_todo", ["userId", "todoId"]),
+
+  todoTaskLinks: defineTable({
+    userId: v.string(),
+    todoId: v.id("todos"),
+    taskId: v.id("tasks"),
+    taskStatus: v.union(v.literal("todo"), v.literal("in_progress"), v.literal("done")),
+    linkedAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_todo", ["todoId"])
+    .index("by_task", ["taskId"])
+    .index("by_user", ["userId"]),
+
   // --- ENGINEERING ---
   bugs: defineTable({
     userId: v.string(),
