@@ -3,7 +3,7 @@
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Id, Doc } from '@/convex/_generated/dataModel';
-import { Plus, GripVertical, CheckCircle2, Circle, Clock, Link as LinkIcon, RefreshCw, ChevronDown, ChevronUp, AlignLeft, Calendar, Users, Paperclip, Tag, Flag, PencilLine } from 'lucide-react';
+import { Plus, GripVertical, CheckCircle2, Circle, Clock, Link as LinkIcon, RefreshCw, AlignLeft, Calendar, Users, Paperclip, Tag, Flag, PencilLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useMemo, useId } from 'react';
 import * as React from 'react';
@@ -109,6 +109,15 @@ const normalizeTask = (task: Doc<"tasks">): KanbanTask => ({
   priorityLevel: fallbackPriorityLevel(task),
 });
 
+const formatShortDate = (timestamp?: number) => {
+  if (!timestamp) return "No due date";
+  const date = new Date(timestamp);
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  const yy = String(date.getFullYear()).slice(-2);
+  return `${mm}/${dd}/${yy}`;
+};
+
 interface LinkedTodoMeta {
   taskId: Id<"tasks">;
   todoId: Id<"todos">;
@@ -168,7 +177,15 @@ function TaskCard({ task, onAdvance, isOverlay, linkedTodo, isExpanded = false, 
               <Circle className="h-4 w-4" />
             )}
           </Button>
-          <div className="flex flex-col gap-1">
+          <button
+            type="button"
+            className="flex flex-col gap-1 text-left"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleExpand?.();
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
             <span
               className={cn(
                 "text-sm font-medium leading-tight",
@@ -177,22 +194,25 @@ function TaskCard({ task, onAdvance, isOverlay, linkedTodo, isExpanded = false, 
             >
               {task.title}
             </span>
-          </div>
+            {!expanded && (
+              <div className="flex flex-wrap gap-3 text-xs font-medium text-muted-foreground">
+                <span>{formatShortDate(task.dueDate)}</span>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] uppercase",
+                    priorityMeta.badge,
+                    "border-transparent",
+                  )}
+                >
+                  <span className={cn("h-1.5 w-1.5 rounded-full", priorityMeta.dot)} />
+                  {priorityMeta.label}
+                </span>
+              </div>
+            )}
+          </button>
         </div>
         <div className="flex items-center gap-1">
           {onSaveTask && <TaskQuickEditDialog task={task} onSave={onSaveTask} />}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 text-muted-foreground hover:text-foreground"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleExpand?.();
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </Button>
           <div className="opacity-0 transition-opacity group-hover:opacity-100">
             <GripVertical className="h-4 w-4 text-muted-foreground/50" />
           </div>
