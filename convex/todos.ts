@@ -104,7 +104,8 @@ export async function syncTodoStatusInternal(ctx: MutationCtx, todoId: Id<"todos
 export const getTodayTodos = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await requireIdentity(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
 
     const today = new Date();
     today.setHours(23, 59, 59, 999);
@@ -140,7 +141,8 @@ export const listTodos = query({
     status: v.optional(v.union(v.literal("todo"), v.literal("in_progress"), v.literal("done"))),
   },
   handler: async (ctx, args) => {
-    const identity = await requireIdentity(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
     const status = args.status;
 
     let q = ctx.db.query("todos").withIndex("by_user_status", (idx) => idx.eq("userId", identity.subject));
@@ -174,7 +176,8 @@ export const getTodoWithLinks = query({
 export const getLinkedTodoMeta = query({
   args: { taskIds: v.array(v.id("tasks")) },
   handler: async (ctx, args) => {
-    const identity = await requireIdentity(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
     if (args.taskIds.length === 0) return [];
 
     const idSet = new Set(args.taskIds.map((id) => id.toString()));
