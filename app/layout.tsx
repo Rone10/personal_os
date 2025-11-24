@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   title: 'Personal OS',
   description: 'Unified dashboard for projects, tasks, and study.',
   icons: {
-    icon: '/convex.svg',
+    icon: '/favicon.ico',
   },
 };
 
