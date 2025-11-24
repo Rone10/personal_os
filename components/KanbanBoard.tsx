@@ -3,12 +3,15 @@
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Id, Doc } from '@/convex/_generated/dataModel';
-import { Plus, GripVertical, CheckCircle2, Circle, Clock, Link as LinkIcon, RefreshCw } from 'lucide-react';
+import { Plus, GripVertical, CheckCircle2, Circle, Clock, Link as LinkIcon, RefreshCw, ChevronDown, ChevronUp, AlignLeft, Calendar, Users, Paperclip, Tag, Flag, PencilLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useId } from 'react';
 import * as React from 'react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   DndContext, 
@@ -38,6 +41,73 @@ interface KanbanBoardProps {
 
 type TaskStatus = "todo" | "in_progress" | "done";
 const COLUMN_IDS: TaskStatus[] = ["todo", "in_progress", "done"];
+type TaskPriorityLevel = "low" | "medium" | "high" | "urgent" | "critical";
+type KanbanTask = Doc<"tasks"> & { priorityLevel: TaskPriorityLevel };
+type TaskEditPayload = {
+  title: string;
+  description: string | null;
+  priorityLevel: TaskPriorityLevel;
+  dueDate: number | null;
+  assignees: string[];
+  attachments: string[];
+  tags: string[];
+};
+
+const PRIORITY_OPTIONS: TaskPriorityLevel[] = ["low", "medium", "high", "urgent", "critical"];
+
+const fallbackPriorityLevel = (task: Doc<"tasks">): TaskPriorityLevel => {
+  if (task.priorityLevel) return task.priorityLevel as TaskPriorityLevel;
+  switch (task.priority) {
+    case 2:
+      return "medium";
+    case 3:
+      return "high";
+    case 4:
+      return "urgent";
+    case 5:
+      return "critical";
+    default:
+      return "low";
+  }
+};
+
+const priorityTokens: Record<TaskPriorityLevel, { label: string; border: string; badge: string; dot: string }> = {
+  low: {
+    label: "Low",
+    border: "border-l-emerald-400",
+    badge: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+    dot: "bg-emerald-400",
+  },
+  medium: {
+    label: "Medium",
+    border: "border-l-amber-400",
+    badge: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
+    dot: "bg-amber-400",
+  },
+  high: {
+    label: "High",
+    border: "border-l-orange-500",
+    badge: "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300",
+    dot: "bg-orange-500",
+  },
+  urgent: {
+    label: "Urgent",
+    border: "border-l-red-500",
+    badge: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
+    dot: "bg-red-500",
+  },
+  critical: {
+    label: "Critical",
+    border: "border-l-fuchsia-500",
+    badge: "bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-900/40 dark:text-fuchsia-200",
+    dot: "bg-fuchsia-500",
+  },
+};
+
+const normalizeTask = (task: Doc<"tasks">): KanbanTask => ({
+  ...task,
+  priorityLevel: fallbackPriorityLevel(task),
+});
 
 interface LinkedTodoMeta {
   taskId: Id<"tasks">;
@@ -56,27 +126,33 @@ const dropAnimation: DropAnimation = {
   }),
 };
 
-function TaskCard({ task, onAdvance, isOverlay, linkedTodo }: { task: Doc<"tasks">; onAdvance?: (task: Doc<"tasks">) => void; isOverlay?: boolean; linkedTodo?: LinkedTodoMeta }) {
+function TaskCard({ task, onAdvance, isOverlay, linkedTodo, isExpanded = false, onToggleExpand, onSaveTask }: { task: KanbanTask; onAdvance?: (task: KanbanTask) => void; isOverlay?: boolean; linkedTodo?: LinkedTodoMeta; isExpanded?: boolean; onToggleExpand?: () => void; onSaveTask?: (payload: TaskEditPayload) => Promise<void> }) {
+  const priorityMeta = priorityTokens[task.priorityLevel];
+  const expanded = Boolean(isExpanded);
+
   return (
-    <div 
+    <div
       className={cn(
-        "group relative flex flex-col gap-3 rounded-xl border p-4 shadow-sm transition-all hover:shadow-md",
-        isOverlay ? "cursor-grabbing shadow-xl rotate-2 scale-105 ring-2 ring-primary/20" : "cursor-grab active:cursor-grabbing",
-        task.status === 'done' ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900" : 
-        task.status === 'in_progress' ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900" :
-        "bg-card text-card-foreground"
+        "group relative flex flex-col rounded-xl border border-l-4 bg-card p-4 text-card-foreground shadow-sm transition-all",
+        "min-h-24",
+        priorityMeta.border,
+        isOverlay
+          ? "cursor-grabbing shadow-xl rotate-2 scale-105 ring-2 ring-primary/20"
+          : "cursor-grab active:cursor-grabbing",
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-3">
           <Button
             variant="ghost"
             size="icon"
             className={cn(
               "mt-0.5 h-5 w-5 shrink-0 hover:text-primary",
-              task.status === 'done' ? "text-emerald-600 dark:text-emerald-400" : 
-              task.status === 'in_progress' ? "text-blue-600 dark:text-blue-400" : 
-              "text-muted-foreground"
+              task.status === "done"
+                ? "text-emerald-600 dark:text-emerald-400"
+                : task.status === "in_progress"
+                  ? "text-blue-600 dark:text-blue-400"
+                  : "text-muted-foreground",
             )}
             onClick={(e) => {
               e.stopPropagation();
@@ -84,50 +160,348 @@ function TaskCard({ task, onAdvance, isOverlay, linkedTodo }: { task: Doc<"tasks
             }}
             onPointerDown={(e) => e.stopPropagation()}
           >
-            {task.status === 'done' ? (
+            {task.status === "done" ? (
               <CheckCircle2 className="h-4 w-4" />
-            ) : task.status === 'in_progress' ? (
+            ) : task.status === "in_progress" ? (
               <Clock className="h-4 w-4" />
             ) : (
               <Circle className="h-4 w-4" />
             )}
           </Button>
-          <span className={cn(
-            "text-sm font-medium leading-tight",
-            task.status === 'done' && "text-muted-foreground"
-          )}>
-            {task.title}
-          </span>
+          <div className="flex flex-col gap-1">
+            <span
+              className={cn(
+                "text-sm font-medium leading-tight",
+                task.status === "done" && "text-muted-foreground line-through",
+              )}
+            >
+              {task.title}
+            </span>
+          </div>
         </div>
-        <div className="opacity-0 transition-opacity group-hover:opacity-100">
-          <GripVertical className="h-4 w-4 text-muted-foreground/50" />
+        <div className="flex items-center gap-1">
+          {onSaveTask && <TaskQuickEditDialog task={task} onSave={onSaveTask} />}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-muted-foreground hover:text-foreground"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleExpand?.();
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
+          <div className="opacity-0 transition-opacity group-hover:opacity-100">
+            <GripVertical className="h-4 w-4 text-muted-foreground/50" />
+          </div>
         </div>
-      </div>
-      
-      <div className="flex items-center justify-between">
-        <div className="flex gap-2">
-          {task.priority === 3 && (
-            <Badge variant="destructive" className="h-5 px-1.5 text-[10px] uppercase">High</Badge>
-          )}
-          {task.priority === 2 && (
-            <Badge variant="secondary" className="h-5 px-1.5 text-[10px] uppercase bg-orange-100 text-orange-700 hover:bg-orange-100/80 dark:bg-orange-900/30 dark:text-orange-400">Medium</Badge>
-          )}
-        </div>
-        {task.dueDate && (
-          <span className="text-[10px] text-muted-foreground">
-            {new Date(task.dueDate).toLocaleDateString()}
-          </span>
-        )}
       </div>
 
-      {linkedTodo && (
-        <LinkedTodoBadge meta={linkedTodo} taskId={task._id} />
+      {expanded && (
+        <div
+          className="mt-3 space-y-3 border-t border-dashed border-muted-foreground/30 pt-3"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <DetailRow
+            icon={<Flag className="h-3.5 w-3.5" />}
+            label="Priority"
+          >
+            <span
+              className={cn(
+                "inline-flex items-center gap-2 rounded-full px-2 py-1 text-[11px] font-semibold uppercase",
+                priorityMeta.badge,
+              )}
+            >
+              <span className={cn("h-2 w-2 rounded-full", priorityMeta.dot)} />
+              {priorityMeta.label}
+            </span>
+          </DetailRow>
+
+          <DetailRow icon={<AlignLeft className="h-3.5 w-3.5" />} label="Description">
+            {task.description ? (
+              <p className="text-sm text-foreground">{task.description}</p>
+            ) : (
+              <span className="text-sm text-muted-foreground">No description yet.</span>
+            )}
+          </DetailRow>
+
+          <DetailRow icon={<Calendar className="h-3.5 w-3.5" />} label="Due Date">
+            {task.dueDate ? (
+              <span className="text-sm text-foreground">{new Date(task.dueDate).toLocaleDateString()}</span>
+            ) : (
+              <span className="text-sm text-muted-foreground">Not set</span>
+            )}
+          </DetailRow>
+
+          <DetailRow icon={<Users className="h-3.5 w-3.5" />} label="Assignees">
+            {task.assignees && task.assignees.length ? (
+              <div className="flex flex-wrap gap-2">
+                {task.assignees.map((person) => (
+                  <Badge key={person} variant="secondary" className="bg-muted px-2 py-0.5 text-xs">
+                    {person}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <span className="text-sm text-muted-foreground">Unassigned</span>
+            )}
+          </DetailRow>
+
+          <DetailRow icon={<Tag className="h-3.5 w-3.5" />} label="Labels">
+            {task.tags && task.tags.length ? (
+              <div className="flex flex-wrap gap-2">
+                {task.tags.map((tag) => (
+                  <Badge key={tag} variant="outline" className="text-xs uppercase tracking-wide">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <span className="text-sm text-muted-foreground">No labels</span>
+            )}
+          </DetailRow>
+
+          <DetailRow icon={<Paperclip className="h-3.5 w-3.5" />} label="Attachments">
+            {task.attachments && task.attachments.length ? (
+              <div className="flex flex-col gap-2">
+                {task.attachments.map((url) => (
+                  <a
+                    key={url}
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-primary underline underline-offset-4"
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                  >
+                    {url}
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <span className="text-sm text-muted-foreground">No attachments</span>
+            )}
+          </DetailRow>
+
+          {linkedTodo && <LinkedTodoBadge meta={linkedTodo} taskId={task._id} />}
+        </div>
       )}
     </div>
   );
 }
 
-function SortableTask({ task, onAdvance, linkedTodo }: { task: Doc<"tasks">; onAdvance: (task: Doc<"tasks">) => void; linkedTodo?: LinkedTodoMeta }) {
+type TaskQuickEditFormState = {
+  title: string;
+  description: string;
+  priorityLevel: TaskPriorityLevel;
+  dueDate: string;
+  assignees: string;
+  attachments: string;
+  tags: string;
+};
+
+const toDateInputValue = (timestamp?: number) => {
+  if (!timestamp) return "";
+  return new Date(timestamp).toISOString().split("T")[0];
+};
+
+const parseDateValue = (value: string): number | null => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.getTime();
+};
+
+const cleanCommaList = (value: string) =>
+  value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+const cleanLineList = (value: string) =>
+  value
+    .split(/\r?\n/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+const buildFormState = (task: KanbanTask): TaskQuickEditFormState => ({
+  title: task.title,
+  description: task.description ?? "",
+  priorityLevel: task.priorityLevel,
+  dueDate: toDateInputValue(task.dueDate ?? undefined),
+  assignees: (task.assignees ?? []).join(", "),
+  attachments: (task.attachments ?? []).join("\n"),
+  tags: (task.tags ?? []).join(", "),
+});
+
+function TaskQuickEditDialog({ task, onSave }: { task: KanbanTask; onSave: (payload: TaskEditPayload) => Promise<void> }) {
+  const formId = useId();
+  const [open, setOpen] = useState(false);
+  const [formState, setFormState] = useState<TaskQuickEditFormState>(() => buildFormState(task));
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      setFormState(buildFormState(task));
+      setError(null);
+    }
+  }, [task, open]);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSaving(true);
+    setError(null);
+
+    const trimmedTitle = formState.title.trim();
+    if (!trimmedTitle) {
+      setError("Title is required.");
+      setIsSaving(false);
+      return;
+    }
+
+    const payload: TaskEditPayload = {
+      title: trimmedTitle,
+      description: formState.description.trim() ? formState.description.trim() : null,
+      priorityLevel: formState.priorityLevel,
+      dueDate: parseDateValue(formState.dueDate),
+      assignees: cleanCommaList(formState.assignees),
+      attachments: cleanLineList(formState.attachments),
+      tags: cleanCommaList(formState.tags),
+    };
+
+    try {
+      await onSave(payload);
+      setOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save changes.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const updateField = <K extends keyof TaskQuickEditFormState>(key: K, value: TaskQuickEditFormState[K]) => {
+    setFormState((prev) => ({ ...prev, [key]: value }));
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 text-muted-foreground hover:text-foreground"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <PencilLine className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Edit “{task.title}”</DialogTitle>
+        </DialogHeader>
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div className="space-y-2">
+            <Label htmlFor={`${formId}-title`}>Title</Label>
+            <Input
+              id={`${formId}-title`}
+              value={formState.title}
+              onChange={(e) => updateField("title", e.target.value)}
+              autoFocus
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor={`${formId}-description`}>Description</Label>
+            <Textarea
+              id={`${formId}-description`}
+              value={formState.description}
+              onChange={(e) => updateField("description", e.target.value)}
+              rows={4}
+            />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor={`${formId}-priority`}>Priority</Label>
+              <Select
+                value={formState.priorityLevel}
+                onValueChange={(value) => updateField("priorityLevel", value as TaskPriorityLevel)}
+              >
+                <SelectTrigger id={`${formId}-priority`}>
+                  <SelectValue placeholder="Priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRIORITY_OPTIONS.map((level) => (
+                    <SelectItem key={level} value={level} className="capitalize">
+                      {priorityTokens[level].label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor={`${formId}-due-date`}>Due Date</Label>
+              <Input
+                id={`${formId}-due-date`}
+                type="date"
+                value={formState.dueDate}
+                onChange={(e) => updateField("dueDate", e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor={`${formId}-assignees`}>Assignees</Label>
+            <Input
+              id={`${formId}-assignees`}
+              value={formState.assignees}
+              placeholder="Comma-separated names"
+              onChange={(e) => updateField("assignees", e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">Example: Han, Leia, Chewbacca</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor={`${formId}-tags`}>Labels</Label>
+            <Input
+              id={`${formId}-tags`}
+              value={formState.tags}
+              placeholder="Comma-separated labels"
+              onChange={(e) => updateField("tags", e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor={`${formId}-attachments`}>Attachments</Label>
+            <Textarea
+              id={`${formId}-attachments`}
+              value={formState.attachments}
+              onChange={(e) => updateField("attachments", e.target.value)}
+              rows={3}
+              placeholder="One URL per line"
+            />
+          </div>
+
+          {error && <p className="text-sm text-destructive">{error}</p>}
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSaving}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSaving}>
+              {isSaving ? "Saving..." : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SortableTask({ task, onAdvance, linkedTodo, isExpanded, onToggleExpand, onSaveTask }: { task: KanbanTask; onAdvance: (task: KanbanTask) => void; linkedTodo?: LinkedTodoMeta; isExpanded: boolean; onToggleExpand: () => void; onSaveTask: (payload: TaskEditPayload) => Promise<void> }) {
   const {
     attributes,
     listeners,
@@ -145,14 +519,28 @@ function SortableTask({ task, onAdvance, linkedTodo }: { task: Doc<"tasks">; onA
   if (isDragging) {
     return (
       <div ref={setNodeRef} style={style} className="opacity-0">
-        <TaskCard task={task} onAdvance={onAdvance} linkedTodo={linkedTodo} />
+        <TaskCard
+          task={task}
+          onAdvance={onAdvance}
+          linkedTodo={linkedTodo}
+          isExpanded={isExpanded}
+          onToggleExpand={onToggleExpand}
+          onSaveTask={onSaveTask}
+        />
       </div>
     );
   }
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      <TaskCard task={task} onAdvance={onAdvance} linkedTodo={linkedTodo} />
+      <TaskCard
+        task={task}
+        onAdvance={onAdvance}
+        linkedTodo={linkedTodo}
+        isExpanded={isExpanded}
+        onToggleExpand={onToggleExpand}
+        onSaveTask={onSaveTask}
+      />
     </div>
   );
 }
@@ -192,13 +580,15 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
   const tasksQuery = useQuery(api.tasks.getByProject, { projectId });
   const createTask = useMutation(api.tasks.create);
   const moveTask = useMutation(api.tasks.move);
+  const updateTaskMutation = useMutation(api.tasks.updateTask);
   
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [activeId, setActiveId] = useState<Id<"tasks"> | null>(null);
-  const [localTasks, setLocalTasks] = useState<Doc<"tasks">[]>([]);
+  const [localTasks, setLocalTasks] = useState<KanbanTask[]>([]);
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const prevTasksQuery = React.useRef(tasksQuery);
 
-  const handleAdvance = (task: Doc<"tasks">) => {
+  const handleAdvance = (task: KanbanTask) => {
     const nextStatus: "todo" | "in_progress" | "done" = task.status === 'todo' ? 'in_progress' : task.status === 'in_progress' ? 'done' : 'todo';
     
     // Calculate new order (append to end of destination column)
@@ -215,6 +605,56 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
     moveTask({ id: task._id, status: nextStatus, newOrder });
   };
 
+  const persistTaskEdit = async (taskId: Id<"tasks">, payload: TaskEditPayload) => {
+    let snapshot: KanbanTask[] = [];
+    setLocalTasks((prev) => {
+      snapshot = prev;
+      return prev.map((task) =>
+        task._id === taskId
+          ? {
+              ...task,
+              title: payload.title,
+              description: payload.description ?? undefined,
+              priorityLevel: payload.priorityLevel,
+              dueDate: payload.dueDate ?? undefined,
+              assignees: payload.assignees,
+              attachments: payload.attachments,
+              tags: payload.tags,
+            }
+          : task,
+      );
+    });
+
+    try {
+      await updateTaskMutation({
+        id: taskId,
+        title: payload.title,
+        description: payload.description,
+        priorityLevel: payload.priorityLevel,
+        dueDate: payload.dueDate,
+        assignees: payload.assignees,
+        attachments: payload.attachments,
+        tags: payload.tags,
+      });
+    } catch (error) {
+      setLocalTasks(snapshot);
+      throw error;
+    }
+  };
+
+  const toggleTaskExpansion = (taskId: Id<"tasks">) => {
+    const key = taskId.toString();
+    setExpandedTasks((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
   // Sync local state with backend state when backend updates, 
   // but ONLY if we are not currently dragging to avoid fighting with the drag state
   useEffect(() => {
@@ -226,7 +666,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
         const orderA = a.order ?? 0;
         const orderB = b.order ?? 0;
         return orderA - orderB;
-      });
+      }).map(normalizeTask);
       setLocalTasks(sorted);
       prevTasksQuery.current = tasksQuery;
     } else if (localTasks.length === 0 && tasksQuery.length > 0) {
@@ -235,11 +675,28 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
         const orderA = a.order ?? 0;
         const orderB = b.order ?? 0;
         return orderA - orderB;
-      });
+      }).map(normalizeTask);
       setLocalTasks(sorted);
       prevTasksQuery.current = tasksQuery;
     }
   }, [tasksQuery, activeId, localTasks.length]);
+
+  // Keep expansion state in sync with the tasks that still exist in the column
+  useEffect(() => {
+    setExpandedTasks((prev) => {
+      const activeIds = new Set(localTasks.map((task) => task._id.toString()));
+      let mutated = false;
+      const next = new Set<string>();
+      prev.forEach((id) => {
+        if (activeIds.has(id)) {
+          next.add(id);
+        } else {
+          mutated = true;
+        }
+      });
+      return mutated ? next : prev;
+    });
+  }, [localTasks]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -293,7 +750,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
     await createTask({
       title: newTaskTitle,
       projectId,
-      priority: 1,
+      priorityLevel: "low",
     });
     
     setNewTaskTitle('');
@@ -414,6 +871,9 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                   task={task}
                   onAdvance={handleAdvance}
                   linkedTodo={linkedMetaMap.get(task._id.toString())}
+                  isExpanded={expandedTasks.has(task._id.toString())}
+                  onToggleExpand={() => toggleTaskExpansion(task._id)}
+                  onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
                 />
               ))}
             </SortableContext>
@@ -453,6 +913,9 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                   task={task}
                   onAdvance={handleAdvance}
                   linkedTodo={linkedMetaMap.get(task._id.toString())}
+                  isExpanded={expandedTasks.has(task._id.toString())}
+                  onToggleExpand={() => toggleTaskExpansion(task._id)}
+                  onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
                 />
             ))}
           </SortableContext>
@@ -472,6 +935,9 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                   task={task}
                   onAdvance={handleAdvance}
                   linkedTodo={linkedMetaMap.get(task._id.toString())}
+                  isExpanded={expandedTasks.has(task._id.toString())}
+                  onToggleExpand={() => toggleTaskExpansion(task._id)}
+                  onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
                 />
             ))}
           </SortableContext>
@@ -479,9 +945,27 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
       </div>
 
       <DragOverlay dropAnimation={dropAnimation}>
-        {activeTask ? <TaskCard task={activeTask} isOverlay /> : null}
+        {activeTask ? (
+          <TaskCard
+            task={activeTask}
+            isOverlay
+            isExpanded={expandedTasks.has(activeTask._id.toString())}
+          />
+        ) : null}
       </DragOverlay>
     </DndContext>
+  );
+}
+
+function DetailRow({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-3 text-sm">
+      <div className="flex w-24 items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {icon}
+        <span>{label}</span>
+      </div>
+      <div className="flex-1 text-sm text-foreground">{children}</div>
+    </div>
   );
 }
 

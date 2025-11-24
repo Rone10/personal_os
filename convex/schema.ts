@@ -17,7 +17,19 @@ export default defineSchema({
     title: v.string(),
     projectId: v.id("projects"),
     status: v.union(v.literal("todo"), v.literal("in_progress"), v.literal("done")),
-    priority: v.number(), // 1 (Low) to 3 (High)
+    priority: v.number(), // Legacy numeric priority kept for compatibility
+    priorityLevel: v.optional(
+      v.union(
+        v.literal("low"),
+        v.literal("medium"),
+        v.literal("high"),
+        v.literal("urgent"),
+        v.literal("critical"),
+      ),
+    ),
+    description: v.optional(v.string()),
+    assignees: v.optional(v.array(v.string())),
+    attachments: v.optional(v.array(v.string())),
     order: v.optional(v.number()), // For Kanban ordering
     dueDate: v.optional(v.number()),
     tags: v.optional(v.array(v.string())),

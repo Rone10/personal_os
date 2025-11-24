@@ -1,10 +1,10 @@
 # Answers to Questions
-1. 
-2. 
-3. 
-4. 
-5. 
-6. 
+1. Yes, all including critical. I don't think it's necessary to have "None" so it should only be low/medium/high/urgent/critical. The default should be low. There's currently no data in the db but the mapping can be 1=low, 2=medium, and 3=high
+2. Yes, let's introduce new columns. Assignees can be plain text for now since I'll be the only using it for the foreseeable future, attachments can be URLs.
+3. A quick edit dialog. Edits should require explicit save/cancel.
+4. they should only live in the details panel.
+5. per page load behavior is acceptable.
+6. Assignees should just be text tag for now.
 7. 
 8. 
 9. 
