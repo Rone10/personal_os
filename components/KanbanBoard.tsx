@@ -109,6 +109,12 @@ const normalizeTask = (task: Doc<"tasks">): KanbanTask => ({
   priorityLevel: fallbackPriorityLevel(task),
 });
 
+const startOfDay = (date: Date) => {
+  const clone = new Date(date);
+  clone.setHours(0, 0, 0, 0);
+  return clone;
+};
+
 const formatShortDate = (timestamp?: number) => {
   if (!timestamp) return "No due date";
   const date = new Date(timestamp);
@@ -116,6 +122,18 @@ const formatShortDate = (timestamp?: number) => {
   const dd = String(date.getDate()).padStart(2, "0");
   const yy = String(date.getFullYear()).slice(-2);
   return `${mm}/${dd}/${yy}`;
+};
+
+const formatRelativeDueDate = (timestamp?: number) => {
+  if (!timestamp) return "No due date";
+  const due = startOfDay(new Date(timestamp));
+  const today = startOfDay(new Date());
+  const diffDays = Math.round((due.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Tomorrow";
+  if (diffDays === -1) return "Yesterday";
+  return formatShortDate(timestamp);
 };
 
 interface LinkedTodoMeta {
@@ -179,7 +197,7 @@ function TaskCard({ task, onAdvance, isOverlay, linkedTodo, isExpanded = false, 
           </Button>
           <button
             type="button"
-            className="flex flex-col gap-1 text-left"
+            className="flex flex-col gap-1 text-left cursor-pointer"
             onClick={(e) => {
               e.stopPropagation();
               onToggleExpand?.();
@@ -196,17 +214,17 @@ function TaskCard({ task, onAdvance, isOverlay, linkedTodo, isExpanded = false, 
             </span>
             {!expanded && (
               <div className="flex flex-wrap gap-3 text-xs font-medium text-muted-foreground">
-                <span>{formatShortDate(task.dueDate)}</span>
                 <span
                   className={cn(
                     "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] uppercase",
                     priorityMeta.badge,
-                    "border-transparent",
+                    "border-transparent text-foreground",
                   )}
                 >
                   <span className={cn("h-1.5 w-1.5 rounded-full", priorityMeta.dot)} />
                   {priorityMeta.label}
                 </span>
+                <span>{formatRelativeDueDate(task.dueDate)}</span>
               </div>
             )}
           </button>
@@ -248,11 +266,7 @@ function TaskCard({ task, onAdvance, isOverlay, linkedTodo, isExpanded = false, 
           </DetailRow>
 
           <DetailRow icon={<Calendar className="h-3.5 w-3.5" />} label="Due Date">
-            {task.dueDate ? (
-              <span className="text-sm text-foreground">{new Date(task.dueDate).toLocaleDateString()}</span>
-            ) : (
-              <span className="text-sm text-muted-foreground">Not set</span>
-            )}
+            <span className="text-sm text-foreground">{formatRelativeDueDate(task.dueDate)}</span>
           </DetailRow>
 
           <DetailRow icon={<Users className="h-3.5 w-3.5" />} label="Assignees">
