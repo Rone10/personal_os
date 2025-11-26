@@ -141,3 +141,11 @@ export const create = mutation({
 - Optimize for keyboard navigation (tab index, focus states).
 
 This codebase prioritizes speed, data ownership, and a distraction-free environment for personal productivity.
+
+## Linting & Type Checking
+Before saying you're done implementing any task, ALWAYS run:
+```bash
+pnpm lint
+tsc --noEmit
+```
+This will help catch any lint or TypeScript errors before completion.

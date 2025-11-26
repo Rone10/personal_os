@@ -33,16 +33,20 @@ export default function ProjectDetailPage() {
   }
 
   return (
-    <div className="flex flex-col h-full p-8 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <span className="text-3xl">{project.icon}</span>
-          <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
+    <div className="flex flex-col h-full bg-background">
+      <div className="border-b bg-card px-6 py-4 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-xl">
+            {project.icon}
+          </div>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight">{project.name}</h1>
+            <p className="text-sm text-muted-foreground line-clamp-1">{project.description}</p>
+          </div>
         </div>
-        <p className="text-muted-foreground">{project.description}</p>
       </div>
 
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 p-6">
         <KanbanBoard projectId={projectId} showFeaturePanel={isCodingProject} />
       </div>
     </div>

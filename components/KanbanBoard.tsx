@@ -3,7 +3,7 @@
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Id, Doc } from '@/convex/_generated/dataModel';
-import { Plus, GripVertical, CheckCircle2, Circle, Clock, Link as LinkIcon, RefreshCw, AlignLeft, Calendar, Users, Paperclip, Tag, Flag, PencilLine, Trash2, XCircle } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, Clock, Link as LinkIcon, RefreshCw, AlignLeft, Calendar, Users, Paperclip, Tag, Flag, PencilLine, Trash2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useMemo, useId } from 'react';
 import * as React from 'react';
@@ -218,44 +218,43 @@ function TaskCard({
   return (
     <div
       className={cn(
-        "group relative flex flex-col rounded-xl border border-l-4 bg-card p-4 text-card-foreground shadow-sm transition-all",
-        "min-h-24",
-        priorityMeta.border,
+        "group relative flex flex-col rounded-xl border bg-card p-3 text-card-foreground shadow-sm transition-all hover:shadow-md",
         isOverlay
           ? "cursor-grabbing shadow-xl rotate-2 scale-105 ring-2 ring-primary/20"
           : "cursor-grab active:cursor-grabbing",
       )}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-start gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn(
-              "mt-0.5 h-5 w-5 shrink-0 hover:text-primary",
-              task.status === "done"
-                ? "text-emerald-600 dark:text-emerald-400"
-                : task.status === "in_progress"
-                  ? "text-blue-600 dark:text-blue-400"
-                  : "text-muted-foreground",
-            )}
-            onClick={(e) => {
-              e.stopPropagation();
-              onAdvance?.(task);
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            {task.status === "done" ? (
-              <CheckCircle2 className="h-4 w-4" />
-            ) : task.status === "in_progress" ? (
-              <Clock className="h-4 w-4" />
-            ) : (
-              <Circle className="h-4 w-4" />
-            )}
-          </Button>
+      <div className="flex items-start gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "mt-0.5 h-5 w-5 shrink-0 hover:text-primary rounded-full",
+            task.status === "done"
+              ? "text-emerald-600 dark:text-emerald-400"
+              : task.status === "in_progress"
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-muted-foreground",
+          )}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAdvance?.(task);
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          {task.status === "done" ? (
+            <CheckCircle2 className="h-4 w-4" />
+          ) : task.status === "in_progress" ? (
+            <Clock className="h-4 w-4" />
+          ) : (
+            <Circle className="h-4 w-4" />
+          )}
+        </Button>
+        
+        <div className="flex-1 min-w-0">
           <button
             type="button"
-            className="flex flex-col gap-1 text-left cursor-pointer"
+            className="w-full text-left cursor-pointer"
             onClick={(e) => {
               e.stopPropagation();
               onToggleExpand?.();
@@ -264,71 +263,78 @@ function TaskCard({
           >
             <span
               className={cn(
-                "text-sm font-medium leading-tight",
+                "block text-sm font-medium leading-snug mb-2",
                 task.status === "done" && "text-muted-foreground line-through",
               )}
             >
               {task.title}
             </span>
+            
             {!expanded && (
-              <div className="flex flex-wrap gap-3 text-xs font-medium text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-2">
                 <span
                   className={cn(
-                    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] uppercase",
+                    "inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider",
                     priorityMeta.badge,
-                    "border-transparent text-foreground",
                   )}
                 >
                   <span className={cn("h-1.5 w-1.5 rounded-full", priorityMeta.dot)} />
                   {priorityMeta.label}
                 </span>
-                <span>{formatRelativeDueDate(task.dueDate)}</span>
+                
+                {task.dueDate && (
+                  <span className="text-[10px] text-muted-foreground">
+                    {formatRelativeDueDate(task.dueDate)}
+                  </span>
+                )}
               </div>
             )}
+
             {!expanded && featureMeta && (
-              <div className="mt-2 flex items-center gap-2 text-xs">
+              <div className="mt-2 flex items-center gap-2">
                 <button
                   type="button"
-                  className="inline-flex items-center gap-2"
+                  className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
                   onClick={(event) => {
                     event.stopPropagation();
                     onFeatureInspect?.(featureMeta.featureId);
                   }}
                 >
-                  <Badge variant="outline" className="border-blue-400 text-blue-600 dark:text-blue-300">
-                    {featureMeta.featureTitle}
-                    {featureMeta.checklistTitle ? ` / ${featureMeta.checklistTitle}` : ''}
-                  </Badge>
+                  <span className="truncate max-w-[120px]">{featureMeta.featureTitle}</span>
+                  {featureMeta.checklistTitle && (
+                    <>
+                      <span className="text-blue-400">/</span>
+                      <span className="truncate max-w-20">{featureMeta.checklistTitle}</span>
+                    </>
+                  )}
                 </button>
                 {onUnlinkFeature && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 text-muted-foreground"
+                    className="h-4 w-4 text-muted-foreground hover:text-red-500"
                     onClick={(event) => {
                       event.stopPropagation();
                       void onUnlinkFeature();
                     }}
                   >
-                    <XCircle className="h-3.5 w-3.5" />
+                    <XCircle className="h-3 w-3" />
                   </Button>
                 )}
               </div>
             )}
           </button>
         </div>
-        <div className="flex items-center gap-1">
+
+        <div className="flex items-center opacity-0 transition-opacity group-hover:opacity-100">
           {onSaveTask && <TaskQuickEditDialog task={task} onSave={onSaveTask} />}
           {onDeleteTask && <TaskDeleteDialog taskTitle={task.title} onDelete={onDeleteTask} />}
-          <div className="opacity-0 transition-opacity group-hover:opacity-100">
-            <GripVertical className="h-4 w-4 text-muted-foreground/50" />
-          </div>
         </div>
       </div>
 
       {expanded && (
         <div
-          className="mt-3 space-y-3 border-t border-dashed border-muted-foreground/30 pt-3"
+          className="mt-3 space-y-3 border-t border-dashed border-muted-foreground/20 pt-3"
           onPointerDown={(e) => e.stopPropagation()}
         >
           <DetailRow
@@ -337,20 +343,20 @@ function TaskCard({
           >
             <span
               className={cn(
-                "inline-flex items-center gap-2 rounded-full px-2 py-1 text-[11px] font-semibold uppercase",
+                "inline-flex items-center gap-2 rounded-md px-2 py-1 text-[11px] font-medium uppercase",
                 priorityMeta.badge,
               )}
             >
-              <span className={cn("h-2 w-2 rounded-full", priorityMeta.dot)} />
+              <span className={cn("h-1.5 w-1.5 rounded-full", priorityMeta.dot)} />
               {priorityMeta.label}
             </span>
           </DetailRow>
 
           <DetailRow icon={<AlignLeft className="h-3.5 w-3.5" />} label="Description">
             {task.description ? (
-              <p className="text-sm text-foreground">{task.description}</p>
+              <p className="text-sm text-foreground leading-relaxed">{task.description}</p>
             ) : (
-              <span className="text-sm text-muted-foreground">No description yet.</span>
+              <span className="text-sm text-muted-foreground italic">No description provided.</span>
             )}
           </DetailRow>
 
@@ -362,7 +368,7 @@ function TaskCard({
             {task.assignees && task.assignees.length ? (
               <div className="flex flex-wrap gap-2">
                 {task.assignees.map((person) => (
-                  <Badge key={person} variant="secondary" className="bg-muted px-2 py-0.5 text-xs">
+                  <Badge key={person} variant="secondary" className="bg-muted px-2 py-0.5 text-xs font-normal">
                     {person}
                   </Badge>
                 ))}
@@ -376,7 +382,7 @@ function TaskCard({
             {task.tags && task.tags.length ? (
               <div className="flex flex-wrap gap-2">
                 {task.tags.map((tag) => (
-                  <Badge key={tag} variant="outline" className="text-xs uppercase tracking-wide">
+                  <Badge key={tag} variant="outline" className="text-[10px] uppercase tracking-wider font-medium">
                     {tag}
                   </Badge>
                 ))}
@@ -388,18 +394,18 @@ function TaskCard({
 
           <DetailRow icon={<Paperclip className="h-3.5 w-3.5" />} label="Attachments">
             {task.attachments && task.attachments.length ? (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1">
                 {task.attachments.map((url) => (
                   <a
                     key={url}
                     href={url}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-sm text-primary underline underline-offset-4"
+                    className="text-sm text-primary hover:underline truncate max-w-[200px]"
                     onClick={(e) => e.stopPropagation()}
                     onPointerDown={(e) => e.stopPropagation()}
                   >
-                    {url}
+                    {url.split('/').pop() || url}
                   </a>
                 ))}
               </div>
@@ -407,39 +413,6 @@ function TaskCard({
               <span className="text-sm text-muted-foreground">No attachments</span>
             )}
           </DetailRow>
-
-          {featureMeta && (
-            <DetailRow icon={<LinkIcon className="h-3.5 w-3.5" />} label="Feature">
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-2"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onFeatureInspect?.(featureMeta.featureId);
-                  }}
-                >
-                  <Badge variant="secondary">
-                    {featureMeta.featureTitle}
-                    {featureMeta.checklistTitle ? ` / ${featureMeta.checklistTitle}` : ''}
-                  </Badge>
-                </button>
-                {onUnlinkFeature && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void onUnlinkFeature();
-                    }}
-                  >
-                    Unlink
-                  </Button>
-                )}
-              </div>
-            </DetailRow>
-          )}
 
           {linkedTodo && <LinkedTodoBadge meta={linkedTodo} taskId={task._id} />}
         </div>
@@ -798,18 +771,18 @@ function DroppableColumn({ id, title, count, children, className, headerColor }:
   });
 
   return (
-    <div ref={setNodeRef} className={cn("flex h-full flex-col rounded-xl bg-muted/50 p-4", className)}>
-      <div className="mb-4 flex items-center justify-between">
+    <div ref={setNodeRef} className={cn("flex h-full flex-col rounded-2xl bg-slate-50/80 dark:bg-slate-900/20 p-3 border border-slate-100 dark:border-slate-800", className)}>
+      <div className="mb-3 flex items-center justify-between px-1">
         <div className="flex items-center gap-2">
           <div className={cn("h-2 w-2 rounded-full", headerColor || "bg-slate-400")} />
-          <h3 className="font-semibold text-sm text-foreground/80">{title}</h3>
+          <h3 className="font-semibold text-sm text-foreground">{title}</h3>
         </div>
-        <Badge variant="secondary" className="bg-background text-muted-foreground hover:bg-background">
+        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-background px-1.5 text-[10px] font-medium text-muted-foreground shadow-sm border border-slate-100 dark:border-slate-800">
           {count}
-        </Badge>
+        </span>
       </div>
       
-      <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-y-auto pr-2 -mr-2">
+      <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-y-auto px-1 pb-2">
         {children}
       </div>
     </div>
@@ -1235,7 +1208,7 @@ export function KanbanBoard({ projectId, showFeaturePanel = false }: KanbanBoard
         )}
       >
         {showFeaturePanel && (
-          <div className="max-h-[80vh] overflow-y-auto">
+          <div className="h-[calc(100vh-140px)] sticky top-6">
             <FeaturePanel
               projectId={projectId}
               features={features}
