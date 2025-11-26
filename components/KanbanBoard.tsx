@@ -252,14 +252,21 @@ function TaskCard({
         </Button>
         
         <div className="flex-1 min-w-0">
-          <button
-            type="button"
-            className="w-full text-left cursor-pointer"
+          <div
+            role="button"
+            tabIndex={0}
+            className="w-full text-left cursor-pointer outline-none"
             onClick={(e) => {
               e.stopPropagation();
               onToggleExpand?.();
             }}
-            onPointerDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                onToggleExpand?.();
+              }
+            }}
           >
             <span
               className={cn(
@@ -294,7 +301,7 @@ function TaskCard({
               <div className="mt-2 flex items-center gap-2">
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                  className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
                   onClick={(event) => {
                     event.stopPropagation();
                     onFeatureInspect?.(featureMeta.featureId);
@@ -323,7 +330,7 @@ function TaskCard({
                 )}
               </div>
             )}
-          </button>
+          </div>
         </div>
 
         <div className="flex items-center opacity-0 transition-opacity group-hover:opacity-100">
