@@ -5,23 +5,37 @@ Your task is NOT to implement this yet, but to fully understand and prepare. Thi
 Here is exactly what I need implemented:
 
 <feature_description>
+You know when working on projects, especially coding projects, it would help to link the project's tasks to say, features of the project. For eg when working on a chat app, a major feature like messaging could be linked to tasks like "show notification counts" etc.
+
+When managing projects (especially coding projects), link project **features** to individual **tasks** so feature context appears on task cards alongside existing sub-indicators (priority, due date, assignee).
+
+Specification:
+
+* **Purpose:** Allow project features (for example, “Messaging” in a chat app) to be created and associated with tasks so users can see feature context on task cards and manage feature progress via a checklist.
+
+* **Project schema changes:** Add an optional `features` collection to the project model. Each Feature contains:
+
+  * `title` (string)
+  * `description` (text)
+  * `whatDoneLooksLike` (acceptance criteria / text)
+  * `checklist` (ordered list of checklist items)
+
+* **Checklist items:** A checklist item may optionally reference an existing task ID. Checklist items are checkable and represent work needed to complete the Feature.
+
+* **Project-type behavior:**
+
+  * Detect whether a project is a coding project. If it is, allow users to add Features either during project creation or later from the project settings/UI.
+  * For non-coding projects, Features remain optional and may be omitted.
+
+* **Linking tasks to features:** Provide UI affordances to link a task to a Feature (or to a specific checklist item within a Feature). When a task is linked to a checklist item, the linkage is stored in the task and the Feature checklist item.
+
+* **Kanban interaction rule (required):** If a checklist item references a task, moving that task to the **Done** column on the Kanban board must automatically check off the corresponding checklist item in the Feature’s checklist.
+
+* **UI display:** Show the Feature name (or a link to the Feature) on the task card next to existing sub-indicators (priority, due date, assignee) so users can easily see which Feature a task contributes to.
+
+* **Constraints:** Do not remove or alter existing sub-indicators; only add Feature context alongside them. Do not introduce functionality beyond the described behaviors.
 
 
-Update the existing Kanban task cards to support priority statuses and the related UX changes below.
-
-**Requirements**
-
-* Add priority levels: **None / Low / Medium / High / Urgent** (optionally include “Critical” if needed).
-* Assign a distinct visual treatment (color) to each priority level so users can scan priorities at a glance.
-* By default each card displays **only the task title**. Add a clickable expand/collapse icon (e.g., chevron) on the card that reveals the task’s details (description, due date, assignees, labels, attachments, etc.).
-* Make task content editable (inline editing or a quick-edit action) so users can update title, details, priority, due date, and assignees without creating a new card.
-* Maintain consistent card dimensions: all Kanban cards should share the same width and collapsed height for a clean, uniform UI. The details view should be accessible without breaking the board’s visual alignment (use an in-card collapsible panel, overlay, or quick modal as appropriate so column/grid layout remains consistent).
-
-**Interaction notes**
-
-* Clicking the expand icon toggles the details panel.
-* Priority color must be visible on the card (badge, left border, or colored dot) and update immediately when priority changes.
-* Editable fields should provide clear affordances (hover/edit icons, save/cancel).
 
 </feature_description>
 --

@@ -9,6 +9,7 @@
  */
 
 import type * as bugs from "../bugs.js";
+import type * as features from "../features.js";
 import type * as projects from "../projects.js";
 import type * as prompts from "../prompts.js";
 import type * as study from "../study.js";
@@ -23,6 +24,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   bugs: typeof bugs;
+  features: typeof features;
   projects: typeof projects;
   prompts: typeof prompts;
   study: typeof study;

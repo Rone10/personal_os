@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query, MutationCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { syncTodoStatusInternal } from "./todos";
+import { syncChecklistStatusFromTask, detachTaskFromFeature } from "./features";
 
 type TaskStatus = "todo" | "in_progress" | "done";
 type TaskPriorityLevel = "low" | "medium" | "high" | "urgent" | "critical";
@@ -53,6 +54,10 @@ async function updateLinkedTodoForTask(ctx: MutationCtx, taskId: Id<"tasks">, st
   if (!link) return;
   await ctx.db.patch(link._id, { taskStatus: status, updatedAt: Date.now() });
   await syncTodoStatusInternal(ctx, link.todoId);
+}
+
+async function syncLinkedFeature(ctx: MutationCtx, taskId: Id<"tasks">) {
+  await syncChecklistStatusFromTask(ctx, taskId);
 }
 
 export const getByProject = query({
@@ -170,6 +175,7 @@ export const move = mutation({
     });
 
     await updateLinkedTodoForTask(ctx, args.id, args.status);
+    await syncLinkedFeature(ctx, args.id);
   },
 });
 
@@ -189,6 +195,7 @@ export const toggle = mutation({
     const newStatus = task.status === "todo" ? "in_progress" : task.status === "in_progress" ? "done" : "todo";
     await ctx.db.patch(args.id, { status: newStatus });
     await updateLinkedTodoForTask(ctx, args.id, newStatus);
+    await syncLinkedFeature(ctx, args.id);
   },
 });
 
@@ -235,6 +242,7 @@ export const updateTask = mutation({
 
     if (args.status !== undefined) {
       await updateLinkedTodoForTask(ctx, args.id, args.status);
+      await syncLinkedFeature(ctx, args.id);
     }
 
     return args.id;
@@ -255,6 +263,7 @@ export const deleteTask = mutation({
     }
 
     const links = await ctx.db.query("todoTaskLinks").withIndex("by_task", (q) => q.eq("taskId", args.id)).collect();
+    await detachTaskFromFeature(ctx, args.id);
     await ctx.db.delete(args.id);
 
     if (links.length) {
@@ -282,6 +291,7 @@ export const updateStatus = mutation({
 
     await ctx.db.patch(args.id, { status: args.status });
     await updateLinkedTodoForTask(ctx, args.id, args.status);
+    await syncLinkedFeature(ctx, args.id);
   },
 });
 

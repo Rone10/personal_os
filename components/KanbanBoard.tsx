@@ -3,7 +3,7 @@
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Id, Doc } from '@/convex/_generated/dataModel';
-import { Plus, GripVertical, CheckCircle2, Circle, Clock, Link as LinkIcon, RefreshCw, AlignLeft, Calendar, Users, Paperclip, Tag, Flag, PencilLine, Trash2 } from 'lucide-react';
+import { Plus, GripVertical, CheckCircle2, Circle, Clock, Link as LinkIcon, RefreshCw, AlignLeft, Calendar, Users, Paperclip, Tag, Flag, PencilLine, Trash2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useMemo, useId } from 'react';
 import * as React from 'react';
@@ -24,6 +24,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
 import { 
   DndContext, 
   DragEndEvent, 
@@ -45,9 +49,12 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
+import { FeaturePanel } from '@/app/projects/_components/FeaturePanel';
+import { toast } from 'sonner';
 
 interface KanbanBoardProps {
   projectId: Id<"projects">;
+  showFeaturePanel?: boolean;
 }
 
 type TaskStatus = "todo" | "in_progress" | "done";
@@ -62,6 +69,22 @@ type TaskEditPayload = {
   assignees: string[];
   attachments: string[];
   tags: string[];
+};
+
+type FeatureRecord = Doc<"projectFeatures"> & {
+  checklist: Doc<"featureChecklistItems">[];
+  progress: {
+    total: number;
+    completed: number;
+    percentage: number;
+  };
+};
+
+type TaskFeatureMeta = {
+  featureId: Id<"projectFeatures">;
+  featureTitle: string;
+  checklistId?: Id<"featureChecklistItems">;
+  checklistTitle?: string;
 };
 
 const PRIORITY_OPTIONS: TaskPriorityLevel[] = ["low", "medium", "high", "urgent", "critical"];
@@ -164,7 +187,31 @@ const dropAnimation: DropAnimation = {
   }),
 };
 
-function TaskCard({ task, onAdvance, isOverlay, linkedTodo, isExpanded = false, onToggleExpand, onSaveTask, onDeleteTask }: { task: KanbanTask; onAdvance?: (task: KanbanTask) => void; isOverlay?: boolean; linkedTodo?: LinkedTodoMeta; isExpanded?: boolean; onToggleExpand?: () => void; onSaveTask?: (payload: TaskEditPayload) => Promise<void>; onDeleteTask?: () => Promise<void> }) {
+function TaskCard({
+  task,
+  onAdvance,
+  isOverlay,
+  linkedTodo,
+  featureMeta,
+  onFeatureInspect,
+  onUnlinkFeature,
+  isExpanded = false,
+  onToggleExpand,
+  onSaveTask,
+  onDeleteTask,
+}: {
+  task: KanbanTask;
+  onAdvance?: (task: KanbanTask) => void;
+  isOverlay?: boolean;
+  linkedTodo?: LinkedTodoMeta;
+  featureMeta?: TaskFeatureMeta;
+  onFeatureInspect?: (featureId: Id<'projectFeatures'>) => void;
+  onUnlinkFeature?: () => Promise<void> | void;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
+  onSaveTask?: (payload: TaskEditPayload) => Promise<void>;
+  onDeleteTask?: () => Promise<void>;
+}) {
   const priorityMeta = priorityTokens[task.priorityLevel];
   const expanded = Boolean(isExpanded);
 
@@ -236,6 +283,36 @@ function TaskCard({ task, onAdvance, isOverlay, linkedTodo, isExpanded = false, 
                   {priorityMeta.label}
                 </span>
                 <span>{formatRelativeDueDate(task.dueDate)}</span>
+              </div>
+            )}
+            {!expanded && featureMeta && (
+              <div className="mt-2 flex items-center gap-2 text-xs">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onFeatureInspect?.(featureMeta.featureId);
+                  }}
+                >
+                  <Badge variant="outline" className="border-blue-400 text-blue-600 dark:text-blue-300">
+                    {featureMeta.featureTitle}
+                    {featureMeta.checklistTitle ? ` / ${featureMeta.checklistTitle}` : ''}
+                  </Badge>
+                </button>
+                {onUnlinkFeature && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-muted-foreground"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void onUnlinkFeature();
+                    }}
+                  >
+                    <XCircle className="h-3.5 w-3.5" />
+                  </Button>
+                )}
               </div>
             )}
           </button>
@@ -330,6 +407,39 @@ function TaskCard({ task, onAdvance, isOverlay, linkedTodo, isExpanded = false, 
               <span className="text-sm text-muted-foreground">No attachments</span>
             )}
           </DetailRow>
+
+          {featureMeta && (
+            <DetailRow icon={<LinkIcon className="h-3.5 w-3.5" />} label="Feature">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onFeatureInspect?.(featureMeta.featureId);
+                  }}
+                >
+                  <Badge variant="secondary">
+                    {featureMeta.featureTitle}
+                    {featureMeta.checklistTitle ? ` / ${featureMeta.checklistTitle}` : ''}
+                  </Badge>
+                </button>
+                {onUnlinkFeature && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void onUnlinkFeature();
+                    }}
+                  >
+                    Unlink
+                  </Button>
+                )}
+              </div>
+            </DetailRow>
+          )}
 
           {linkedTodo && <LinkedTodoBadge meta={linkedTodo} taskId={task._id} />}
         </div>
@@ -601,7 +711,29 @@ function TaskDeleteDialog({ taskTitle, onDelete }: { taskTitle: string; onDelete
   );
 }
 
-function SortableTask({ task, onAdvance, linkedTodo, isExpanded, onToggleExpand, onSaveTask, onDeleteTask }: { task: KanbanTask; onAdvance: (task: KanbanTask) => void; linkedTodo?: LinkedTodoMeta; isExpanded: boolean; onToggleExpand: () => void; onSaveTask: (payload: TaskEditPayload) => Promise<void>; onDeleteTask: () => Promise<void> }) {
+function SortableTask({
+  task,
+  onAdvance,
+  linkedTodo,
+  featureMeta,
+  onFeatureInspect,
+  onUnlinkFeature,
+  isExpanded,
+  onToggleExpand,
+  onSaveTask,
+  onDeleteTask,
+}: {
+  task: KanbanTask;
+  onAdvance: (task: KanbanTask) => void;
+  linkedTodo?: LinkedTodoMeta;
+  featureMeta?: TaskFeatureMeta;
+  onFeatureInspect?: (featureId: Id<'projectFeatures'>) => void;
+  onUnlinkFeature?: () => Promise<void> | void;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onSaveTask: (payload: TaskEditPayload) => Promise<void>;
+  onDeleteTask: () => Promise<void>;
+}) {
   const {
     attributes,
     listeners,
@@ -623,6 +755,9 @@ function SortableTask({ task, onAdvance, linkedTodo, isExpanded, onToggleExpand,
           task={task}
           onAdvance={onAdvance}
           linkedTodo={linkedTodo}
+          featureMeta={featureMeta}
+          onFeatureInspect={onFeatureInspect}
+          onUnlinkFeature={onUnlinkFeature}
           isExpanded={isExpanded}
           onToggleExpand={onToggleExpand}
           onSaveTask={onSaveTask}
@@ -638,6 +773,9 @@ function SortableTask({ task, onAdvance, linkedTodo, isExpanded, onToggleExpand,
         task={task}
         onAdvance={onAdvance}
         linkedTodo={linkedTodo}
+        featureMeta={featureMeta}
+        onFeatureInspect={onFeatureInspect}
+        onUnlinkFeature={onUnlinkFeature}
         isExpanded={isExpanded}
         onToggleExpand={onToggleExpand}
         onSaveTask={onSaveTask}
@@ -678,17 +816,21 @@ function DroppableColumn({ id, title, count, children, className, headerColor }:
   );
 }
 
-export function KanbanBoard({ projectId }: KanbanBoardProps) {
+export function KanbanBoard({ projectId, showFeaturePanel = false }: KanbanBoardProps) {
   const tasksQuery = useQuery(api.tasks.getByProject, { projectId });
+  const features = useQuery(api.features.listByProject, { projectId }) as FeatureRecord[] | undefined;
   const createTask = useMutation(api.tasks.create);
   const moveTask = useMutation(api.tasks.move);
   const updateTaskMutation = useMutation(api.tasks.updateTask);
   const deleteTaskMutation = useMutation(api.tasks.deleteTask);
+  const linkTaskToFeatureMutation = useMutation(api.features.linkTaskToFeature);
+  const unlinkTaskFromFeatureMutation = useMutation(api.features.unlinkTaskFromFeature);
   
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [activeId, setActiveId] = useState<Id<"tasks"> | null>(null);
   const [localTasks, setLocalTasks] = useState<KanbanTask[]>([]);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  const [focusedFeatureId, setFocusedFeatureId] = useState<Id<"projectFeatures"> | null>(null);
   const prevTasksQuery = React.useRef(tasksQuery);
 
   const handleAdvance = (task: KanbanTask) => {
@@ -838,6 +980,89 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
     };
   }, [localTasks]);
 
+  const featureMap = useMemo(() => {
+    const map = new Map<string, FeatureRecord>();
+    (features ?? []).forEach((feature) => {
+      map.set(feature._id.toString(), feature);
+    });
+    return map;
+  }, [features]);
+
+  const checklistMap = useMemo(() => {
+    const map = new Map<string, { featureId: Id<'projectFeatures'>; item: Doc<'featureChecklistItems'> }>();
+    (features ?? []).forEach((feature) => {
+      feature.checklist.forEach((item) => {
+        map.set(item._id.toString(), { featureId: feature._id, item });
+      });
+    });
+    return map;
+  }, [features]);
+  const taskFeatureMetaMap = useMemo(() => {
+    const map = new Map<string, TaskFeatureMeta>();
+    localTasks.forEach((task) => {
+      if (!task.featureId) return;
+      const feature = featureMap.get(task.featureId.toString());
+      if (!feature) return;
+      const checklistInfo = task.featureChecklistItemId
+        ? checklistMap.get(task.featureChecklistItemId.toString())
+        : undefined;
+      map.set(task._id.toString(), {
+        featureId: feature._id,
+        featureTitle: feature.title,
+        checklistId: checklistInfo?.item._id,
+        checklistTitle: checklistInfo?.item.title,
+      });
+    });
+    return map;
+  }, [localTasks, featureMap, checklistMap]);
+
+  const handleLinkToFeatureTarget = async (
+    taskId: Id<"tasks">,
+    target: { featureId: Id<"projectFeatures">; checklistId?: Id<"featureChecklistItems"> },
+  ) => {
+    let snapshot: KanbanTask[] = [];
+    setLocalTasks((prev) => {
+      snapshot = prev;
+      return prev.map((task) =>
+        task._id === taskId
+          ? { ...task, featureId: target.featureId, featureChecklistItemId: target.checklistId }
+          : task,
+      );
+    });
+
+    try {
+      await linkTaskToFeatureMutation({
+        taskId,
+        featureId: target.featureId,
+        checklistId: target.checklistId,
+      });
+      toast.success('Task linked to feature');
+    } catch (error) {
+      console.error(error);
+      setLocalTasks(snapshot);
+      toast.error('Unable to link task');
+    }
+  };
+
+  const handleUnlinkFeature = async (taskId: Id<"tasks">) => {
+    let snapshot: KanbanTask[] = [];
+    setLocalTasks((prev) => {
+      snapshot = prev;
+      return prev.map((task) =>
+        task._id === taskId ? { ...task, featureId: undefined, featureChecklistItemId: undefined } : task,
+      );
+    });
+
+    try {
+      await unlinkTaskFromFeatureMutation({ taskId });
+      toast.success('Task unlinked from feature');
+    } catch (error) {
+      console.error(error);
+      setLocalTasks(snapshot);
+      toast.error('Unable to unlink task');
+    }
+  };
+
   const taskIds = useMemo(() => {
     return localTasks.map((task) => task._id).sort((a, b) => a.localeCompare(b));
   }, [localTasks]);
@@ -850,6 +1075,13 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
     });
     return map;
   }, [linkedMeta]);
+
+  const focusedFeature = focusedFeatureId ? featureMap.get(focusedFeatureId.toString()) : undefined;
+  const focusedFeatureTasks = useMemo(() => {
+    if (!focusedFeatureId) return [] as KanbanTask[];
+    const target = focusedFeatureId.toString();
+    return localTasks.filter((task) => task.featureId?.toString() === target);
+  }, [focusedFeatureId, localTasks]);
 
   if (tasksQuery === undefined) {
     return (
@@ -900,6 +1132,24 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
     const activeTask = localTasks.find(t => t._id === activeId);
     
     if (!activeTask) return;
+
+    if (typeof overId === 'string' && overId.startsWith('feature:')) {
+      const featureId = overId.replace('feature:', '') as Id<"projectFeatures">;
+      void handleLinkToFeatureTarget(activeId, { featureId });
+      return;
+    }
+
+    if (typeof overId === 'string' && overId.startsWith('checklist:')) {
+      const checklistId = overId.replace('checklist:', '') as Id<"featureChecklistItems">;
+      const checklistMeta = checklistMap.get(checklistId.toString());
+      if (checklistMeta) {
+        void handleLinkToFeatureTarget(activeId, {
+          featureId: checklistMeta.featureId,
+          checklistId,
+        });
+        return;
+      }
+    }
 
     const isColumnTarget = COLUMN_IDS.includes(overId as TaskStatus);
     const overTask = isColumnTarget ? undefined : localTasks.find(t => t._id === overId);
@@ -978,97 +1228,126 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full overflow-hidden">
-        {/* TODO Column */}
-        <div className="flex flex-col h-full">
-          <DroppableColumn 
-            id="todo" 
-            title="To Do" 
-            count={columns.todo.length} 
-            headerColor="bg-slate-500"
-            className="flex-1"
-          >
-            <SortableContext items={columns.todo.map(t => t._id)} strategy={verticalListSortingStrategy}>
-              {columns.todo.map((task) => (
-                <SortableTask
-                  key={task._id}
-                  task={task}
-                  onAdvance={handleAdvance}
-                  linkedTodo={linkedMetaMap.get(task._id.toString())}
-                  isExpanded={expandedTasks.has(task._id.toString())}
-                  onToggleExpand={() => toggleTaskExpansion(task._id)}
-                  onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
-                  onDeleteTask={() => deleteTaskOptimistic(task._id)}
-                />
-              ))}
-            </SortableContext>
-            
-            <form onSubmit={handleCreateTask} className="mt-2">
-              <div className="relative">
-                <Input 
-                  placeholder="Add a task..." 
-                  value={newTaskTitle}
-                  onChange={(e) => setNewTaskTitle(e.target.value)}
-                  className="pr-8 bg-background shadow-sm border-dashed border-muted-foreground/30 focus:border-solid"
-                />
-                <Button 
-                  type="submit" 
-                  size="icon" 
-                  variant="ghost"
-                  className="absolute right-1 top-1 h-7 w-7 text-muted-foreground hover:text-primary"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            </form>
-          </DroppableColumn>
+      <div
+        className={cn(
+          'flex flex-col gap-6',
+          showFeaturePanel && 'lg:grid lg:grid-cols-[360px_minmax(0,1fr)]'
+        )}
+      >
+        {showFeaturePanel && (
+          <div className="max-h-[80vh] overflow-y-auto">
+            <FeaturePanel
+              projectId={projectId}
+              features={features}
+              enableTaskTargets
+              activeTaskId={activeId}
+            />
+          </div>
+        )}
+
+        <div className={cn('w-full', showFeaturePanel && 'lg:col-start-2')}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full overflow-hidden">
+            {/* TODO Column */}
+            <div className="flex flex-col h-full">
+              <DroppableColumn 
+                id="todo" 
+                title="To Do" 
+                count={columns.todo.length} 
+                headerColor="bg-slate-500"
+                className="flex-1"
+              >
+                <SortableContext items={columns.todo.map(t => t._id)} strategy={verticalListSortingStrategy}>
+                  {columns.todo.map((task) => (
+                    <SortableTask
+                      key={task._id}
+                      task={task}
+                      onAdvance={handleAdvance}
+                      linkedTodo={linkedMetaMap.get(task._id.toString())}
+                      featureMeta={taskFeatureMetaMap.get(task._id.toString())}
+                      onFeatureInspect={(featureId) => setFocusedFeatureId(featureId)}
+                      onUnlinkFeature={() => handleUnlinkFeature(task._id)}
+                      isExpanded={expandedTasks.has(task._id.toString())}
+                      onToggleExpand={() => toggleTaskExpansion(task._id)}
+                      onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
+                      onDeleteTask={() => deleteTaskOptimistic(task._id)}
+                    />
+                  ))}
+                </SortableContext>
+                
+                <form onSubmit={handleCreateTask} className="mt-2">
+                  <div className="relative">
+                    <Input 
+                      placeholder="Add a task..." 
+                      value={newTaskTitle}
+                      onChange={(e) => setNewTaskTitle(e.target.value)}
+                      className="pr-8 bg-background shadow-sm border-dashed border-muted-foreground/30 focus:border-solid"
+                    />
+                    <Button 
+                      type="submit" 
+                      size="icon" 
+                      variant="ghost"
+                      className="absolute right-1 top-1 h-7 w-7 text-muted-foreground hover:text-primary"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </form>
+              </DroppableColumn>
+            </div>
+
+            {/* IN PROGRESS Column */}
+            <DroppableColumn 
+              id="in_progress" 
+              title="In Progress" 
+              count={columns.in_progress.length} 
+              headerColor="bg-blue-500"
+            >
+              <SortableContext items={columns.in_progress.map(t => t._id)} strategy={verticalListSortingStrategy}>
+                  {columns.in_progress.map((task) => (
+                    <SortableTask
+                      key={task._id}
+                      task={task}
+                      onAdvance={handleAdvance}
+                      linkedTodo={linkedMetaMap.get(task._id.toString())}
+                      featureMeta={taskFeatureMetaMap.get(task._id.toString())}
+                      onFeatureInspect={(featureId) => setFocusedFeatureId(featureId)}
+                      onUnlinkFeature={() => handleUnlinkFeature(task._id)}
+                      isExpanded={expandedTasks.has(task._id.toString())}
+                      onToggleExpand={() => toggleTaskExpansion(task._id)}
+                      onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
+                      onDeleteTask={() => deleteTaskOptimistic(task._id)}
+                    />
+                ))}
+              </SortableContext>
+            </DroppableColumn>
+
+            {/* DONE Column */}
+            <DroppableColumn 
+              id="done" 
+              title="Done" 
+              count={columns.done.length} 
+              headerColor="bg-green-500"
+            >
+              <SortableContext items={columns.done.map(t => t._id)} strategy={verticalListSortingStrategy}>
+                  {columns.done.map((task) => (
+                    <SortableTask
+                      key={task._id}
+                      task={task}
+                      onAdvance={handleAdvance}
+                      linkedTodo={linkedMetaMap.get(task._id.toString())}
+                      featureMeta={taskFeatureMetaMap.get(task._id.toString())}
+                      onFeatureInspect={(featureId) => setFocusedFeatureId(featureId)}
+                      onUnlinkFeature={() => handleUnlinkFeature(task._id)}
+                      isExpanded={expandedTasks.has(task._id.toString())}
+                      onToggleExpand={() => toggleTaskExpansion(task._id)}
+                      onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
+                      onDeleteTask={() => deleteTaskOptimistic(task._id)}
+                    />
+                ))}
+              </SortableContext>
+            </DroppableColumn>
+          </div>
         </div>
-
-        {/* IN PROGRESS Column */}
-        <DroppableColumn 
-          id="in_progress" 
-          title="In Progress" 
-          count={columns.in_progress.length} 
-          headerColor="bg-blue-500"
-        >
-          <SortableContext items={columns.in_progress.map(t => t._id)} strategy={verticalListSortingStrategy}>
-              {columns.in_progress.map((task) => (
-                <SortableTask
-                  key={task._id}
-                  task={task}
-                  onAdvance={handleAdvance}
-                  linkedTodo={linkedMetaMap.get(task._id.toString())}
-                  isExpanded={expandedTasks.has(task._id.toString())}
-                  onToggleExpand={() => toggleTaskExpansion(task._id)}
-                  onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
-                  onDeleteTask={() => deleteTaskOptimistic(task._id)}
-                />
-            ))}
-          </SortableContext>
-        </DroppableColumn>
-
-        {/* DONE Column */}
-        <DroppableColumn 
-          id="done" 
-          title="Done" 
-          count={columns.done.length} 
-          headerColor="bg-green-500"
-        >
-          <SortableContext items={columns.done.map(t => t._id)} strategy={verticalListSortingStrategy}>
-              {columns.done.map((task) => (
-                <SortableTask
-                  key={task._id}
-                  task={task}
-                  onAdvance={handleAdvance}
-                  linkedTodo={linkedMetaMap.get(task._id.toString())}
-                  isExpanded={expandedTasks.has(task._id.toString())}
-                  onToggleExpand={() => toggleTaskExpansion(task._id)}
-                  onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
-                  onDeleteTask={() => deleteTaskOptimistic(task._id)}
-                />
-            ))}
-          </SortableContext>
-        </DroppableColumn>
       </div>
 
       <DragOverlay dropAnimation={dropAnimation}>
@@ -1076,11 +1355,164 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
           <TaskCard
             task={activeTask}
             isOverlay
+            featureMeta={taskFeatureMetaMap.get(activeTask._id.toString())}
             isExpanded={expandedTasks.has(activeTask._id.toString())}
           />
         ) : null}
       </DragOverlay>
+
+      <FeatureDetailsSheet
+        feature={focusedFeature}
+        linkedTasks={focusedFeatureTasks}
+        open={Boolean(focusedFeatureId)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setFocusedFeatureId(null);
+          }
+        }}
+      />
     </DndContext>
+  );
+}
+
+function FeatureDetailsSheet({
+  feature,
+  linkedTasks = [],
+  open,
+  onOpenChange,
+}: {
+  feature?: FeatureRecord;
+  linkedTasks?: KanbanTask[];
+  open: boolean;
+  onOpenChange: (next: boolean) => void;
+}) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full max-w-md border-l border-border/50 p-0">
+        <ScrollArea className="h-full">
+          <div className="space-y-6 p-6">
+            <SheetHeader>
+              <SheetTitle className="text-base font-semibold">
+                {feature ? feature.title : 'Feature context'}
+              </SheetTitle>
+              <p className="text-sm text-muted-foreground">
+                {feature?.description ?? 'Select a feature badge to inspect scope, checklist, and linked tasks.'}
+              </p>
+            </SheetHeader>
+
+            {feature ? (
+              <div className="space-y-6">
+                <section className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <span>Progress</span>
+                    <span>
+                      {feature.progress.completed}/{feature.progress.total}
+                    </span>
+                  </div>
+                  <Progress value={feature.progress.percentage} className="h-2" />
+                </section>
+
+                {feature.whatDoneLooksLike && (
+                  <section className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      What done looks like
+                    </p>
+                    <p className="text-sm leading-relaxed text-foreground/90">
+                      {feature.whatDoneLooksLike}
+                    </p>
+                  </section>
+                )}
+
+                <Separator />
+
+                <section className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Checklist</p>
+                    <Badge variant="outline">{feature.checklist.length}</Badge>
+                  </div>
+                  {feature.checklist.length ? (
+                    <div className="space-y-2">
+                      {feature.checklist.map((item) => (
+                        <div key={item._id} className="rounded-xl border border-border/60 p-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{item.title}</p>
+                              {item.description && (
+                                <p className="text-xs text-muted-foreground">{item.description}</p>
+                              )}
+                            </div>
+                            <Badge variant={item.status === 'done' ? 'default' : 'secondary'}>
+                              {item.status === 'done' ? 'Done' : 'Todo'}
+                            </Badge>
+                          </div>
+                          {item.linkedTaskIds?.length ? (
+                            <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">
+                              Linked tasks: {item.linkedTaskIds.length}
+                            </p>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No checklist items yet.</p>
+                  )}
+                </section>
+
+                <Separator />
+
+                <section className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Linked tasks</p>
+                    <Badge variant="secondary">{linkedTasks.length}</Badge>
+                  </div>
+                  {linkedTasks.length ? (
+                    <div className="space-y-2">
+                      {linkedTasks.map((task) => {
+                        const checklistLabel = task.featureChecklistItemId
+                          ? feature.checklist.find((item) => item._id === task.featureChecklistItemId)?.title
+                          : undefined;
+                        return (
+                          <div key={task._id} className="rounded-xl border border-border/60 p-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm font-semibold text-foreground">{task.title}</p>
+                              <Badge variant="outline" className="text-[11px] uppercase">
+                                {priorityTokens[task.priorityLevel].label}
+                              </Badge>
+                            </div>
+                            <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                              <span className="inline-flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {formatRelativeDueDate(task.dueDate)}
+                              </span>
+                              <span className="inline-flex items-center gap-1">
+                                <AlignLeft className="h-3 w-3" />
+                                {task.status.replace('_', ' ')}
+                              </span>
+                              {checklistLabel && (
+                                <span className="inline-flex items-center gap-1">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  {checklistLabel}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No tasks linked yet.</p>
+                  )}
+                </section>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground">
+                Select a feature badge to view scope, checklist, and linked tasks.
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </SheetContent>
+    </Sheet>
   );
 }
 

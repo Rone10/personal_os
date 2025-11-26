@@ -8,9 +8,12 @@ export default defineSchema({
     name: v.string(),
     description: v.optional(v.string()),
     status: v.union(v.literal("active"), v.literal("archived"), v.literal("idea")),
+    type: v.optional(v.union(v.literal("coding"), v.literal("general"))),
     icon: v.optional(v.string()), // Emoji or icon name
     slug: v.string(),
-  }).index("by_user_status", ["userId", "status"]),
+  })
+    .index("by_user_status", ["userId", "status"])
+    .index("by_user_type", ["userId", "type"]),
 
   tasks: defineTable({
     userId: v.string(),
@@ -33,7 +36,36 @@ export default defineSchema({
     order: v.optional(v.number()), // For Kanban ordering
     dueDate: v.optional(v.number()),
     tags: v.optional(v.array(v.string())),
-  }).index("by_user_project", ["userId", "projectId", "status"]),
+    featureId: v.optional(v.id("projectFeatures")),
+    featureChecklistItemId: v.optional(v.id("featureChecklistItems")),
+  })
+    .index("by_user_project", ["userId", "projectId", "status"])
+    .index("by_feature", ["featureId"])
+    .index("by_checklist_item", ["featureChecklistItemId"]),
+
+  projectFeatures: defineTable({
+    userId: v.string(),
+    projectId: v.id("projects"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    whatDoneLooksLike: v.optional(v.string()),
+    order: v.number(),
+  })
+    .index("by_project", ["projectId", "order"])
+    .index("by_user_project", ["userId", "projectId"]),
+
+  featureChecklistItems: defineTable({
+    userId: v.string(),
+    projectId: v.id("projects"),
+    featureId: v.id("projectFeatures"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    status: v.union(v.literal("todo"), v.literal("done")),
+    order: v.number(),
+    linkedTaskIds: v.optional(v.array(v.id("tasks"))),
+  })
+    .index("by_feature", ["featureId", "order"])
+    .index("by_project", ["projectId", "featureId"]),
 
   todos: defineTable({
     userId: v.string(),

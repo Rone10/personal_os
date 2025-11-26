@@ -26,6 +26,7 @@ export const create = mutation({
     description: v.optional(v.string()),
     icon: v.optional(v.string()),
     slug: v.string(),
+    type: v.optional(v.union(v.literal("coding"), v.literal("general"))),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -33,6 +34,7 @@ export const create = mutation({
 
     return await ctx.db.insert("projects", {
       ...args,
+      type: args.type ?? "general",
       userId: identity.subject,
       status: "active",
     });

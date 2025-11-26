@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +28,7 @@ export default function ProjectsPage() {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [iconValue, setIconValue] = useState('');
+  const [projectType, setProjectType] = useState<'coding' | 'general'>('general');
   const [showEmojiHint, setShowEmojiHint] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [emojiShortcut, setEmojiShortcut] = useState('Press Windows + . (Win) or Control + Command + Space (macOS) to open the system emoji keyboard.');
@@ -52,6 +54,7 @@ export default function ProjectsPage() {
     setIconValue('');
     setShowEmojiHint(false);
     setPickerOpen(false);
+    setProjectType('general');
   };
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -65,6 +68,7 @@ export default function ProjectsPage() {
         description: formData.get('description') as string,
         slug: (formData.get('name') as string).toLowerCase().replace(/\s+/g, '-'),
         icon: iconValue.trim() || undefined,
+        type: projectType,
       });
       setIsOpen(false);
       e.currentTarget.reset();
@@ -109,6 +113,19 @@ export default function ProjectsPage() {
                 <Label htmlFor="name">Name</Label>
                 <Input id="name" name="name" required placeholder="e.g. Personal OS" />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="type">Project type</Label>
+                <Select value={projectType} onValueChange={(value) => setProjectType(value as 'coding' | 'general')}>
+                  <SelectTrigger id="type">
+                    <SelectValue placeholder="Select project type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">General</SelectItem>
+                    <SelectItem value="coding">Coding</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea id="description" name="description" placeholder="What are you building?" />

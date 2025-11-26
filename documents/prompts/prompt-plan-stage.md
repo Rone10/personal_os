@@ -1,15 +1,24 @@
-# Answers to Questions
-1. Yes, all including critical. I don't think it's necessary to have "None" so it should only be low/medium/high/urgent/critical. The default should be low. There's currently no data in the db but the mapping can be 1=low, 2=medium, and 3=high
-2. Yes, let's introduce new columns. Assignees can be plain text for now since I'll be the only using it for the foreseeable future, attachments can be URLs.
-3. A quick edit dialog. Edits should require explicit save/cancel.
-4. they should only live in the details panel.
-5. per page load behavior is acceptable.
-6. Assignees should just be text tag for now.
+# Answers to Open Questions - Data Model & Rules
+1. New type field
+2. First-class tables with their own IDs for easier queries and checklist operations. 
+3. No, a task cannot belong to more than one feature or checklist item simultaneously. 
+4. Multiple tasks can satisfy a single checklist entry. 
+5. Yes, we should automatically uncheck the checklist item if it leaves the done column. 
+6. 
 7. 
 8. 
 9. 
 
-
+# Answers to Open Questions - Data Model & Rules
+1. Users can create and manage features after project creation by inline dialog on the project detail page. 
+2. Linking task to feature or checklist can be done by drag/drop into a feature panel and vice versa. 
+3. For now, the feature badge on a task card could have a color and it can be on the same line as the sub-indicators. Clicking it should trigger a slide out. 
+4. Yes, non-coding projects should hide the feature UI entirely. 
+5. Yes, when a task is deleted or unlinked, we can clear the checklist reference and uncheck it. 
+6. 
+7. 
+8. 
+9. 
 
 # Plan Creation Stage
 

@@ -22,6 +22,7 @@ export default function ProjectDetailPage() {
   // I'll use `api.projects.get` and filter for now.
   const projects = useQuery(api.projects.get, { status: 'active' });
   const project = projects?.find((p: Doc<"projects">) => p._id === projectId);
+  const isCodingProject = project?.type === 'coding';
 
   if (projects === undefined) {
     return <div className="p-8 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>;
@@ -42,7 +43,7 @@ export default function ProjectDetailPage() {
       </div>
 
       <div className="flex-1 min-h-0">
-        <KanbanBoard projectId={projectId} />
+        <KanbanBoard projectId={projectId} showFeaturePanel={isCodingProject} />
       </div>
     </div>
   );
