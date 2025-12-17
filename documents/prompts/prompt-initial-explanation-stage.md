@@ -1,3 +1,4 @@
+
 # Initial Explanation Stage
 
 Your task is NOT to implement this yet, but to fully understand and prepare. Think hard and ultrathink through this task.
@@ -5,36 +6,12 @@ Your task is NOT to implement this yet, but to fully understand and prepare. Thi
 Here is exactly what I need implemented:
 
 <feature_description>
-You know when working on projects, especially coding projects, it would help to link the project's tasks to say, features of the project. For eg when working on a chat app, a major feature like messaging could be linked to tasks like "show notification counts" etc.
+So for the study feature, I want to use it to help me in the following way:
+- when I see a word or arabic pharase, I want to record it, its meaning, reference it to a verse(s) of the quran or hadith or any other source if it exists.
+- I want to be able to search for a word and see all its references if they exist.
+- When I see the meaning/translation of a verse of the Quran, I want to capture it and be able to reference it later. I want to capture the source, meaning, references etc. Capturing the verse/chapter of the verse or word will help a lot in referencing it
 
-When managing projects (especially coding projects), link project **features** to individual **tasks** so feature context appears on task cards alongside existing sub-indicators (priority, due date, assignee).
-
-Specification:
-
-* **Purpose:** Allow project features (for example, “Messaging” in a chat app) to be created and associated with tasks so users can see feature context on task cards and manage feature progress via a checklist.
-
-* **Project schema changes:** Add an optional `features` collection to the project model. Each Feature contains:
-
-  * `title` (string)
-  * `description` (text)
-  * `whatDoneLooksLike` (acceptance criteria / text)
-  * `checklist` (ordered list of checklist items)
-
-* **Checklist items:** A checklist item may optionally reference an existing task ID. Checklist items are checkable and represent work needed to complete the Feature.
-
-* **Project-type behavior:**
-
-  * Detect whether a project is a coding project. If it is, allow users to add Features either during project creation or later from the project settings/UI.
-  * For non-coding projects, Features remain optional and may be omitted.
-
-* **Linking tasks to features:** Provide UI affordances to link a task to a Feature (or to a specific checklist item within a Feature). When a task is linked to a checklist item, the linkage is stored in the task and the Feature checklist item.
-
-* **Kanban interaction rule (required):** If a checklist item references a task, moving that task to the **Done** column on the Kanban board must automatically check off the corresponding checklist item in the Feature’s checklist.
-
-* **UI display:** Show the Feature name (or a link to the Feature) on the task card next to existing sub-indicators (priority, due date, assignee) so users can easily see which Feature a task contributes to.
-
-* **Constraints:** Do not remove or alter existing sub-indicators; only add Feature context alongside them. Do not introduce functionality beyond the described behaviors.
-
+I am primarily using the study feature to help me understand the Quran and arabic, so I want it to be very organized and effective for me to easily capture and retrieve information.
 
 
 </feature_description>
