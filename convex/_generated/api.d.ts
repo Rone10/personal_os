@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as _lib_arabic from "../_lib/arabic.js";
 import type * as bugs from "../bugs.js";
 import type * as features from "../features.js";
 import type * as projects from "../projects.js";
@@ -23,6 +24,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "_lib/arabic": typeof _lib_arabic;
   bugs: typeof bugs;
   features: typeof features;
   projects: typeof projects;

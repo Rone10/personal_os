@@ -133,7 +133,115 @@ export default defineSchema({
     root: v.optional(v.string()), // Trilateral root (e.g., "k-t-b")
     masteryLevel: v.number(), // 1-5
     nextReview: v.optional(v.number()), // Timestamp for spaced repetition
+    // Compatibility field: set after migrating this vocab row into `studyWords`.
+    migratedToWordId: v.optional(v.id("studyWords")),
   }).index("by_user_root", ["userId", "root"]),
+
+  // --- STUDY CENTER (QURAN/ARABIC) v2 ---
+  //
+  // These tables implement a structured “capture and retrieve” workflow:
+  // - Words and phrases are stored separately.
+  // - Each word/phrase/passage can have multiple meanings from different sources.
+  // - Meanings can have references (Quran ranges, structured hadith, or other sources).
+  // - Words can link to phrase examples.
+  // - Notes store personal reflections (not a “source”).
+
+  studyWords: defineTable({
+    userId: v.string(),
+    arabicText: v.string(),
+    arabicNormalized: v.string(), // For diacritics-insensitive search
+    transliteration: v.optional(v.string()),
+    root: v.optional(v.string()),
+    masteryLevel: v.number(), // 1-5
+    nextReview: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_root", ["userId", "root"]),
+
+  studyPhrases: defineTable({
+    userId: v.string(),
+    arabicText: v.string(),
+    arabicNormalized: v.string(), // For diacritics-insensitive search
+    transliteration: v.optional(v.string()),
+  }).index("by_user", ["userId"]),
+
+  studyQuranPassages: defineTable({
+    userId: v.string(),
+    surah: v.number(),
+    ayahStart: v.number(),
+    ayahEnd: v.optional(v.number()),
+    arabicText: v.string(),
+    arabicNormalized: v.string(), // For diacritics-insensitive search
+  }).index("by_user_surah", ["userId", "surah", "ayahStart"]),
+
+  studySources: defineTable({
+    userId: v.string(),
+    kind: v.union(
+      v.literal("quran_translation"),
+      v.literal("tafsir"),
+      v.literal("hadith"),
+      v.literal("dictionary"),
+      v.literal("other"),
+    ),
+    title: v.optional(v.string()),
+    url: v.optional(v.string()),
+    author: v.optional(v.string()),
+    lastUsedAt: v.optional(v.number()),
+  }).index("by_user_kind", ["userId", "kind"]),
+
+  studyMeanings: defineTable({
+    userId: v.string(),
+    ownerType: v.union(v.literal("word"), v.literal("phrase"), v.literal("quran_passage")),
+    ownerId: v.string(), // stores the Convex document id as a string (Id<...>)
+    text: v.string(),
+    language: v.optional(v.string()),
+    sourceId: v.optional(v.id("studySources")),
+    isPrimary: v.boolean(),
+    order: v.number(),
+  }).index("by_user_owner", ["userId", "ownerType", "ownerId", "order"]),
+
+  studyReferences: defineTable({
+    userId: v.string(),
+    meaningId: v.id("studyMeanings"),
+    type: v.union(v.literal("quran"), v.literal("hadith"), v.literal("other")),
+
+    // Quran range reference
+    quranSurah: v.optional(v.number()),
+    quranAyahStart: v.optional(v.number()),
+    quranAyahEnd: v.optional(v.number()),
+
+    // Structured hadith reference
+    hadithCollection: v.optional(v.string()),
+    hadithNumber: v.optional(v.string()),
+    hadithBook: v.optional(v.string()),
+    hadithChapter: v.optional(v.string()),
+    hadithGrade: v.optional(v.string()),
+    hadithNarrator: v.optional(v.string()),
+
+    // Optional metadata for “other” (and optionally for any reference type)
+    title: v.optional(v.string()),
+    url: v.optional(v.string()),
+    notes: v.optional(v.string()),
+  })
+    .index("by_meaning", ["meaningId"])
+    .index("by_user", ["userId"]),
+
+  studyNotes: defineTable({
+    userId: v.string(),
+    ownerType: v.union(v.literal("word"), v.literal("phrase"), v.literal("quran_passage")),
+    ownerId: v.string(), // stores the Convex document id as a string (Id<...>)
+    content: v.string(),
+    updatedAt: v.number(),
+  }).index("by_user_owner", ["userId", "ownerType", "ownerId"]),
+
+  studyWordPhraseLinks: defineTable({
+    userId: v.string(),
+    wordId: v.id("studyWords"),
+    phraseId: v.id("studyPhrases"),
+    order: v.optional(v.number()),
+  })
+    .index("by_user_word", ["userId", "wordId"])
+    .index("by_user_phrase", ["userId", "phraseId"]),
 
   notes: defineTable({
     userId: v.string(),

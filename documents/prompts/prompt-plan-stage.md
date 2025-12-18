@@ -1,12 +1,18 @@
 # Answers to Questions
-1. 
-2. 
-3.  
-4. 
-5. 
+1. Yes, search is only across saved items. 
+2. I want them separated, but usually when I enter a word, I might add an example of a phrase or something. 
+3. Multiple meanings. One word or verse could have so many meanings from different sources. 
+4. - Yes, I want to have ranges for the Quran. 
+- Yes, I want structured fields for the hadith. 
+- Yes, I want URL + title or autofills, but they should all be optional. 
+5. Yes, I want to store the translation or the meaning I saw. I want the Arabic ayah text, and yes, there can be multiple translations per ayah. However, I also want to have a note section for the ayah or the word so that I can put in my own opinion or my own thoughts. 
+6. Yes, I want UI to automatically show the saved verse capture. 
+7. Yes, Arabic search should be diacritics-insensitive, and English search can be fuzzy. 
+8. Yes, I need edit or delete. 
+9. Keep flashcards minimal. 
 # Plan Creation Stage
 
-Based on our full exchange, now produce a **markdown implementation plan** for the feature in the file path: `./app/(investment-profile)/bonds`.
+Based on our full exchange, now produce a **markdown implementation plan** for the feature in the file path: `./app/study`.
 
 Requirements for the plan:
 
@@ -20,7 +26,7 @@ Requirements for the plan:
   * A short **goal/description** (what this step achieves and why it exists).
   * A checklist of **concrete sub-tasks** that specify:
 
-    * Relevant files / folders (e.g. `./app/(investment-profile)/bonds/page.tsx`).
+    * Relevant files / folders (e.g. `./app/study/page.tsx`).
     * Components, functions, hooks, or modules to create or modify.
     * Data structures, types, or API endpoints involved.
     * Any important validations, edge cases, or UX concerns.
