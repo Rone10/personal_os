@@ -289,49 +289,51 @@ export default function MainContent(props: MainContentProps) {
   }
 
   function renderDialogs() {
+    // Only pass editId to the dialog that's actually open to avoid
+    // queries firing with wrong table IDs
     return (
       <>
         <WordFormDialog
           open={openDialog === "word"}
           onClose={closeDialog}
-          editId={editId}
+          editId={openDialog === "word" ? editId : undefined}
         />
         <RootFormDialog
           open={openDialog === "root"}
           onClose={closeDialog}
-          editId={editId}
+          editId={openDialog === "root" ? editId : undefined}
         />
         <VerseFormDialog
           open={openDialog === "verse"}
           onClose={closeDialog}
-          editId={editId}
+          editId={openDialog === "verse" ? editId : undefined}
         />
         <HadithFormDialog
           open={openDialog === "hadith"}
           onClose={closeDialog}
-          editId={editId}
+          editId={openDialog === "hadith" ? editId : undefined}
         />
         <CourseFormDialog
           open={openDialog === "course"}
           onClose={closeDialog}
-          editId={editId}
+          editId={openDialog === "course" ? editId : undefined}
         />
         <LessonFormDialog
           open={openDialog === "lesson"}
           onClose={closeDialog}
           courseId={entityId ?? ""}
-          editId={editId}
+          editId={openDialog === "lesson" ? editId : undefined}
         />
         <BookFormDialog
           open={openDialog === "book"}
           onClose={closeDialog}
-          editId={editId}
+          editId={openDialog === "book" ? editId : undefined}
         />
         <ChapterFormDialog
           open={openDialog === "chapter"}
           onClose={closeDialog}
           bookId={entityId ?? ""}
-          editId={editId}
+          editId={openDialog === "chapter" ? editId : undefined}
         />
         <NoteFormDialog
           open={openDialog === "note"}
