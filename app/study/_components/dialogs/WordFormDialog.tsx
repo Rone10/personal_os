@@ -229,12 +229,15 @@ export default function WordFormDialog({
           {/* Root Selection */}
           <div>
             <Label>Root</Label>
-            <Select value={rootId} onValueChange={setRootId}>
+            <Select
+              value={rootId || "__none__"}
+              onValueChange={(v) => setRootId(v === "__none__" ? "" : v)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select root (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="__none__">None</SelectItem>
                 {roots?.map((root) => (
                   <SelectItem key={root._id} value={root._id}>
                     <span className="font-arabic">{root.letters}</span>

@@ -184,12 +184,15 @@ export default function HadithFormDialog({
             </div>
             <div>
               <Label>Grading</Label>
-              <Select value={grading} onValueChange={setGrading}>
+              <Select
+                value={grading || "__none__"}
+                onValueChange={(v) => setGrading(v === "__none__" ? "" : v)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select grading" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Not specified</SelectItem>
+                  <SelectItem value="__none__">Not specified</SelectItem>
                   {GRADINGS.map((g) => (
                     <SelectItem key={g} value={g} className="capitalize">
                       {g}
