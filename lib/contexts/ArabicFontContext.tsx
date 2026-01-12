@@ -20,7 +20,7 @@ interface ArabicFontContextType {
 const STORAGE_KEY = "arabic-font-size";
 const DEFAULT_SIZE = 1.0;
 const MIN_SIZE = 0.75;
-const MAX_SIZE = 1.5;
+const MAX_SIZE = 3.0;
 const STEP = 0.1;
 
 const ArabicFontContext = createContext<ArabicFontContextType | undefined>(

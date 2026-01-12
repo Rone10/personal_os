@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono, Noto_Sans_Arabic } from 'next/font/google';
-import localFont from 'next/font/local';
+import { Geist, Geist_Mono, Noto_Sans_Arabic, Amiri_Quran } from 'next/font/google';
 import './globals.css';
 import { ConvexClientProvider } from '@/components/ConvexClientProvider';
 import { ArabicFontProvider } from '@/lib/contexts/ArabicFontContext';
@@ -22,10 +21,10 @@ const notoSansArabic = Noto_Sans_Arabic({
   subsets: ['arabic'],
 });
 
-const uthmaniQuran = localFont({
-  src: '../public/fonts/UthmanicHafs.woff2',
-  variable: '--font-uthmani-quran',
-  display: 'swap',
+const amiriQuran = Amiri_Quran({
+  variable: '--font-amiri-quran',
+  subsets: ['arabic'],
+  weight: '400',
 });
 
 export const metadata: Metadata = {
@@ -43,7 +42,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} ${notoSansArabic.variable} ${uthmaniQuran.variable} antialiased bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${notoSansArabic.variable} ${amiriQuran.variable} antialiased bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50`}>
         <ConvexClientProvider>
           <ArabicFontProvider>
             <div className="flex h-screen overflow-hidden">

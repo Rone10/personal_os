@@ -91,7 +91,7 @@
   }
 
   .font-quran {
-    font-family: var(--font-uthmani-quran), var(--font-noto-arabic), sans-serif;
+    font-family: var(--font-amiri-quran), var(--font-noto-arabic), sans-serif;
     line-height: 2.0;
     letter-spacing: 0.02em;
   }
