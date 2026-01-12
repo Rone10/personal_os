@@ -94,8 +94,15 @@ export function ArabicFontProvider({ children }: ArabicFontProviderProps) {
 
 export function useArabicFont() {
   const context = useContext(ArabicFontContext);
+  // Return default values if context isn't available (e.g., during SSR or outside provider)
   if (context === undefined) {
-    throw new Error("useArabicFont must be used within an ArabicFontProvider");
+    return {
+      fontSize: DEFAULT_SIZE,
+      setFontSize: () => {},
+      increaseFont: () => {},
+      decreaseFont: () => {},
+      resetFont: () => {},
+    };
   }
   return context;
 }

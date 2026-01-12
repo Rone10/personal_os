@@ -43,8 +43,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} ${notoSansArabic.variable} ${amiriQuran.variable} antialiased bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50`}>
-        <ConvexClientProvider>
-          <ArabicFontProvider>
+        <ArabicFontProvider>
+          <ConvexClientProvider>
             <div className="flex h-screen overflow-hidden">
               <Sidebar />
               <div className="flex-1 flex flex-col overflow-hidden">
@@ -54,8 +54,8 @@ export default function RootLayout({
               </div>
             </div>
             <CommandPalette />
-          </ArabicFontProvider>
-        </ConvexClientProvider>
+          </ConvexClientProvider>
+        </ArabicFontProvider>
       </body>
     </html>
   );
