@@ -23,14 +23,15 @@ export interface FetchedAyah {
 }
 
 // Default translations (enabled by default when adding verses)
+// IDs based on Quran Foundation API: https://quran.foundation
 export const DEFAULT_TRANSLATIONS: TranslationSource[] = [
   {
-    id: "131",
+    id: "20",
     name: "Sahih International",
     authorName: "Saheeh International",
   },
   {
-    id: "149",
+    id: "131",
     name: "The Clear Quran",
     authorName: "Dr. Mustafa Khattab",
   },
@@ -39,7 +40,7 @@ export const DEFAULT_TRANSLATIONS: TranslationSource[] = [
 // All available translations for selection
 export const AVAILABLE_TRANSLATIONS: TranslationSource[] = [
   ...DEFAULT_TRANSLATIONS,
-  { id: "20", name: "Pickthall", authorName: "Muhammad Marmaduke Pickthall" },
+  { id: "19", name: "Pickthall", authorName: "Muhammad Marmaduke Pickthall" },
   { id: "22", name: "Yusuf Ali", authorName: "Abdullah Yusuf Ali" },
   { id: "84", name: "Mufti Taqi Usmani", authorName: "Mufti Taqi Usmani" },
   { id: "85", name: "Abdul Haleem", authorName: "Abdul Haleem" },

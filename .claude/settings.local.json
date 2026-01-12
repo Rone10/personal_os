@@ -13,7 +13,8 @@
       "WebFetch(domain:api.alquran.cloud)",
       "WebFetch(domain:api.quran.com)",
       "WebFetch(domain:api.qurancdn.com)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(pnpm install:*)"
     ]
   }
 }
