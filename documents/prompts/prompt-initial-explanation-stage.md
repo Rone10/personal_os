@@ -6,14 +6,7 @@ Your task is NOT to implement this yet, but to fully understand and prepare. Thi
 Here is exactly what I need implemented:
 
 <feature_description>
-So for the study feature, I want to use it to help me in the following way:
-- when I see a word or arabic pharase, I want to record it, its meaning, reference it to a verse(s) of the quran or hadith or any other source if it exists.
-- I want to be able to search for a word and see all its references if they exist.
-- When I see the meaning/translation of a verse of the Quran, I want to capture it and be able to reference it later. I want to capture the source, meaning, references etc. Capturing the verse/chapter of the verse or word will help a lot in referencing it
-
-I am primarily using the study feature to help me understand the Quran and arabic, so I want it to be very organized and effective for me to easily capture and retrieve information.
-
-
+I want to overhaul the study feature and transform it. Read the specs in ./documents/arabic-study-system.md to understand what we need. 
 </feature_description>
 --
 

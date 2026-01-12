@@ -124,129 +124,311 @@ export default defineSchema({
   .searchIndex("search_content", { searchField: "content", filterFields: ["userId"] })
   .index("by_user", ["userId"]),
 
-  // --- LEARNING (QURAN/ARABIC) ---
-  vocab: defineTable({
-    userId: v.string(),
-    arabicText: v.string(),
-    transliteration: v.optional(v.string()),
-    translation: v.string(),
-    root: v.optional(v.string()), // Trilateral root (e.g., "k-t-b")
-    masteryLevel: v.number(), // 1-5
-    nextReview: v.optional(v.number()), // Timestamp for spaced repetition
-    // Compatibility field: set after migrating this vocab row into `studyWords`.
-    migratedToWordId: v.optional(v.id("studyWords")),
-  }).index("by_user_root", ["userId", "root"]),
-
-  // --- STUDY CENTER (QURAN/ARABIC) v2 ---
+  // =============================================================================
+  // ARABIC KNOWLEDGE RETENTION SYSTEM
+  // =============================================================================
   //
-  // These tables implement a structured “capture and retrieve” workflow:
-  // - Words and phrases are stored separately.
-  // - Each word/phrase/passage can have multiple meanings from different sources.
-  // - Meanings can have references (Quran ranges, structured hadith, or other sources).
-  // - Words can link to phrase examples.
-  // - Notes store personal reflections (not a “source”).
+  // A comprehensive system for studying Arabic through Quran and Hadith.
+  // Features: Root-based vocabulary, inline note references, bi-directional
+  // backlinks, courses/books hierarchy, and robust Arabic search.
 
-  studyWords: defineTable({
+  // --- ROOTS ---
+  // The foundational unit for Arabic vocabulary. All Arabic words derive from roots.
+  roots: defineTable({
     userId: v.string(),
-    arabicText: v.string(),
-    arabicNormalized: v.string(), // For diacritics-insensitive search
-    transliteration: v.optional(v.string()),
-    root: v.optional(v.string()),
-    masteryLevel: v.number(), // 1-5
-    nextReview: v.optional(v.number()),
+    letters: v.string(), // Arabic root letters (e.g., "ك-ت-ب")
+    latinized: v.string(), // Romanized form for search (e.g., "k-t-b")
+    coreMeaning: v.string(), // General semantic field in English
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
-    .index("by_user_root", ["userId", "root"]),
+    .index("by_user_latinized", ["userId", "latinized"])
+    .index("by_user_letters", ["userId", "letters"]),
 
-  studyPhrases: defineTable({
+  // --- WORDS ---
+  // Individual vocabulary entries. Arabic words link to a Root.
+  words: defineTable({
     userId: v.string(),
-    arabicText: v.string(),
-    arabicNormalized: v.string(), // For diacritics-insensitive search
+    text: v.string(), // The word as entered (with diacritics)
+    language: v.union(v.literal("arabic"), v.literal("english")),
+    rootId: v.optional(v.id("roots")), // Reference to Root (Arabic only)
+    type: v.optional(
+      v.union(v.literal("harf"), v.literal("ism"), v.literal("fiil")),
+    ), // Part of speech (Arabic only)
+    wazan: v.optional(v.string()), // Morphological pattern (e.g., فَاعِل)
+    meanings: v.array(
+      v.object({
+        definition: v.string(),
+        usageContext: v.optional(v.string()),
+        examples: v.optional(v.array(v.string())),
+      }),
+    ),
+    grammaticalInfo: v.optional(
+      v.object({
+        gender: v.optional(
+          v.union(
+            v.literal("masculine"),
+            v.literal("feminine"),
+            v.literal("both"),
+          ),
+        ),
+        number: v.optional(
+          v.union(v.literal("singular"), v.literal("dual"), v.literal("plural")),
+        ),
+        caseEndings: v.optional(v.string()),
+        conjugations: v.optional(v.string()),
+        nounType: v.optional(v.string()), // e.g., "masdar", "ism fa'il"
+        verbForm: v.optional(v.number()), // Form I-X for verbs
+      }),
+    ),
     transliteration: v.optional(v.string()),
+    aliases: v.optional(v.array(v.string())), // Alternate spellings
+    notes: v.optional(v.string()),
+    // Search fields
+    normalizedText: v.string(), // Tatweel removed, alef/hamza PRESERVED
+    diacriticStrippedText: v.string(), // For fuzzy search (tashkeel removed)
+    searchTokens: v.optional(v.array(v.string())),
+    // Flashcard/SRS fields
+    masteryLevel: v.optional(v.number()), // 1-5
+    nextReview: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_root", ["userId", "rootId"])
+    .index("by_user_language", ["userId", "language"])
+    .index("by_user_type", ["userId", "type"]),
+
+  // --- VERSES ---
+  // Quran verses (individual or ranges)
+  verses: defineTable({
+    userId: v.string(),
+    surahNumber: v.number(), // 1-114
+    surahNameArabic: v.optional(v.string()),
+    surahNameEnglish: v.optional(v.string()),
+    ayahStart: v.number(),
+    ayahEnd: v.optional(v.number()), // Optional for ranges
+    arabicText: v.string(),
+    translation: v.optional(v.string()), // English translation
+    topic: v.optional(v.string()), // Topic/theme for categorization
+    normalizedText: v.string(),
+    diacriticStrippedText: v.string(),
+    searchTokens: v.optional(v.array(v.string())),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_surah", ["userId", "surahNumber", "ayahStart"]),
+
+  // --- HADITHS ---
+  hadiths: defineTable({
+    userId: v.string(),
+    collection: v.string(), // Bukhari, Muslim, Tirmidhi, etc.
+    bookName: v.optional(v.string()),
+    hadithNumber: v.string(),
+    grading: v.optional(
+      v.union(
+        v.literal("sahih"),
+        v.literal("hasan"),
+        v.literal("daif"),
+        v.literal("mawdu"),
+      ),
+    ),
+    arabicText: v.string(),
+    translation: v.optional(v.string()), // English translation
+    topic: v.optional(v.string()), // Topic/theme for categorization
+    narratorChain: v.optional(v.string()), // The isnad
+    normalizedText: v.string(),
+    diacriticStrippedText: v.string(),
+    searchTokens: v.optional(v.array(v.string())),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_collection", ["userId", "collection"]),
+
+  // --- COURSES ---
+  courses: defineTable({
+    userId: v.string(),
+    title: v.string(),
+    description: v.optional(v.string()),
+    source: v.optional(v.string()), // Instructor, platform, URL
+    order: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
   }).index("by_user", ["userId"]),
 
-  studyQuranPassages: defineTable({
+  // --- LESSONS (belong to a Course) ---
+  lessons: defineTable({
     userId: v.string(),
-    surah: v.number(),
-    ayahStart: v.number(),
-    ayahEnd: v.optional(v.number()),
-    arabicText: v.string(),
-    arabicNormalized: v.string(), // For diacritics-insensitive search
-  }).index("by_user_surah", ["userId", "surah", "ayahStart"]),
-
-  studySources: defineTable({
-    userId: v.string(),
-    kind: v.union(
-      v.literal("quran_translation"),
-      v.literal("tafsir"),
-      v.literal("hadith"),
-      v.literal("dictionary"),
-      v.literal("other"),
-    ),
-    title: v.optional(v.string()),
-    url: v.optional(v.string()),
-    author: v.optional(v.string()),
-    lastUsedAt: v.optional(v.number()),
-  }).index("by_user_kind", ["userId", "kind"]),
-
-  studyMeanings: defineTable({
-    userId: v.string(),
-    ownerType: v.union(v.literal("word"), v.literal("phrase"), v.literal("quran_passage")),
-    ownerId: v.string(), // stores the Convex document id as a string (Id<...>)
-    text: v.string(),
-    language: v.optional(v.string()),
-    sourceId: v.optional(v.id("studySources")),
-    isPrimary: v.boolean(),
+    courseId: v.id("courses"),
+    title: v.string(),
+    content: v.optional(v.string()),
     order: v.number(),
-  }).index("by_user_owner", ["userId", "ownerType", "ownerId", "order"]),
-
-  studyReferences: defineTable({
-    userId: v.string(),
-    meaningId: v.id("studyMeanings"),
-    type: v.union(v.literal("quran"), v.literal("hadith"), v.literal("other")),
-
-    // Quran range reference
-    quranSurah: v.optional(v.number()),
-    quranAyahStart: v.optional(v.number()),
-    quranAyahEnd: v.optional(v.number()),
-
-    // Structured hadith reference
-    hadithCollection: v.optional(v.string()),
-    hadithNumber: v.optional(v.string()),
-    hadithBook: v.optional(v.string()),
-    hadithChapter: v.optional(v.string()),
-    hadithGrade: v.optional(v.string()),
-    hadithNarrator: v.optional(v.string()),
-
-    // Optional metadata for “other” (and optionally for any reference type)
-    title: v.optional(v.string()),
-    url: v.optional(v.string()),
-    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
   })
-    .index("by_meaning", ["meaningId"])
-    .index("by_user", ["userId"]),
+    .index("by_user", ["userId"])
+    .index("by_course", ["courseId", "order"]),
 
+  // --- BOOKS ---
+  books: defineTable({
+    userId: v.string(),
+    title: v.string(),
+    author: v.optional(v.string()),
+    description: v.optional(v.string()),
+    order: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  // --- CHAPTERS (belong to a Book) ---
+  chapters: defineTable({
+    userId: v.string(),
+    bookId: v.id("books"),
+    title: v.string(),
+    content: v.optional(v.string()),
+    order: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_book", ["bookId", "order"]),
+
+  // --- NOTES ---
+  // Free-text notes with inline references. Can belong to a Lesson, Chapter, or stand alone.
   studyNotes: defineTable({
     userId: v.string(),
-    ownerType: v.union(v.literal("word"), v.literal("phrase"), v.literal("quran_passage")),
-    ownerId: v.string(), // stores the Convex document id as a string (Id<...>)
-    content: v.string(),
+    title: v.optional(v.string()),
+    content: v.string(), // Plain text content
+    // Legacy fields for backwards compatibility during transition
+    ownerType: v.optional(
+      v.union(
+        v.literal("word"),
+        v.literal("phrase"),
+        v.literal("quran_passage"),
+      ),
+    ),
+    ownerId: v.optional(v.string()),
+    // New parent fields
+    parentType: v.optional(
+      v.union(
+        v.literal("lesson"),
+        v.literal("chapter"),
+        v.literal("verse"),
+        v.literal("hadith"),
+        v.literal("word"),
+      ),
+    ),
+    parentId: v.optional(v.string()),
+    // Inline references with character positions
+    references: v.optional(
+      v.array(
+        v.object({
+          targetType: v.union(
+            v.literal("word"),
+            v.literal("verse"),
+            v.literal("hadith"),
+            v.literal("lesson"),
+            v.literal("chapter"),
+            v.literal("root"),
+          ),
+          targetId: v.string(),
+          startOffset: v.number(),
+          endOffset: v.number(),
+          displayText: v.string(),
+        }),
+      ),
+    ),
+    externalLinks: v.optional(
+      v.array(
+        v.object({
+          url: v.string(),
+          label: v.string(),
+        }),
+      ),
+    ),
+    normalizedText: v.optional(v.string()),
+    searchTokens: v.optional(v.array(v.string())),
+    createdAt: v.optional(v.number()),
     updatedAt: v.number(),
-  }).index("by_user_owner", ["userId", "ownerType", "ownerId"]),
-
-  studyWordPhraseLinks: defineTable({
-    userId: v.string(),
-    wordId: v.id("studyWords"),
-    phraseId: v.id("studyPhrases"),
-    order: v.optional(v.number()),
   })
-    .index("by_user_word", ["userId", "wordId"])
-    .index("by_user_phrase", ["userId", "phraseId"]),
+    .index("by_user", ["userId"])
+    .index("by_user_parent", ["userId", "parentType", "parentId"])
+    .index("by_user_owner", ["userId", "ownerType", "ownerId"]),
 
-  notes: defineTable({
+  // --- EXPLANATIONS ---
+  // Separates interpretations from notes. One word/verse can have multiple explanations.
+  explanations: defineTable({
     userId: v.string(),
     content: v.string(),
-    type: v.union(v.literal("general"), v.literal("tafsir"), v.literal("code_snippet")),
-    relatedId: v.optional(v.string()), // Generic link to other IDs if needed
-  }).index("by_user", ["userId"]),
+    sourceType: v.union(
+      v.literal("lesson"),
+      v.literal("chapter"),
+      v.literal("personal"),
+      v.literal("external"),
+    ),
+    sourceId: v.optional(v.string()), // If from lesson/chapter, link to it
+    sourceLabel: v.optional(v.string()), // e.g., "Sheikh X's tafsir"
+    subjectType: v.union(
+      v.literal("word"),
+      v.literal("verse"),
+      v.literal("hadith"),
+      v.literal("root"),
+    ),
+    subjectId: v.string(),
+    order: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_subject", ["subjectType", "subjectId"]),
+
+  // --- TAGS ---
+  tags: defineTable({
+    userId: v.string(),
+    name: v.string(), // e.g., "Patience", "Day of Judgment"
+    description: v.optional(v.string()),
+    color: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_name", ["userId", "name"]),
+
+  // --- ENTITY TAGS (Many-to-Many Join) ---
+  entityTags: defineTable({
+    userId: v.string(),
+    tagId: v.id("tags"),
+    entityType: v.union(
+      v.literal("word"),
+      v.literal("verse"),
+      v.literal("hadith"),
+      v.literal("note"),
+      v.literal("lesson"),
+      v.literal("chapter"),
+      v.literal("root"),
+      v.literal("explanation"),
+    ),
+    entityId: v.string(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_tag", ["tagId"])
+    .index("by_entity", ["entityType", "entityId"]),
+
+  // --- BACKLINKS (Derived/Maintained) ---
+  // Updated automatically when a Note is saved. Enables fast "what references this?" queries.
+  backlinks: defineTable({
+    userId: v.string(),
+    targetType: v.string(), // Type of referenced entity
+    targetId: v.string(), // ID of referenced entity
+    noteId: v.id("studyNotes"), // The note that contains the reference
+    snippet: v.string(), // Context snippet from the note
+    startOffset: v.number(),
+    endOffset: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_target", ["targetType", "targetId"])
+    .index("by_note", ["noteId"]),
 });

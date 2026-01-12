@@ -9,6 +9,10 @@ import {
   Plus,
   Bug,
   BookOpen,
+  Languages,
+  Hash,
+  ScrollText,
+  Sparkles,
 } from 'lucide-react';
 
 import {
@@ -58,9 +62,27 @@ export function CommandPalette() {
               <Bug className="mr-2 h-4 w-4" />
               <span>Log Bug</span>
             </CommandItem>
-            <CommandItem onSelect={() => runCommand(() => router.push('/study?new=true'))}>
+          </CommandGroup>
+          <CommandGroup heading="Study Center">
+            <CommandItem onSelect={() => runCommand(() => router.push('/study?view=words'))}>
+              <Languages className="mr-2 h-4 w-4" />
+              <span>Browse Words</span>
+            </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => router.push('/study?view=roots'))}>
+              <Hash className="mr-2 h-4 w-4" />
+              <span>Browse Roots</span>
+            </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => router.push('/study?view=verses'))}>
               <BookOpen className="mr-2 h-4 w-4" />
-              <span>Add Vocab</span>
+              <span>Browse Verses</span>
+            </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => router.push('/study?view=hadiths'))}>
+              <ScrollText className="mr-2 h-4 w-4" />
+              <span>Browse Hadiths</span>
+            </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => router.push('/study?view=flashcards'))}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              <span>Start Flashcards</span>
             </CommandItem>
           </CommandGroup>
           <CommandGroup heading="Navigation">

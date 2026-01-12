@@ -1,0 +1,344 @@
+"use client";
+
+import { useState } from "react";
+import { ViewType, EntityType } from "./StudyPageClient";
+
+// List components
+import WordsList from "./lists/WordsList";
+import VersesList from "./lists/VersesList";
+import HadithsList from "./lists/HadithsList";
+import RootsList from "./lists/RootsList";
+import CoursesList from "./lists/CoursesList";
+import BooksList from "./lists/BooksList";
+import NotesList from "./lists/NotesList";
+
+// View components
+import DashboardView from "./views/DashboardView";
+import FlashcardsView from "./views/FlashcardsView";
+
+// Detail components
+import WordDetail from "./details/WordDetail";
+import RootDetail from "./details/RootDetail";
+import VerseDetail from "./details/VerseDetail";
+import HadithDetail from "./details/HadithDetail";
+import CourseDetail from "./details/CourseDetail";
+import LessonDetail from "./details/LessonDetail";
+import BookDetail from "./details/BookDetail";
+import ChapterDetail from "./details/ChapterDetail";
+import NoteDetail from "./details/NoteDetail";
+
+// Form dialogs
+import WordFormDialog from "./dialogs/WordFormDialog";
+import RootFormDialog from "./dialogs/RootFormDialog";
+import VerseFormDialog from "./dialogs/VerseFormDialog";
+import HadithFormDialog from "./dialogs/HadithFormDialog";
+import CourseFormDialog from "./dialogs/CourseFormDialog";
+import LessonFormDialog from "./dialogs/LessonFormDialog";
+import BookFormDialog from "./dialogs/BookFormDialog";
+import ChapterFormDialog from "./dialogs/ChapterFormDialog";
+import NoteFormDialog from "./dialogs/NoteFormDialog";
+
+interface MainContentProps {
+  view: ViewType;
+  entityType?: EntityType;
+  entityId?: string;
+  parentId?: string;
+  onNavigate: (view: ViewType, type?: EntityType, id?: string, parent?: string) => void;
+  searchQuery: string;
+  searchData: SearchData;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SearchData = Record<string, any[]>;
+
+type DialogType =
+  | "word" | "root" | "verse" | "hadith"
+  | "course" | "lesson" | "book" | "chapter" | "note"
+  | null;
+
+export default function MainContent(props: MainContentProps) {
+  const {
+    view,
+    entityType,
+    entityId,
+    parentId,
+    onNavigate,
+    // searchQuery - TODO: Use for search filtering
+    searchData,
+  } = props;
+  const [openDialog, setOpenDialog] = useState<DialogType>(null);
+  const [editId, setEditId] = useState<string | undefined>();
+
+  const openCreateDialog = (type: DialogType) => {
+    setEditId(undefined);
+    setOpenDialog(type);
+  };
+
+  const openEditDialog = (type: DialogType, id: string) => {
+    setEditId(id);
+    setOpenDialog(type);
+  };
+
+  const closeDialog = () => {
+    setOpenDialog(null);
+    setEditId(undefined);
+  };
+
+  // If we have an entityId, show the detail view
+  if (entityId && entityType) {
+    return (
+      <>
+        {renderDetailView()}
+        {renderDialogs()}
+      </>
+    );
+  }
+
+  // Otherwise show the list/main view
+  return (
+    <>
+      {renderListView()}
+      {renderDialogs()}
+    </>
+  );
+
+  function renderDetailView() {
+    switch (entityType) {
+      case "word":
+        return (
+          <WordDetail
+            wordId={entityId!}
+            onNavigate={onNavigate}
+            onEdit={() => openEditDialog("word", entityId!)}
+          />
+        );
+      case "root":
+        return (
+          <RootDetail
+            rootId={entityId!}
+            onNavigate={onNavigate}
+            onEdit={() => openEditDialog("root", entityId!)}
+          />
+        );
+      case "verse":
+        return (
+          <VerseDetail
+            verseId={entityId!}
+            onNavigate={onNavigate}
+            onEdit={() => openEditDialog("verse", entityId!)}
+          />
+        );
+      case "hadith":
+        return (
+          <HadithDetail
+            hadithId={entityId!}
+            onNavigate={onNavigate}
+            onEdit={() => openEditDialog("hadith", entityId!)}
+          />
+        );
+      case "course":
+        return (
+          <CourseDetail
+            courseId={entityId!}
+            onNavigate={onNavigate}
+            onEdit={() => openEditDialog("course", entityId!)}
+            onAddLesson={() => openCreateDialog("lesson")}
+          />
+        );
+      case "lesson":
+        return (
+          <LessonDetail
+            lessonId={entityId!}
+            courseId={parentId!}
+            onNavigate={onNavigate}
+            onEdit={() => openEditDialog("lesson", entityId!)}
+          />
+        );
+      case "book":
+        return (
+          <BookDetail
+            bookId={entityId!}
+            onNavigate={onNavigate}
+            onEdit={() => openEditDialog("book", entityId!)}
+            onAddChapter={() => openCreateDialog("chapter")}
+          />
+        );
+      case "chapter":
+        return (
+          <ChapterDetail
+            chapterId={entityId!}
+            bookId={parentId!}
+            onNavigate={onNavigate}
+            onEdit={() => openEditDialog("chapter", entityId!)}
+          />
+        );
+      case "note":
+        return (
+          <NoteDetail
+            noteId={entityId!}
+            onNavigate={onNavigate}
+          />
+        );
+      default:
+        return (
+          <div className="p-8 text-center text-slate-500">
+            Unknown entity type: {entityType}
+          </div>
+        );
+    }
+  }
+
+  function renderListView() {
+    switch (view) {
+      case "dashboard":
+        return (
+          <DashboardView
+            searchData={searchData}
+            onNavigate={onNavigate}
+          />
+        );
+
+      case "flashcards":
+        return <FlashcardsView />;
+
+      case "roots":
+        return (
+          <RootsList
+            roots={searchData.roots}
+            selectedId={undefined}
+            onSelect={(id) => onNavigate("roots", "root", id)}
+            onAdd={() => openCreateDialog("root")}
+          />
+        );
+
+      case "words":
+        return (
+          <WordsList
+            words={searchData.words}
+            selectedId={undefined}
+            onSelect={(id) => onNavigate("words", "word", id)}
+            onAdd={() => openCreateDialog("word")}
+          />
+        );
+
+      case "verses":
+        return (
+          <VersesList
+            verses={searchData.verses}
+            selectedId={undefined}
+            filterSurah={parentId ? parseInt(parentId) : undefined}
+            onSelect={(id) => onNavigate("verses", "verse", id)}
+            onAdd={() => openCreateDialog("verse")}
+          />
+        );
+
+      case "hadiths":
+        return (
+          <HadithsList
+            hadiths={searchData.hadiths}
+            selectedId={undefined}
+            filterCollection={parentId}
+            onSelect={(id) => onNavigate("hadiths", "hadith", id)}
+            onAdd={() => openCreateDialog("hadith")}
+          />
+        );
+
+      case "courses":
+        return (
+          <CoursesList
+            courses={searchData.courses}
+            lessons={searchData.lessons}
+            selectedCourseId={undefined}
+            selectedLessonId={undefined}
+            onSelectCourse={(id) => onNavigate("courses", "course", id)}
+            onSelectLesson={(id, courseId) => onNavigate("courses", "lesson", id, courseId)}
+            onAdd={() => openCreateDialog("course")}
+          />
+        );
+
+      case "books":
+        return (
+          <BooksList
+            books={searchData.books}
+            chapters={searchData.chapters}
+            selectedBookId={undefined}
+            selectedChapterId={undefined}
+            onSelectBook={(id) => onNavigate("books", "book", id)}
+            onSelectChapter={(id, bookId) => onNavigate("books", "chapter", id, bookId)}
+            onAdd={() => openCreateDialog("book")}
+          />
+        );
+
+      case "notes":
+        return (
+          <NotesList
+            notes={searchData.notes}
+            selectedId={undefined}
+            onSelect={(id) => onNavigate("notes", "note", id)}
+            onAdd={() => openCreateDialog("note")}
+          />
+        );
+
+      default:
+        return (
+          <div className="p-8 text-center text-slate-500">
+            Unknown view: {view}
+          </div>
+        );
+    }
+  }
+
+  function renderDialogs() {
+    return (
+      <>
+        <WordFormDialog
+          open={openDialog === "word"}
+          onClose={closeDialog}
+          editId={editId}
+        />
+        <RootFormDialog
+          open={openDialog === "root"}
+          onClose={closeDialog}
+          editId={editId}
+        />
+        <VerseFormDialog
+          open={openDialog === "verse"}
+          onClose={closeDialog}
+          editId={editId}
+        />
+        <HadithFormDialog
+          open={openDialog === "hadith"}
+          onClose={closeDialog}
+          editId={editId}
+        />
+        <CourseFormDialog
+          open={openDialog === "course"}
+          onClose={closeDialog}
+          editId={editId}
+        />
+        <LessonFormDialog
+          open={openDialog === "lesson"}
+          onClose={closeDialog}
+          courseId={entityId ?? ""}
+          editId={editId}
+        />
+        <BookFormDialog
+          open={openDialog === "book"}
+          onClose={closeDialog}
+          editId={editId}
+        />
+        <ChapterFormDialog
+          open={openDialog === "chapter"}
+          onClose={closeDialog}
+          bookId={entityId ?? ""}
+          editId={editId}
+        />
+        <NoteFormDialog
+          open={openDialog === "note"}
+          onClose={closeDialog}
+          onCreated={(noteId) => onNavigate("notes", "note", noteId)}
+        />
+      </>
+    );
+  }
+}
