@@ -5,7 +5,8 @@
       "Bash(pnpm tsc:*)",
       "Bash(pnpm build:*)",
       "WebSearch",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }
