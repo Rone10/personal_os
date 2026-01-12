@@ -1,0 +1,158 @@
+{
+  "translations": [
+    {
+      "id": 85,
+      "name": "M.A.S. Abdel Haleem",
+      "author_name": "Abdul Haleem",
+      "slug": "en-haleem",
+      "language_name": "english",
+      "translated_name": {
+        "name": "M.A.S. Abdel Haleem",
+        "language_name": "english"
+      }
+    },
+    {
+      "id": 80,
+      "name": "Muhammad Karakunnu and Vanidas Elayavoor",
+      "author_name": "Muhammad Karakunnu and Vanidas Elayavoor",
+      "slug": "ml-karakunnu",
+      "language_name": "malayalam",
+      "translated_name": {
+        "name": "Muhammad Karakunnu and Vanidas Elayavoor",
+        "language_name": "english"
+      }
+    },
+    {
+      "id": 78,
+      "name": "Ministry of Awqaf, Egypt",
+      "author_name": "Ministry of Awqaf, Egypt",
+      "slug": "ru-ministry-of-awqaf",
+      "language_name": "russian",
+      "translated_name": {
+        "name": "Ministry of Awqaf, Egypt",
+        "language_name": "english"
+      }
+    },
+    {
+      "id": 234,
+      "name": "Fatah Muhammad Jalandhari",
+      "author_name": "Fatah Muhammad Jalandhari",
+      "slug": "ur-fatah-muhammad-jalandhari",
+      "language_name": "urdu",
+      "translated_name": {
+        "name": "Fatah Muhammad Jalandhari",
+        "language_name": "english"
+      }
+    },
+    {
+      "id": 57,
+      "name": "Transliteration",
+      "author_name": "Transliteration",
+      "slug": "transliteration",
+      "language_name": "english",
+      "translated_name": {
+        "name": "Transliteration",
+        "language_name": "english"
+      }
+    },
+    {
+      "id": 136,
+      "name": "Montada Islamic Foundation",
+      "author_name": "Montada Islamic Foundation",
+      "slug": null,
+      "language_name": "french",
+      "translated_name": {
+        "name": "Montada Islamic Foundation",
+        "language_name": "english"
+      }
+    },
+    {
+      "id": 161,
+      "name": "Taisirul Quran",
+      "author_name": "Tawheed Publication",
+      "slug": "bn-taisirul-quran",
+      "language_name": "bengali",
+      "translated_name": {
+        "name": "Taisirul Quran",
+        "language_name": "english"
+      }
+    },
+    {
+      "id": 210,
+      "name": "Dar Al-Salam Center",
+      "author_name": "Dar Al-Salam Center",
+      "slug": null,
+      "language_name": "turkish",
+      "translated_name": {
+        "name": "Dar Al-Salam Center",
+        "language_name": "english"
+      }
+    },
+    {
+      "id": 140,
+      "name": "Montada Islamic Foundation",
+      "author_name": "Montada Islamic Foundation",
+      "slug": null,
+      "language_name": "spanish",
+      "translated_name": {
+        "name": "Montada Islamic Foundation",
+        "language_name": "english"
+      }
+    },
+    {
+      "id": 235,
+      "name": "Malak Faris Abdalsalaam",
+      "author_name": "Malak Faris Abdalsalaam",
+      "slug": "nl-abdalsalaam",
+      "language_name": "dutch",
+      "translated_name": {
+        "name": "Malak Faris Abdalsalaam",
+        "language_name": "english"
+      }
+    },
+    {
+      "id": 220,
+      "name": "Ruwwad Center",
+      "author_name": "Translation Pioneers Center",
+      "slug": null,
+      "language_name": "vietnamese",
+      "translated_name": {
+        "name": "Translation Pioneers Center",
+        "language_name": "english"
+      }
+    },
+    {
+      "id": 39,
+      "name": "Abdullah Muhammad Basmeih",
+      "author_name": "Abdullah Muhammad Basmeih",
+      "slug": "ms-abdullah",
+      "language_name": "malay",
+      "translated_name": {
+        "name": "Abdullah Muhammad Basmeih",
+        "language_name": "english"
+      }
+    },
+    {
+      "id": 208,
+      "name": "Abu Reda Muhammad ibn Ahmad",
+      "author_name": "Abu Reda Muhammad ibn Ahmad",
+      "slug": null,
+      "language_name": "german",
+      "translated_name": {
+        "name": "Abu Reda Muhammad ibn Ahmad",
+        "language_name": "english"
+      }
+    },
+    {
+      "id": 33,
+      "name": "Indonesian Islamic Affairs Ministry",
+      "author_name": "Unknown",
+      "slug": "quran.id",
+      "language_name": "indonesian",
+      "translated_name": {
+        "name": "Indonesian Islamic Affairs Ministry",
+        "language_name": "english"
+      }
+    }
+  ]
+}

@@ -6,7 +6,11 @@ Your task is NOT to implement this yet, but to fully understand and prepare. Thi
 Here is exactly what I need implemented:
 
 <feature_description>
-I want to overhaul the study feature and transform it. Read the specs in ./documents/arabic-study-system.md to understand what we need. 
+ I want to have the ayah number at the end of the ayah (arabic) when I visit
+  http://localhost:3700/study?view=verses&type=verse&id=nx728pagxhnmp49zvemgswr4v57z2q0n. Also when adding a verse range, the
+  translation section should give me a text field for each verse so that it's easy to read. I also want the translation to be
+  added automatically when adding a verse. Give me a dropdown option of which translations I want. for each ayah, give me the
+  option to have upto 4 translations for each ayah. By default I want to have 2 translations: the clear quran and sahih international. Carefully think about this  
 </feature_description>
 --
 

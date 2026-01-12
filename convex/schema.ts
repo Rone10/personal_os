@@ -203,6 +203,7 @@ export default defineSchema({
 
   // --- VERSES ---
   // Quran verses (individual or ranges)
+  // Supports both legacy single translation and new multi-translation format
   verses: defineTable({
     userId: v.string(),
     surahNumber: v.number(), // 1-114
@@ -210,8 +211,25 @@ export default defineSchema({
     surahNameEnglish: v.optional(v.string()),
     ayahStart: v.number(),
     ayahEnd: v.optional(v.number()), // Optional for ranges
-    arabicText: v.string(),
-    translation: v.optional(v.string()), // English translation
+    arabicText: v.string(), // Concatenated Arabic text (legacy, kept for search)
+    translation: v.optional(v.string()), // Legacy single translation (kept for migration)
+    // NEW: Structured ayahs with individual translations
+    ayahs: v.optional(
+      v.array(
+        v.object({
+          ayahNumber: v.number(),
+          arabicText: v.string(),
+          translations: v.array(
+            v.object({
+              sourceId: v.string(), // e.g., "131" for Sahih International
+              sourceName: v.string(), // e.g., "Sahih International"
+              text: v.string(), // The translation text
+              sourceType: v.union(v.literal("api"), v.literal("custom")),
+            })
+          ),
+        })
+      )
+    ),
     topic: v.optional(v.string()), // Topic/theme for categorization
     normalizedText: v.string(),
     diacriticStrippedText: v.string(),

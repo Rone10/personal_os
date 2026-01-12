@@ -98,8 +98,24 @@ export const getDetail = query({
   },
 });
 
+// Ayah translation validator for structured translations
+const ayahTranslationValidator = v.object({
+  sourceId: v.string(),
+  sourceName: v.string(),
+  text: v.string(),
+  sourceType: v.union(v.literal("api"), v.literal("custom")),
+});
+
+// Individual ayah validator
+const ayahValidator = v.object({
+  ayahNumber: v.number(),
+  arabicText: v.string(),
+  translations: v.array(ayahTranslationValidator),
+});
+
 /**
  * Create a new verse.
+ * Supports both legacy single translation and new multi-translation ayahs format.
  */
 export const create = mutation({
   args: {
@@ -111,6 +127,8 @@ export const create = mutation({
     arabicText: v.string(),
     translation: v.optional(v.string()),
     topic: v.optional(v.string()),
+    // NEW: Structured ayahs with translations
+    ayahs: v.optional(v.array(ayahValidator)),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuth(ctx);
@@ -121,7 +139,7 @@ export const create = mutation({
       throw new Error("Surah number must be between 1 and 114");
     }
 
-    // Generate search fields
+    // Generate search fields from arabicText
     const normalizedText = normalizeArabic(args.arabicText);
     const diacriticStrippedText = stripDiacritics(args.arabicText);
     const searchTokens = tokenizeArabic(args.arabicText);
@@ -136,6 +154,7 @@ export const create = mutation({
       arabicText: args.arabicText,
       translation: args.translation,
       topic: args.topic,
+      ayahs: args.ayahs,
       normalizedText,
       diacriticStrippedText,
       searchTokens,
@@ -147,6 +166,7 @@ export const create = mutation({
 
 /**
  * Update an existing verse.
+ * Supports both legacy single translation and new multi-translation ayahs format.
  */
 export const update = mutation({
   args: {
@@ -159,6 +179,8 @@ export const update = mutation({
     arabicText: v.optional(v.string()),
     translation: v.optional(v.string()),
     topic: v.optional(v.string()),
+    // NEW: Structured ayahs with translations
+    ayahs: v.optional(v.array(ayahValidator)),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuth(ctx);
@@ -179,6 +201,7 @@ export const update = mutation({
     if (args.ayahEnd !== undefined) updates.ayahEnd = args.ayahEnd;
     if (args.translation !== undefined) updates.translation = args.translation;
     if (args.topic !== undefined) updates.topic = args.topic;
+    if (args.ayahs !== undefined) updates.ayahs = args.ayahs;
     if (args.arabicText !== undefined) {
       updates.arabicText = args.arabicText;
       updates.normalizedText = normalizeArabic(args.arabicText);

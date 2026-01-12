@@ -9,7 +9,11 @@
       "mcp__ide__getDiagnostics",
       "Bash(npx tsc:*)",
       "Bash(lsof:*)",
-      "Bash(xargs kill -9)"
+      "Bash(xargs kill -9)",
+      "WebFetch(domain:api.alquran.cloud)",
+      "WebFetch(domain:api.quran.com)",
+      "WebFetch(domain:api.qurancdn.com)",
+      "Bash(npx eslint:*)"
     ]
   }
 }

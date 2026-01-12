@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArabicText } from "@/components/ui/arabic-text";
 import { EntityType, ViewType } from "../StudyPageClient";
+import { formatArabicWithAyahNumbers } from "@/lib/arabicNumerals";
 
 interface VerseDetailProps {
   verseId: string;
@@ -19,6 +20,19 @@ interface VerseDetailProps {
     parent?: string
   ) => void;
   onEdit: () => void;
+}
+
+interface AyahTranslation {
+  sourceId: string;
+  sourceName: string;
+  text: string;
+  sourceType: "api" | "custom";
+}
+
+interface Ayah {
+  ayahNumber: number;
+  arabicText: string;
+  translations: AyahTranslation[];
 }
 
 export default function VerseDetail({
@@ -56,6 +70,28 @@ export default function VerseDetail({
   const verseReference = verse.ayahEnd
     ? `${verse.surahNumber}:${verse.ayahStart}-${verse.ayahEnd}`
     : `${verse.surahNumber}:${verse.ayahStart}`;
+
+  // Check if we have structured ayahs (new format) or legacy format
+  const hasStructuredAyahs = verse.ayahs && verse.ayahs.length > 0;
+  const ayahs = (verse.ayahs ?? []) as Ayah[];
+
+  // Get formatted Arabic text with ayah numbers
+  const getDisplayArabicText = (): string => {
+    if (hasStructuredAyahs) {
+      return formatArabicWithAyahNumbers(ayahs);
+    }
+    return verse.arabicText;
+  };
+
+  // Get all unique translation sources from ayahs
+  const getTranslationSources = (): string[] => {
+    if (!hasStructuredAyahs) return [];
+    const sources = new Set<string>();
+    ayahs.forEach((ayah) => {
+      ayah.translations.forEach((t) => sources.add(t.sourceName));
+    });
+    return Array.from(sources);
+  };
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
@@ -113,12 +149,51 @@ export default function VerseDetail({
           as="p"
           className="leading-loose text-slate-900 dark:text-slate-100 text-center"
         >
-          {verse.arabicText}
+          {getDisplayArabicText()}
         </ArabicText>
       </div>
 
-      {/* Translation */}
-      {verse.translation && (
+      {/* Translations Section */}
+      {hasStructuredAyahs ? (
+        // New format: Per-ayah translations
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
+            Translations
+          </h2>
+          <div className="space-y-4">
+            {ayahs.map((ayah) => (
+              <div
+                key={ayah.ayahNumber}
+                className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg"
+              >
+                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-3">
+                  Ayah {ayah.ayahNumber}
+                </div>
+                {ayah.translations.length > 0 ? (
+                  <div className="space-y-3">
+                    {ayah.translations.map((translation, idx) => (
+                      <div key={idx}>
+                        <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">
+                          {translation.sourceName}
+                          {translation.sourceType === "custom" && " (Custom)"}:
+                        </span>
+                        <p className="text-slate-600 dark:text-slate-400 text-base leading-relaxed mt-1">
+                          {translation.text}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-slate-400 italic text-sm">
+                    No translations available
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : verse.translation ? (
+        // Legacy format: Single translation
         <div className="mb-6">
           <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
             Translation
@@ -127,7 +202,7 @@ export default function VerseDetail({
             {verse.translation}
           </p>
         </div>
-      )}
+      ) : null}
 
       {/* Topic */}
       {verse.topic && (
@@ -157,6 +232,14 @@ export default function VerseDetail({
               {verse.ayahEnd && ` - ${verse.ayahEnd}`}
             </p>
           </div>
+          {hasStructuredAyahs && (
+            <div className="col-span-2">
+              <span className="text-slate-500">Translation Sources</span>
+              <p className="font-medium text-slate-900 dark:text-slate-100">
+                {getTranslationSources().join(", ") || "None"}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
