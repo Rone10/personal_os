@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ArabicText } from "@/components/ui/arabic-text";
 import { cn } from "@/lib/utils";
 import { EntityType, ViewType } from "../StudyPageClient";
 
@@ -76,12 +77,14 @@ export default function WordDetail({
             <Languages className="h-6 w-6 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <h1
-              className="text-3xl font-arabic font-bold text-slate-900 dark:text-slate-100"
-              dir="rtl"
+            <ArabicText
+              variant="word"
+              size="3xl"
+              as="h1"
+              className="font-bold text-slate-900 dark:text-slate-100"
             >
               {word.text}
-            </h1>
+            </ArabicText>
             {word.transliteration && (
               <p className="text-slate-500">{word.transliteration}</p>
             )}
@@ -149,7 +152,7 @@ export default function WordDetail({
             Root
           </div>
           <div className="flex items-center gap-3">
-            <span className="font-arabic text-xl">{root.letters}</span>
+            <ArabicText variant="word" size="xl">{root.letters}</ArabicText>
             <span className="text-slate-600 dark:text-slate-400">
               {root.coreMeaning}
             </span>
@@ -187,13 +190,15 @@ export default function WordDetail({
                   <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
                     <p className="text-xs text-slate-400 mb-1">Examples:</p>
                     {meaning.examples.map((ex: string, i: number) => (
-                      <p
+                      <ArabicText
                         key={i}
-                        className="text-sm text-slate-600 dark:text-slate-400 font-arabic"
-                        dir="rtl"
+                        variant="word"
+                        size="sm"
+                        as="p"
+                        className="text-slate-600 dark:text-slate-400"
                       >
                         {ex}
-                      </p>
+                      </ArabicText>
                     ))}
                   </div>
                 )}

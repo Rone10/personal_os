@@ -13,6 +13,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ArabicText } from "@/components/ui/arabic-text";
 import { cn } from "@/lib/utils";
 
 export default function FlashcardsView() {
@@ -126,12 +127,14 @@ export default function FlashcardsView() {
           {!showAnswer ? (
             // Front - Arabic word
             <>
-              <p
-                className="font-arabic text-4xl md:text-5xl text-center mb-4"
-                dir="rtl"
+              <ArabicText
+                variant="word"
+                size="3xl"
+                as="p"
+                className="text-center mb-4"
               >
                 {currentWord.text}
-              </p>
+              </ArabicText>
               {currentWord.transliteration && (
                 <p className="text-lg text-slate-400">
                   {currentWord.transliteration}

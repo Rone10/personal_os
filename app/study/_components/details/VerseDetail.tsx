@@ -7,6 +7,7 @@ import { useState } from "react";
 import { BookOpen, Edit2, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ArabicText } from "@/components/ui/arabic-text";
 import { EntityType, ViewType } from "../StudyPageClient";
 
 interface VerseDetailProps {
@@ -106,12 +107,14 @@ export default function VerseDetail({
 
       {/* Arabic Text */}
       <div className="mb-6 p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200 dark:border-green-800">
-        <p
-          className="text-2xl md:text-3xl font-arabic leading-loose text-slate-900 dark:text-slate-100 text-center"
-          dir="rtl"
+        <ArabicText
+          variant="quran"
+          size="2xl"
+          as="p"
+          className="leading-loose text-slate-900 dark:text-slate-100 text-center"
         >
           {verse.arabicText}
-        </p>
+        </ArabicText>
       </div>
 
       {/* Translation */}

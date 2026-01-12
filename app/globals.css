@@ -90,6 +90,12 @@
     line-height: 1.6;
   }
 
+  .font-quran {
+    font-family: var(--font-uthmani-quran), var(--font-noto-arabic), sans-serif;
+    line-height: 2.0;
+    letter-spacing: 0.02em;
+  }
+
   /* Helper for RTL text containers */
   .rtl-content {
     direction: rtl;

@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Hash, Edit2, Trash2, Loader2, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ArabicText } from "@/components/ui/arabic-text";
 import { EntityType, ViewType } from "../StudyPageClient";
 
 interface RootDetailProps {
@@ -62,12 +63,14 @@ export default function RootDetail({
             <Hash className="h-6 w-6 text-purple-600 dark:text-purple-400" />
           </div>
           <div>
-            <h1
-              className="text-4xl font-arabic font-bold text-slate-900 dark:text-slate-100"
-              dir="rtl"
+            <ArabicText
+              variant="word"
+              size="3xl"
+              as="h1"
+              className="font-bold text-slate-900 dark:text-slate-100"
             >
               {root.letters}
-            </h1>
+            </ArabicText>
             {root.latinized && (
               <p className="text-lg text-slate-500 font-mono">{root.latinized}</p>
             )}
@@ -158,7 +161,7 @@ export default function RootDetail({
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="font-arabic text-lg">{word.text}</span>
+                    <ArabicText variant="word" size="lg">{word.text}</ArabicText>
                     {word.transliteration && (
                       <span className="text-sm text-slate-400 ml-2">
                         ({word.transliteration})

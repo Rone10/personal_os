@@ -7,6 +7,7 @@ import { useState } from "react";
 import { ScrollText, Edit2, Trash2, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ArabicText } from "@/components/ui/arabic-text";
 import { EntityType, ViewType } from "../StudyPageClient";
 
 interface HadithDetailProps {
@@ -133,12 +134,14 @@ export default function HadithDetail({
 
       {/* Arabic Text */}
       <div className="mb-6 p-6 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
-        <p
-          className="text-xl md:text-2xl font-arabic leading-loose text-slate-900 dark:text-slate-100 text-right"
-          dir="rtl"
+        <ArabicText
+          variant="hadith"
+          size="xl"
+          as="p"
+          className="leading-loose text-slate-900 dark:text-slate-100 text-right"
         >
           {hadith.arabicText}
-        </p>
+        </ArabicText>
       </div>
 
       {/* Translation */}

@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npx convex dev:*)",
       "Bash(pnpm tsc:*)",
-      "Bash(pnpm build:*)"
+      "Bash(pnpm build:*)",
+      "WebSearch",
+      "Bash(curl:*)"
     ]
   }
 }

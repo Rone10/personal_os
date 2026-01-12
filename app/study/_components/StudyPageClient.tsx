@@ -7,6 +7,7 @@ import { api } from "@/convex/_generated/api";
 import { Loader2, PanelLeftClose, PanelRightClose } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArabicFontControls } from "@/components/ArabicFontControls";
 import NavigationTree from "./NavigationTree";
 import MainContent from "./MainContent";
 import ContextPanel from "./ContextPanel";
@@ -148,6 +149,9 @@ export default function StudyPageClient() {
               </TabsTrigger>
             </TabsList>
           </Tabs>
+
+          {/* Arabic font size controls */}
+          <ArabicFontControls compact />
 
           {/* Right panel toggle */}
           <Button
