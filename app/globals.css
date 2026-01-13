@@ -252,3 +252,129 @@
     transform: rotateY(180deg);
   }
 }
+
+/* --- TIPTAP RICH TEXT EDITOR STYLES --- */
+.ProseMirror {
+  @apply outline-none;
+}
+
+.ProseMirror p {
+  @apply my-2;
+}
+
+.ProseMirror h1 {
+  @apply text-2xl font-bold mt-6 mb-3;
+}
+
+.ProseMirror h2 {
+  @apply text-xl font-semibold mt-5 mb-2;
+}
+
+.ProseMirror h3 {
+  @apply text-lg font-semibold mt-4 mb-2;
+}
+
+.ProseMirror ul {
+  @apply list-disc pl-6 my-2;
+}
+
+.ProseMirror ol {
+  @apply list-decimal pl-6 my-2;
+}
+
+.ProseMirror li {
+  @apply my-1;
+}
+
+.ProseMirror blockquote {
+  @apply border-l-4 border-slate-300 dark:border-slate-600 pl-4 my-4 italic text-slate-600 dark:text-slate-400;
+}
+
+.ProseMirror pre {
+  @apply bg-slate-100 dark:bg-slate-800 rounded-lg p-4 my-4 overflow-x-auto font-mono text-sm;
+}
+
+.ProseMirror code:not(pre code) {
+  @apply bg-slate-100 dark:bg-slate-800 rounded px-1.5 py-0.5 font-mono text-sm text-pink-600 dark:text-pink-400;
+}
+
+.ProseMirror table {
+  @apply w-full border-collapse my-4;
+}
+
+.ProseMirror th,
+.ProseMirror td {
+  @apply border border-slate-300 dark:border-slate-600 p-2 text-left;
+}
+
+.ProseMirror th {
+  @apply bg-slate-100 dark:bg-slate-800 font-semibold;
+}
+
+.ProseMirror hr {
+  @apply border-t border-slate-300 dark:border-slate-600 my-6;
+}
+
+.ProseMirror img {
+  @apply max-w-full h-auto rounded-lg my-4;
+}
+
+/* Task List Styles */
+.ProseMirror ul[data-type="taskList"] {
+  @apply list-none pl-0;
+}
+
+.ProseMirror ul[data-type="taskList"] li {
+  @apply flex items-start gap-2;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label {
+  @apply flex-shrink-0 mt-1;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"] {
+  @apply w-4 h-4 rounded border-slate-300 dark:border-slate-600;
+}
+
+.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div {
+  @apply line-through text-slate-400;
+}
+
+/* Entity Reference Styles */
+.entity-reference {
+  @apply text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1 rounded cursor-pointer transition-colors;
+}
+
+.entity-reference:hover {
+  @apply bg-blue-100 dark:bg-blue-900/50;
+}
+
+/* Placeholder Styles */
+.ProseMirror p.is-editor-empty:first-child::before {
+  @apply text-slate-400 dark:text-slate-500 pointer-events-none float-left h-0;
+  content: attr(data-placeholder);
+}
+
+/* Selection Styles */
+.ProseMirror ::selection {
+  @apply bg-blue-200 dark:bg-blue-800;
+}
+
+/* Focus Styles for Table Cells */
+.ProseMirror .selectedCell::after {
+  @apply absolute inset-0 bg-blue-100 dark:bg-blue-900/30 pointer-events-none;
+  content: "";
+}
+
+/* Text alignment */
+.ProseMirror [style*="text-align: center"] {
+  text-align: center;
+}
+
+.ProseMirror [style*="text-align: right"] {
+  text-align: right;
+}
+
+.ProseMirror [style*="text-align: left"] {
+  text-align: left;
+}

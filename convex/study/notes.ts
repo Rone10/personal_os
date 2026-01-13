@@ -34,6 +34,13 @@ const externalLinkValidator = v.object({
   label: v.string(),
 });
 
+// Extracted reference validator (from rich text content)
+const extractedReferenceValidator = v.object({
+  targetType: v.string(),
+  targetId: v.string(),
+  displayText: v.string(),
+});
+
 /**
  * List all notes for the current user.
  */
@@ -169,6 +176,7 @@ export const create = mutation({
   args: {
     title: v.optional(v.string()),
     content: v.string(),
+    contentJson: v.optional(v.any()), // Rich text content (Tiptap JSON)
     parentType: v.optional(
       v.union(
         v.literal("lesson"),
@@ -180,6 +188,7 @@ export const create = mutation({
     ),
     parentId: v.optional(v.string()),
     references: v.optional(v.array(referenceValidator)),
+    extractedReferences: v.optional(v.array(extractedReferenceValidator)),
     externalLinks: v.optional(v.array(externalLinkValidator)),
   },
   handler: async (ctx, args) => {
@@ -190,17 +199,24 @@ export const create = mutation({
       userId,
       title: args.title,
       content: args.content,
+      contentJson: args.contentJson,
       parentType: args.parentType,
       parentId: args.parentId,
       references: args.references,
+      extractedReferences: args.extractedReferences,
       externalLinks: args.externalLinks,
       createdAt: timestamp,
       updatedAt: timestamp,
     });
 
-    // Create backlinks for references
+    // Create backlinks for references (legacy offset-based)
     if (args.references) {
       await updateBacklinks(ctx, noteId, userId, args.content, args.references);
+    }
+
+    // Create backlinks for extracted references (from rich text)
+    if (args.extractedReferences) {
+      await updateBacklinksFromExtracted(ctx, noteId, userId, args.extractedReferences);
     }
 
     return noteId;
@@ -215,6 +231,7 @@ export const update = mutation({
     id: v.id("studyNotes"),
     title: v.optional(v.string()),
     content: v.optional(v.string()),
+    contentJson: v.optional(v.any()), // Rich text content (Tiptap JSON)
     parentType: v.optional(
       v.union(
         v.literal("lesson"),
@@ -226,6 +243,7 @@ export const update = mutation({
     ),
     parentId: v.optional(v.string()),
     references: v.optional(v.array(referenceValidator)),
+    extractedReferences: v.optional(v.array(extractedReferenceValidator)),
     externalLinks: v.optional(v.array(externalLinkValidator)),
   },
   handler: async (ctx, args) => {
@@ -236,17 +254,24 @@ export const update = mutation({
     const updates: Record<string, unknown> = { updatedAt: now() };
     if (args.title !== undefined) updates.title = args.title;
     if (args.content !== undefined) updates.content = args.content;
+    if (args.contentJson !== undefined) updates.contentJson = args.contentJson;
     if (args.parentType !== undefined) updates.parentType = args.parentType;
     if (args.parentId !== undefined) updates.parentId = args.parentId;
     if (args.references !== undefined) updates.references = args.references;
+    if (args.extractedReferences !== undefined) updates.extractedReferences = args.extractedReferences;
     if (args.externalLinks !== undefined) updates.externalLinks = args.externalLinks;
 
     await ctx.db.patch(args.id, updates);
 
-    // Update backlinks if references changed
+    // Update backlinks if references changed (legacy offset-based)
     if (args.references !== undefined) {
       const content = args.content ?? note.content;
       await updateBacklinks(ctx, args.id, userId, content, args.references);
+    }
+
+    // Update backlinks if extracted references changed (from rich text)
+    if (args.extractedReferences !== undefined) {
+      await updateBacklinksFromExtracted(ctx, args.id, userId, args.extractedReferences);
     }
 
     return args.id;
@@ -288,7 +313,7 @@ export const remove = mutation({
 });
 
 /**
- * Helper to update backlinks when note references change.
+ * Helper to update backlinks when note references change (legacy offset-based).
  */
 async function updateBacklinks(
   ctx: any,
@@ -325,6 +350,44 @@ async function updateBacklinks(
       snippet,
       startOffset: ref.startOffset,
       endOffset: ref.endOffset,
+    });
+  }
+}
+
+/**
+ * Helper to update backlinks from extracted references (rich text).
+ * Uses displayText as snippet since we don't have offsets.
+ */
+async function updateBacklinksFromExtracted(
+  ctx: any,
+  noteId: any,
+  userId: string,
+  extractedReferences: Array<{
+    targetType: string;
+    targetId: string;
+    displayText: string;
+  }>
+) {
+  // Delete existing backlinks for this note
+  const existingBacklinks = await ctx.db
+    .query("backlinks")
+    .withIndex("by_note", (q: any) => q.eq("noteId", noteId))
+    .collect();
+
+  for (const bl of existingBacklinks) {
+    await ctx.db.delete(bl._id);
+  }
+
+  // Create new backlinks from extracted references
+  for (const ref of extractedReferences) {
+    await ctx.db.insert("backlinks", {
+      userId,
+      targetType: ref.targetType,
+      targetId: ref.targetId,
+      noteId,
+      snippet: ref.displayText,
+      startOffset: 0, // Not applicable for rich text
+      endOffset: 0, // Not applicable for rich text
     });
   }
 }

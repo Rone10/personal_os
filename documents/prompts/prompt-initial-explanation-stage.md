@@ -6,7 +6,7 @@ Your task is NOT to implement this yet, but to fully understand and prepare. Thi
 Here is exactly what I need implemented:
 
 <feature_description>
- I want you to add a notes feature to the /study feature. This way I can quickly create a note about a new idea, tip, trick etc and be able to link to any topic, word, verse, etc that exists in the feature 
+ I want you to add a rich text editor and extract it as a reusable component across the project. Use tiptap. I'll use the editor when writing notes or descriptions. This way I can have many editing capabilities etc
 </feature_description>
 --
 

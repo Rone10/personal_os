@@ -15,8 +15,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EntityType, ViewType } from "../StudyPageClient";
-import NoteEditor, { InlineReference } from "../editor/NoteEditor";
 import NoteRenderer from "../editor/NoteRenderer";
+import { InlineReference } from "../editor/NoteEditor";
+import RichTextEditor from "@/components/rich-text/RichTextEditor";
+import RichTextViewer from "@/components/rich-text/RichTextViewer";
+import {
+  extractReferences,
+  type JSONContent,
+  type EntityReferenceAttributes,
+} from "@/components/rich-text/types";
 
 interface NoteDetailProps {
   noteId: string;
@@ -37,12 +44,11 @@ export default function NoteDetail({ noteId, onNavigate }: NoteDetailProps) {
 
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [references, setReferences] = useState<InlineReference[]>([]);
+  const [contentJson, setContentJson] = useState<JSONContent | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // Handle reference clicks - must be defined before any conditional returns
+  // Handle reference clicks for both rich text and legacy references
   const handleReferenceClick = useCallback((type: string, id: string) => {
     const viewMap: Record<string, ViewType> = {
       word: "words",
@@ -51,7 +57,6 @@ export default function NoteDetail({ noteId, onNavigate }: NoteDetailProps) {
       root: "roots",
       lesson: "courses",
       chapter: "books",
-      // Extended reference types
       tag: "tags",
       course: "courses",
       book: "books",
@@ -63,20 +68,29 @@ export default function NoteDetail({ noteId, onNavigate }: NoteDetailProps) {
     }
   }, [onNavigate]);
 
+  // Handle entity click from RichTextViewer
+  const handleEntityClick = useCallback((ref: EntityReferenceAttributes) => {
+    handleReferenceClick(ref.targetType, ref.targetId);
+  }, [handleReferenceClick]);
+
   useEffect(() => {
     if (note) {
       setTitle(note.title ?? "");
-      setContent(note.content ?? "");
-      // Map note references to InlineReference format
-      setReferences(
-        (note.references ?? []).map(ref => ({
-          targetType: ref.targetType as InlineReference["targetType"],
-          targetId: ref.targetId,
-          startOffset: ref.startOffset,
-          endOffset: ref.endOffset,
-          displayText: ref.displayText,
-        }))
-      );
+      // Use contentJson if available, otherwise create basic structure from plain text
+      if (note.contentJson) {
+        setContentJson(note.contentJson as JSONContent);
+      } else if (note.content) {
+        // Convert plain text to basic Tiptap JSON for editing
+        setContentJson({
+          type: "doc",
+          content: note.content.split("\n").map((line) => ({
+            type: "paragraph",
+            content: line ? [{ type: "text", text: line }] : [],
+          })),
+        });
+      } else {
+        setContentJson(undefined);
+      }
     }
   }, [note]);
 
@@ -96,20 +110,35 @@ export default function NoteDetail({ noteId, onNavigate }: NoteDetailProps) {
     );
   }
 
+  // Extract plain text from Tiptap JSON for backwards compatibility
+  const getPlainText = (json: JSONContent | undefined): string => {
+    if (!json) return "";
+
+    const extractText = (node: JSONContent): string => {
+      if (node.type === "text") {
+        return node.text || "";
+      }
+      if (node.content) {
+        return node.content.map(extractText).join("");
+      }
+      return "";
+    };
+
+    return extractText(json);
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      const plainText = getPlainText(contentJson);
+      const extractedRefs = contentJson ? extractReferences(contentJson) : [];
+
       await updateNote({
         id: noteId as Id<"studyNotes">,
         title: title || undefined,
-        content,
-        references: references.map(ref => ({
-          targetType: ref.targetType,
-          targetId: ref.targetId,
-          startOffset: ref.startOffset,
-          endOffset: ref.endOffset,
-          displayText: ref.displayText,
-        })),
+        content: plainText,
+        contentJson: contentJson,
+        extractedReferences: extractedRefs.length > 0 ? extractedRefs : undefined,
       });
       setIsEditing(false);
     } finally {
@@ -124,16 +153,19 @@ export default function NoteDetail({ noteId, onNavigate }: NoteDetailProps) {
 
   const handleCancel = () => {
     setTitle(note.title ?? "");
-    setContent(note.content ?? "");
-    setReferences(
-      (note.references ?? []).map(ref => ({
-        targetType: ref.targetType as InlineReference["targetType"],
-        targetId: ref.targetId,
-        startOffset: ref.startOffset,
-        endOffset: ref.endOffset,
-        displayText: ref.displayText,
-      }))
-    );
+    if (note.contentJson) {
+      setContentJson(note.contentJson as JSONContent);
+    } else if (note.content) {
+      setContentJson({
+        type: "doc",
+        content: note.content.split("\n").map((line) => ({
+          type: "paragraph",
+          content: line ? [{ type: "text", text: line }] : [],
+        })),
+      });
+    } else {
+      setContentJson(undefined);
+    }
     setIsEditing(false);
   };
 
@@ -146,6 +178,9 @@ export default function NoteDetail({ noteId, onNavigate }: NoteDetailProps) {
       minute: "2-digit",
     });
   };
+
+  // Check if note has rich text content
+  const hasRichContent = !!note.contentJson;
 
   return (
     <div className="h-full flex flex-col">
@@ -237,19 +272,25 @@ export default function NoteDetail({ noteId, onNavigate }: NoteDetailProps) {
       {/* Content */}
       <div className="flex-1 overflow-auto p-4">
         {isEditing ? (
-          <NoteEditor
-            content={content}
-            references={references}
-            onContentChange={setContent}
-            onReferencesChange={setReferences}
-            className="h-full"
+          <RichTextEditor
+            value={contentJson}
+            onChange={setContentJson}
+            enableEntityReferences={true}
+            currentNoteId={noteId}
+            minHeight="300px"
+            placeholder="Start writing... Press Ctrl+K to insert a reference."
           />
         ) : (
           <div className="prose dark:prose-invert max-w-none">
-            {note.content ? (
+            {hasRichContent ? (
+              <RichTextViewer
+                content={note.contentJson as JSONContent}
+                onEntityClick={handleEntityClick}
+              />
+            ) : note.content ? (
               <NoteRenderer
                 content={note.content}
-                references={(note.references ?? []).map(ref => ({
+                references={(note.references ?? []).map((ref) => ({
                   targetType: ref.targetType as InlineReference["targetType"],
                   targetId: ref.targetId,
                   startOffset: ref.startOffset,

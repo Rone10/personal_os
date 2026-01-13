@@ -7,6 +7,7 @@ export default defineSchema({
     userId: v.string(),
     name: v.string(),
     description: v.optional(v.string()),
+    descriptionJson: v.optional(v.any()), // Rich text content (Tiptap JSON)
     status: v.union(v.literal("active"), v.literal("archived"), v.literal("idea")),
     type: v.optional(v.union(v.literal("coding"), v.literal("general"))),
     icon: v.optional(v.string()), // Emoji or icon name
@@ -31,6 +32,7 @@ export default defineSchema({
       ),
     ),
     description: v.optional(v.string()),
+    descriptionJson: v.optional(v.any()), // Rich text content (Tiptap JSON)
     assignees: v.optional(v.array(v.string())),
     attachments: v.optional(v.array(v.string())),
     order: v.optional(v.number()), // For Kanban ordering
@@ -48,7 +50,9 @@ export default defineSchema({
     projectId: v.id("projects"),
     title: v.string(),
     description: v.optional(v.string()),
+    descriptionJson: v.optional(v.any()), // Rich text content (Tiptap JSON)
     whatDoneLooksLike: v.optional(v.string()),
+    whatDoneLooksLikeJson: v.optional(v.any()), // Rich text content (Tiptap JSON)
     order: v.number(),
   })
     .index("by_project", ["projectId", "order"])
@@ -60,6 +64,7 @@ export default defineSchema({
     featureId: v.id("projectFeatures"),
     title: v.string(),
     description: v.optional(v.string()),
+    descriptionJson: v.optional(v.any()), // Rich text content (Tiptap JSON)
     status: v.union(v.literal("todo"), v.literal("done")),
     order: v.number(),
     linkedTaskIds: v.optional(v.array(v.id("tasks"))),
@@ -71,6 +76,7 @@ export default defineSchema({
     userId: v.string(),
     title: v.string(),
     description: v.optional(v.string()),
+    descriptionJson: v.optional(v.any()), // Rich text content (Tiptap JSON)
     status: v.union(v.literal("todo"), v.literal("in_progress"), v.literal("done")),
     plannedDate: v.optional(v.number()),
     pinForToday: v.boolean(),
@@ -106,7 +112,9 @@ export default defineSchema({
     title: v.string(),
     projectId: v.optional(v.id("projects")),
     description: v.string(),
+    descriptionJson: v.optional(v.any()), // Rich text content (Tiptap JSON)
     reproductionSteps: v.optional(v.string()),
+    reproductionStepsJson: v.optional(v.any()), // Rich text content (Tiptap JSON)
     status: v.union(v.literal("open"), v.literal("fixed")),
     severity: v.union(v.literal("low"), v.literal("medium"), v.literal("critical")),
     links: v.optional(v.array(v.string())), // URLs to github or resources
@@ -116,6 +124,7 @@ export default defineSchema({
     userId: v.string(),
     title: v.string(),
     content: v.string(), // The prompt template
+    contentJson: v.optional(v.any()), // Rich text content (Tiptap JSON)
     variables: v.optional(v.array(v.string())), // e.g. ["{{code}}", "{{language}}"]
     tags: v.array(v.string()),
     isFavorite: v.boolean(),
@@ -140,6 +149,7 @@ export default defineSchema({
     latinized: v.string(), // Romanized form for search (e.g., "k-t-b")
     coreMeaning: v.string(), // General semantic field in English
     notes: v.optional(v.string()),
+    notesJson: v.optional(v.any()), // Rich text content (Tiptap JSON)
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -186,6 +196,7 @@ export default defineSchema({
     transliteration: v.optional(v.string()),
     aliases: v.optional(v.array(v.string())), // Alternate spellings
     notes: v.optional(v.string()),
+    notesJson: v.optional(v.any()), // Rich text content (Tiptap JSON)
     // Search fields
     normalizedText: v.string(), // Tatweel removed, alef/hamza PRESERVED
     diacriticStrippedText: v.string(), // For fuzzy search (tashkeel removed)
@@ -272,6 +283,7 @@ export default defineSchema({
     userId: v.string(),
     title: v.string(),
     description: v.optional(v.string()),
+    descriptionJson: v.optional(v.any()), // Rich text content (Tiptap JSON)
     source: v.optional(v.string()), // Instructor, platform, URL
     order: v.optional(v.number()),
     createdAt: v.number(),
@@ -284,6 +296,7 @@ export default defineSchema({
     courseId: v.id("courses"),
     title: v.string(),
     content: v.optional(v.string()),
+    contentJson: v.optional(v.any()), // Rich text content (Tiptap JSON)
     order: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -297,6 +310,7 @@ export default defineSchema({
     title: v.string(),
     author: v.optional(v.string()),
     description: v.optional(v.string()),
+    descriptionJson: v.optional(v.any()), // Rich text content (Tiptap JSON)
     order: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -308,6 +322,7 @@ export default defineSchema({
     bookId: v.id("books"),
     title: v.string(),
     content: v.optional(v.string()),
+    contentJson: v.optional(v.any()), // Rich text content (Tiptap JSON)
     order: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -321,6 +336,17 @@ export default defineSchema({
     userId: v.string(),
     title: v.optional(v.string()),
     content: v.string(), // Plain text content
+    contentJson: v.optional(v.any()), // Rich text content (Tiptap JSON)
+    // Extracted references from rich text for backlink queries
+    extractedReferences: v.optional(
+      v.array(
+        v.object({
+          targetType: v.string(),
+          targetId: v.string(),
+          displayText: v.string(),
+        })
+      )
+    ),
     // Legacy fields for backwards compatibility during transition
     ownerType: v.optional(
       v.union(
@@ -387,6 +413,7 @@ export default defineSchema({
   explanations: defineTable({
     userId: v.string(),
     content: v.string(),
+    contentJson: v.optional(v.any()), // Rich text content (Tiptap JSON)
     sourceType: v.union(
       v.literal("lesson"),
       v.literal("chapter"),
@@ -414,6 +441,7 @@ export default defineSchema({
     userId: v.string(),
     name: v.string(), // e.g., "Patience", "Day of Judgment"
     description: v.optional(v.string()),
+    descriptionJson: v.optional(v.any()), // Rich text content (Tiptap JSON)
     color: v.optional(v.string()),
     createdAt: v.number(),
   })

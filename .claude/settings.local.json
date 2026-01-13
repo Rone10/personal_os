@@ -15,7 +15,10 @@
       "WebFetch(domain:api.qurancdn.com)",
       "Bash(npx eslint:*)",
       "Bash(pnpm install:*)",
-      "Bash(tsc:*)"
+      "Bash(tsc:*)",
+      "Bash(npm install:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm lint:*)"
     ]
   }
 }
