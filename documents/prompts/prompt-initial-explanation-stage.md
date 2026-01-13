@@ -6,11 +6,7 @@ Your task is NOT to implement this yet, but to fully understand and prepare. Thi
 Here is exactly what I need implemented:
 
 <feature_description>
- I want to have the ayah number at the end of the ayah (arabic) when I visit
-  http://localhost:3700/study?view=verses&type=verse&id=nx728pagxhnmp49zvemgswr4v57z2q0n. Also when adding a verse range, the
-  translation section should give me a text field for each verse so that it's easy to read. I also want the translation to be
-  added automatically when adding a verse. Give me a dropdown option of which translations I want. for each ayah, give me the
-  option to have upto 4 translations for each ayah. By default I want to have 2 translations: the clear quran and sahih international. Carefully think about this  
+ I want you to add a notes feature to the /study feature. This way I can quickly create a note about a new idea, tip, trick etc and be able to link to any topic, word, verse, etc that exists in the feature 
 </feature_description>
 --
 

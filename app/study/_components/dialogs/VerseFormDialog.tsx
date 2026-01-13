@@ -78,6 +78,7 @@ export default function VerseFormDialog({
   const [manualMode, setManualMode] = useState(false);
   const [manualArabicText, setManualArabicText] = useState("");
   const [manualTranslation, setManualTranslation] = useState("");
+  const [manualTranslationAuthor, setManualTranslationAuthor] = useState("");
 
   // Translation selection state (default 2 enabled)
   const [translationSelections, setTranslationSelections] = useState<
@@ -96,8 +97,10 @@ export default function VerseFormDialog({
   // Fetched ayahs with translations
   const [fetchedAyahs, setFetchedAyahs] = useState<FetchedAyah[]>([]);
 
-  // Per-ayah custom translations
-  const [customTranslations, setCustomTranslations] = useState<Record<number, string>>({});
+  // Per-ayah custom translations (text + author)
+  const [customTranslations, setCustomTranslations] = useState<
+    Record<number, { text: string; author: string }>
+  >({});
 
   // Load existing verse data
   useEffect(() => {
@@ -122,6 +125,7 @@ export default function VerseFormDialog({
             (t) => t.sourceType === "custom"
           );
           setManualTranslation(customT?.text ?? "");
+          setManualTranslationAuthor(customT?.sourceName ?? "");
           setFetchedAyahs([]);
           setCustomTranslations({});
         } else {
@@ -142,10 +146,15 @@ export default function VerseFormDialog({
           );
 
           // Load existing custom translations
-          const customs: Record<number, string> = {};
+          const customs: Record<number, { text: string; author: string }> = {};
           existingVerse.ayahs.forEach((ayah) => {
             const customT = ayah.translations.find((t) => t.sourceType === "custom");
-            if (customT) customs[ayah.ayahNumber] = customT.text;
+            if (customT) {
+              customs[ayah.ayahNumber] = {
+                text: customT.text,
+                author: customT.sourceName || "",
+              };
+            }
           });
           setCustomTranslations(customs);
         }
@@ -171,6 +180,7 @@ export default function VerseFormDialog({
     setManualMode(false);
     setManualArabicText("");
     setManualTranslation("");
+    setManualTranslationAuthor("");
     setTranslationSelections(
       DEFAULT_TRANSLATIONS.map((t) => ({
         sourceId: t.id,
@@ -341,7 +351,7 @@ export default function VerseFormDialog({
               ? [
                   {
                     sourceId: "custom",
-                    sourceName: "Custom",
+                    sourceName: manualTranslationAuthor.trim() || "Custom",
                     text: manualTranslation.trim(),
                     sourceType: "custom" as const,
                   },
@@ -357,12 +367,13 @@ export default function VerseFormDialog({
             // Filter out existing custom translations (will be replaced)
             ...ayah.translations.filter((t) => t.sourceType !== "custom"),
             // Add custom translation if provided for this ayah
-            ...(customTranslations[ayah.ayahNumber]
+            ...(customTranslations[ayah.ayahNumber]?.text?.trim()
               ? [
                   {
                     sourceId: "custom",
-                    sourceName: "Custom",
-                    text: customTranslations[ayah.ayahNumber],
+                    sourceName:
+                      customTranslations[ayah.ayahNumber].author?.trim() || "Custom",
+                    text: customTranslations[ayah.ayahNumber].text.trim(),
                     sourceType: "custom" as const,
                   },
                 ]
@@ -419,6 +430,7 @@ export default function VerseFormDialog({
                 } else {
                   setManualArabicText("");
                   setManualTranslation("");
+                  setManualTranslationAuthor("");
                 }
               }}
             />
@@ -486,14 +498,24 @@ export default function VerseFormDialog({
                 />
               </div>
               <div>
-                <Label htmlFor="manualTranslation">Your Translation</Label>
+                <Label htmlFor="manualTranslation">Translation</Label>
                 <Textarea
                   id="manualTranslation"
                   value={manualTranslation}
                   onChange={(e) => setManualTranslation(e.target.value)}
-                  placeholder="Enter your translation (optional)..."
+                  placeholder="Enter translation (optional)..."
                   className="mt-1"
                   rows={3}
+                />
+              </div>
+              <div>
+                <Label htmlFor="manualTranslationAuthor">Translation Author/Source</Label>
+                <Input
+                  id="manualTranslationAuthor"
+                  value={manualTranslationAuthor}
+                  onChange={(e) => setManualTranslationAuthor(e.target.value)}
+                  placeholder="e.g., Sahih International, Dr. Mustafa Khattab..."
+                  className="mt-1"
                 />
               </div>
             </div>
@@ -646,21 +668,36 @@ export default function VerseFormDialog({
                       )}
 
                       {/* Per-ayah custom translation input */}
-                      <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                      <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 space-y-2">
                         <Label className="text-xs text-slate-500">
                           Custom Translation:
                         </Label>
-                        <Textarea
-                          value={customTranslations[ayah.ayahNumber] || ""}
+                        <Input
+                          value={customTranslations[ayah.ayahNumber]?.author || ""}
                           onChange={(e) =>
                             setCustomTranslations((prev) => ({
                               ...prev,
-                              [ayah.ayahNumber]: e.target.value,
+                              [ayah.ayahNumber]: {
+                                ...prev[ayah.ayahNumber],
+                                author: e.target.value,
+                              },
                             }))
                           }
-                          placeholder="Add your own translation for this ayah..."
+                          placeholder="Author/Source (e.g., Dr. Mustafa Khattab)"
+                        />
+                        <Textarea
+                          value={customTranslations[ayah.ayahNumber]?.text || ""}
+                          onChange={(e) =>
+                            setCustomTranslations((prev) => ({
+                              ...prev,
+                              [ayah.ayahNumber]: {
+                                ...prev[ayah.ayahNumber],
+                                text: e.target.value,
+                              },
+                            }))
+                          }
+                          placeholder="Translation text..."
                           rows={2}
-                          className="mt-1"
                         />
                       </div>
                     </div>
