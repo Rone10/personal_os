@@ -65,6 +65,8 @@ export const getTagDetail = query({
       chapter: [],
       root: [],
       explanation: [],
+      course: [],
+      book: [],
     };
 
     for (const et of entityTags) {
@@ -213,7 +215,9 @@ export const tagEntity = mutation({
       v.literal("lesson"),
       v.literal("chapter"),
       v.literal("root"),
-      v.literal("explanation")
+      v.literal("explanation"),
+      v.literal("course"),
+      v.literal("book")
     ),
     entityId: v.string(),
   },
@@ -260,7 +264,9 @@ export const untagEntity = mutation({
       v.literal("lesson"),
       v.literal("chapter"),
       v.literal("root"),
-      v.literal("explanation")
+      v.literal("explanation"),
+      v.literal("course"),
+      v.literal("book")
     ),
     entityId: v.string(),
   },
@@ -295,7 +301,9 @@ export const getEntityTags = query({
       v.literal("lesson"),
       v.literal("chapter"),
       v.literal("root"),
-      v.literal("explanation")
+      v.literal("explanation"),
+      v.literal("course"),
+      v.literal("book")
     ),
     entityId: v.string(),
   },
@@ -333,7 +341,9 @@ export const getEntitiesByTag = query({
         v.literal("lesson"),
         v.literal("chapter"),
         v.literal("root"),
-        v.literal("explanation")
+        v.literal("explanation"),
+        v.literal("course"),
+        v.literal("book")
       )
     ),
   },

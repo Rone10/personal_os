@@ -433,6 +433,8 @@ export default defineSchema({
       v.literal("chapter"),
       v.literal("root"),
       v.literal("explanation"),
+      v.literal("course"),
+      v.literal("book"),
     ),
     entityId: v.string(),
   })

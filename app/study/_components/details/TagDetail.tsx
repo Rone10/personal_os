@@ -16,6 +16,7 @@ import {
   StickyNote,
   GraduationCap,
   FileText,
+  BookText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EntityType, ViewType } from "../StudyPageClient";
@@ -126,6 +127,20 @@ export default function TagDetail({ tagId, onNavigate, onEdit }: TagDetailProps)
       items: entities.chapter,
       view: "books" as ViewType,
     },
+    {
+      type: "course" as const,
+      label: "Courses",
+      icon: GraduationCap,
+      items: entities.course,
+      view: "courses" as ViewType,
+    },
+    {
+      type: "book" as const,
+      label: "Books",
+      icon: BookText,
+      items: entities.book,
+      view: "books" as ViewType,
+    },
   ];
 
   // Get display text for an entity
@@ -145,6 +160,10 @@ export default function TagDetail({ tagId, onNavigate, onEdit }: TagDetailProps)
         return item.title || "Untitled Lesson";
       case "chapter":
         return item.title || "Untitled Chapter";
+      case "course":
+        return item.title || "Untitled Course";
+      case "book":
+        return item.title || "Untitled Book";
       default:
         return item.title || item.name || "Unknown";
     }
