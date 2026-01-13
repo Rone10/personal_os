@@ -26,6 +26,7 @@ import LessonDetail from "./details/LessonDetail";
 import BookDetail from "./details/BookDetail";
 import ChapterDetail from "./details/ChapterDetail";
 import NoteDetail from "./details/NoteDetail";
+import TagDetail from "./details/TagDetail";
 
 // Form dialogs
 import WordFormDialog from "./dialogs/WordFormDialog";
@@ -37,6 +38,7 @@ import LessonFormDialog from "./dialogs/LessonFormDialog";
 import BookFormDialog from "./dialogs/BookFormDialog";
 import ChapterFormDialog from "./dialogs/ChapterFormDialog";
 import NoteFormDialog from "./dialogs/NoteFormDialog";
+import TagFormDialog from "./dialogs/TagFormDialog";
 
 interface MainContentProps {
   view: ViewType;
@@ -53,7 +55,7 @@ type SearchData = Record<string, any[]>;
 
 type DialogType =
   | "word" | "root" | "verse" | "hadith"
-  | "course" | "lesson" | "book" | "chapter" | "note"
+  | "course" | "lesson" | "book" | "chapter" | "note" | "tag"
   | null;
 
 export default function MainContent(props: MainContentProps) {
@@ -177,6 +179,14 @@ export default function MainContent(props: MainContentProps) {
           <NoteDetail
             noteId={entityId!}
             onNavigate={onNavigate}
+          />
+        );
+      case "tag":
+        return (
+          <TagDetail
+            tagId={entityId!}
+            onNavigate={onNavigate}
+            onEdit={() => openEditDialog("tag", entityId!)}
           />
         );
       default:
@@ -339,6 +349,11 @@ export default function MainContent(props: MainContentProps) {
           open={openDialog === "note"}
           onClose={closeDialog}
           onCreated={(noteId) => onNavigate("notes", "note", noteId)}
+        />
+        <TagFormDialog
+          open={openDialog === "tag"}
+          onClose={closeDialog}
+          editId={openDialog === "tag" ? editId : undefined}
         />
       </>
     );

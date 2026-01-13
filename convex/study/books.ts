@@ -192,6 +192,37 @@ export const listChapters = query({
 });
 
 /**
+ * List all chapters for the current user (across all books).
+ * Used by LinkPicker to reference chapters from notes.
+ */
+export const listAllChapters = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    // Get all user's chapters
+    const chapters = await ctx.db
+      .query("chapters")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+
+    // Hydrate with book title for display
+    const chaptersWithBook = await Promise.all(
+      chapters.map(async (chapter) => {
+        const book = await ctx.db.get(chapter.bookId);
+        return {
+          ...chapter,
+          bookTitle: book?.title,
+        };
+      })
+    );
+
+    return chaptersWithBook;
+  },
+});
+
+/**
  * Get a single chapter by ID.
  */
 export const getChapter = query({

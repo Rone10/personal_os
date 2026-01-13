@@ -192,6 +192,37 @@ export const listLessons = query({
 });
 
 /**
+ * List all lessons for the current user (across all courses).
+ * Used by LinkPicker to reference lessons from notes.
+ */
+export const listAllLessons = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    // Get all user's lessons
+    const lessons = await ctx.db
+      .query("lessons")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+
+    // Hydrate with course title for display
+    const lessonsWithCourse = await Promise.all(
+      lessons.map(async (lesson) => {
+        const course = await ctx.db.get(lesson.courseId);
+        return {
+          ...lesson,
+          courseTitle: course?.title,
+        };
+      })
+    );
+
+    return lessonsWithCourse;
+  },
+});
+
+/**
  * Get a single lesson by ID.
  */
 export const getLesson = query({

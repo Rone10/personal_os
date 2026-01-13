@@ -352,6 +352,11 @@ export default defineSchema({
             v.literal("lesson"),
             v.literal("chapter"),
             v.literal("root"),
+            // Extended reference types
+            v.literal("tag"),
+            v.literal("course"),
+            v.literal("book"),
+            v.literal("note"),
           ),
           targetId: v.string(),
           startOffset: v.number(),

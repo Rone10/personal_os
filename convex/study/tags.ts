@@ -38,6 +38,51 @@ export const getById = query({
 });
 
 /**
+ * Get tag detail with all tagged entities hydrated.
+ */
+export const getTagDetail = query({
+  args: { id: v.id("tags") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    const tag = await ctx.db.get(args.id);
+    if (!tag || tag.userId !== identity.subject) return null;
+
+    // Get all entity associations for this tag
+    const entityTags = await ctx.db
+      .query("entityTags")
+      .withIndex("by_tag", (q) => q.eq("tagId", args.id))
+      .collect();
+
+    // Group by entity type and hydrate each entity
+    const entitiesByType: Record<string, any[]> = {
+      word: [],
+      verse: [],
+      hadith: [],
+      note: [],
+      lesson: [],
+      chapter: [],
+      root: [],
+      explanation: [],
+    };
+
+    for (const et of entityTags) {
+      const entity = await ctx.db.get(et.entityId as any);
+      if (entity) {
+        entitiesByType[et.entityType]?.push(entity);
+      }
+    }
+
+    return {
+      tag,
+      entities: entitiesByType,
+      totalCount: entityTags.length,
+    };
+  },
+});
+
+/**
  * Get a tag by name.
  */
 export const getByName = query({

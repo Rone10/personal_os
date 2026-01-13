@@ -32,6 +32,18 @@ export function CommandPalette() {
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        // Don't intercept if focus is in a text input (allows NoteEditor to use Ctrl+K for links)
+        const activeElement = document.activeElement;
+        const isInTextInput =
+          activeElement instanceof HTMLTextAreaElement ||
+          (activeElement instanceof HTMLInputElement &&
+            ['text', 'search', 'url', 'email'].includes(activeElement.type)) ||
+          activeElement?.getAttribute('contenteditable') === 'true';
+
+        if (isInTextInput) {
+          return; // Let the input handle Ctrl+K
+        }
+
         e.preventDefault();
         setOpen((open) => !open);
       }

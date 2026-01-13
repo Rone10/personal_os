@@ -56,11 +56,15 @@ export default function NoteEditor({
     const after = content.slice(cursorPosition);
     const insertText = ref.displayText;
 
-    // Create new content with the reference inserted
-    const newContent = before + insertText + after;
+    // Add a space after the reference if there isn't one already
+    const needsSpace = after.length === 0 || (after[0] !== ' ' && after[0] !== '\n');
+    const spacer = needsSpace ? ' ' : '';
+
+    // Create new content with the reference inserted (plus trailing space)
+    const newContent = before + insertText + spacer + after;
     onContentChange(newContent);
 
-    // Create new reference
+    // Create new reference (without the space in the reference span)
     const newRef: InlineReference = {
       targetType: ref.type,
       targetId: ref.id,
@@ -69,13 +73,16 @@ export default function NoteEditor({
       displayText: ref.displayText,
     };
 
+    // Total insertion length includes the spacer
+    const totalInsertLength = insertText.length + spacer.length;
+
     // Adjust existing references that come after the insertion point
     const adjustedRefs = references.map(existingRef => {
       if (existingRef.startOffset >= cursorPosition) {
         return {
           ...existingRef,
-          startOffset: existingRef.startOffset + insertText.length,
-          endOffset: existingRef.endOffset + insertText.length,
+          startOffset: existingRef.startOffset + totalInsertLength,
+          endOffset: existingRef.endOffset + totalInsertLength,
         };
       }
       return existingRef;
@@ -83,10 +90,10 @@ export default function NoteEditor({
 
     onReferencesChange([...adjustedRefs, newRef]);
 
-    // Reset cursor position after insert
+    // Reset cursor position after insert (after the space)
     setTimeout(() => {
       if (textarea) {
-        const newPos = cursorPosition + insertText.length;
+        const newPos = cursorPosition + totalInsertLength;
         textarea.focus();
         textarea.setSelectionRange(newPos, newPos);
       }

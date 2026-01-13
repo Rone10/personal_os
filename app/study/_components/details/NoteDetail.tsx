@@ -51,6 +51,11 @@ export default function NoteDetail({ noteId, onNavigate }: NoteDetailProps) {
       root: "roots",
       lesson: "courses",
       chapter: "books",
+      // Extended reference types
+      tag: "tags",
+      course: "courses",
+      book: "books",
+      note: "notes",
     };
     const view = viewMap[type];
     if (view) {

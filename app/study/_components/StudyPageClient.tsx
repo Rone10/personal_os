@@ -22,7 +22,8 @@ export type ViewType =
   | "courses"
   | "books"
   | "notes"
-  | "flashcards";
+  | "flashcards"
+  | "tags";
 
 export type EntityType =
   | "root"
@@ -33,7 +34,8 @@ export type EntityType =
   | "lesson"
   | "book"
   | "chapter"
-  | "note";
+  | "note"
+  | "tag";
 
 export interface ViewState {
   view: ViewType;

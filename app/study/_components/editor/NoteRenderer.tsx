@@ -2,7 +2,17 @@
 
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { Languages, BookOpen, ScrollText, Hash } from "lucide-react";
+import {
+  Languages,
+  BookOpen,
+  ScrollText,
+  Hash,
+  Tag,
+  GraduationCap,
+  BookText,
+  StickyNote,
+  FileText,
+} from "lucide-react";
 import { InlineReference } from "./NoteEditor";
 
 interface NoteRendererProps {
@@ -73,6 +83,18 @@ export default function NoteRenderer({
         return <ScrollText className="h-3 w-3" />;
       case "root":
         return <Hash className="h-3 w-3" />;
+      case "tag":
+        return <Tag className="h-3 w-3" />;
+      case "course":
+        return <GraduationCap className="h-3 w-3" />;
+      case "book":
+        return <BookText className="h-3 w-3" />;
+      case "note":
+        return <StickyNote className="h-3 w-3" />;
+      case "lesson":
+        return <FileText className="h-3 w-3" />;
+      case "chapter":
+        return <FileText className="h-3 w-3" />;
       default:
         return null;
     }
@@ -88,6 +110,18 @@ export default function NoteRenderer({
         return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/50";
       case "root":
         return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50";
+      case "tag":
+        return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700";
+      case "course":
+        return "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900/50";
+      case "book":
+        return "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300 hover:bg-rose-200 dark:hover:bg-rose-900/50";
+      case "note":
+        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-900/50";
+      case "lesson":
+        return "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 hover:bg-violet-200 dark:hover:bg-violet-900/50";
+      case "chapter":
+        return "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-900/50";
       default:
         return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
     }
