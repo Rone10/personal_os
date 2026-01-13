@@ -59,6 +59,7 @@ export default function RichTextEditor({
   }, []);
 
   const editor = useEditor({
+    immediatelyRender: false, // Prevents SSR hydration mismatch
     extensions: [
       StarterKit.configure({
         heading: {
@@ -155,18 +156,23 @@ export default function RichTextEditor({
     }) => {
       if (!editor) return;
 
+      // Insert the reference as a text node with the entityReference mark already applied
       editor
         .chain()
         .focus()
-        .insertContent(ref.displayText)
-        .setTextSelection({
-          from: editor.state.selection.from - ref.displayText.length,
-          to: editor.state.selection.from,
-        })
-        .setMark("entityReference", {
-          targetType: ref.type,
-          targetId: ref.id,
-          displayText: ref.displayText,
+        .insertContent({
+          type: "text",
+          text: ref.displayText,
+          marks: [
+            {
+              type: "entityReference",
+              attrs: {
+                targetType: ref.type,
+                targetId: ref.id,
+                displayText: ref.displayText,
+              },
+            },
+          ],
         })
         .run();
 

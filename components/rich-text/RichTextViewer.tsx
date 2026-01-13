@@ -25,6 +25,7 @@ export default function RichTextViewer({
   onEntityClick,
 }: RichTextViewerProps) {
   const editor = useEditor({
+    immediatelyRender: false, // Prevents SSR hydration mismatch
     extensions: [
       StarterKit.configure({
         heading: {

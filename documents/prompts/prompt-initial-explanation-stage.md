@@ -9,7 +9,8 @@ Here is exactly what I need implemented:
  I want you to add a rich text editor and extract it as a reusable component across the project. Use tiptap. I'll use the editor when writing notes or descriptions. This way I can have many editing capabilities etc
 </feature_description>
 --
-
+Error: Tiptap Error: SSR has been detected, please set `immediatelyRender` explicitly to `false` to avoid hydration mismatches.
+  
 Your responsibilities:
 
 - Analyze and understand the existing codebase thoroughly.
