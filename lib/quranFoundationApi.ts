@@ -30,11 +30,6 @@ export const DEFAULT_TRANSLATIONS: TranslationSource[] = [
     name: "Sahih International",
     authorName: "Saheeh International",
   },
-  {
-    id: "131",
-    name: "The Clear Quran",
-    authorName: "Dr. Mustafa Khattab",
-  },
 ];
 
 // All available translations for selection
@@ -51,7 +46,7 @@ export const AVAILABLE_TRANSLATIONS: TranslationSource[] = [
  * This calls our internal API route which handles authentication.
  * @param surah - Surah number (1-114)
  * @param ayah - Ayah number
- * @param resourceId - Translation resource ID (e.g., "131" for Sahih International)
+ * @param resourceId - Translation resource ID (e.g., "20" for Sahih International)
  * @returns Translation text or null if failed
  */
 export async function fetchTranslation(

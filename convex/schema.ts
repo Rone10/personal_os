@@ -221,7 +221,7 @@ export default defineSchema({
           arabicText: v.string(),
           translations: v.array(
             v.object({
-              sourceId: v.string(), // e.g., "131" for Sahih International
+              sourceId: v.string(), // e.g., "20" for Sahih International
               sourceName: v.string(), // e.g., "Sahih International"
               text: v.string(), // The translation text
               sourceType: v.union(v.literal("api"), v.literal("custom")),
