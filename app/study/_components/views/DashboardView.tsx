@@ -12,6 +12,7 @@ import {
   BookText,
   StickyNote,
   ArrowRight,
+  Tag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ViewType, EntityType } from "../StudyPageClient";
@@ -154,9 +155,10 @@ export default function DashboardView({
           onClick={() => onNavigate("notes")}
         />
         <StatCard
-          icon={<Sparkles className="h-5 w-5 text-slate-500" />}
+          icon={<Tag className="h-5 w-5 text-slate-500" />}
           label="Tags"
           count={searchData.tags.length}
+          onClick={() => onNavigate("tags")}
         />
       </div>
 

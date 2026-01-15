@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/command";
 import { EntityType, ViewType } from "./StudyPageClient";
 
-// Entity types that support tagging
+// Entity types that support tagging (subset of EntityType that backend accepts)
 type TaggableEntityType =
   | "word"
   | "verse"
@@ -31,7 +31,6 @@ type TaggableEntityType =
   | "lesson"
   | "chapter"
   | "root"
-  | "explanation"
   | "course"
   | "book";
 
@@ -46,6 +45,22 @@ interface ContextPanelProps {
   ) => void;
 }
 
+// Check if an entity type supports tagging
+function isTaggable(type: EntityType): type is TaggableEntityType {
+  const taggableTypes: TaggableEntityType[] = [
+    "word",
+    "verse",
+    "hadith",
+    "note",
+    "lesson",
+    "chapter",
+    "root",
+    "course",
+    "book",
+  ];
+  return taggableTypes.includes(type as TaggableEntityType);
+}
+
 export default function ContextPanel({
   entityType,
   entityId,
@@ -54,20 +69,27 @@ export default function ContextPanel({
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
 
+  const canTag = isTaggable(entityType);
+
   // Get backlinks for this entity
   const backlinks = useQuery(api.study.backlinks.getBacklinksFor, {
     targetType: entityType,
     targetId: entityId,
   });
 
-  // Get tags for this entity
-  const tags = useQuery(api.study.tags.getEntityTags, {
-    entityType: entityType as TaggableEntityType,
-    entityId: entityId,
-  });
+  // Get tags for this entity (skip if entity type doesn't support tagging)
+  const tags = useQuery(
+    api.study.tags.getEntityTags,
+    canTag
+      ? {
+          entityType: entityType as TaggableEntityType,
+          entityId: entityId,
+        }
+      : "skip"
+  );
 
-  // Get all available tags for the user
-  const allTags = useQuery(api.study.tags.list);
+  // Get all available tags for the user (only if entity supports tagging)
+  const allTags = useQuery(api.study.tags.list, canTag ? {} : "skip");
 
   // Mutations for tag management
   const tagEntity = useMutation(api.study.tags.tagEntity);
@@ -173,115 +195,117 @@ export default function ContextPanel({
         )}
       </section>
 
-      {/* Tags Section */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-            <Tag className="h-4 w-4" />
-            Tags
-          </h3>
-          <Popover open={tagPickerOpen} onOpenChange={setTagPickerOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                title="Add tag"
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64 p-0" align="end">
-              <Command shouldFilter={false}>
-                <CommandInput
-                  placeholder="Search or create tag..."
-                  value={searchValue}
-                  onValueChange={setSearchValue}
-                />
-                <CommandList>
-                  <CommandEmpty>
-                    {searchValue.trim() && !exactMatch ? (
-                      <button
-                        className="w-full p-2 text-sm text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2"
-                        onClick={handleCreateAndAddTag}
-                      >
-                        <Plus className="h-4 w-4" />
-                        Create &quot;{searchValue}&quot;
-                      </button>
-                    ) : (
-                      <p className="p-2 text-sm text-slate-500">No tags found</p>
+      {/* Tags Section (only for taggable entity types) */}
+      {canTag && (
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+              <Tag className="h-4 w-4" />
+              Tags
+            </h3>
+            <Popover open={tagPickerOpen} onOpenChange={setTagPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  title="Add tag"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-0" align="end">
+                <Command shouldFilter={false}>
+                  <CommandInput
+                    placeholder="Search or create tag..."
+                    value={searchValue}
+                    onValueChange={setSearchValue}
+                  />
+                  <CommandList>
+                    <CommandEmpty>
+                      {searchValue.trim() && !exactMatch ? (
+                        <button
+                          className="w-full p-2 text-sm text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2"
+                          onClick={handleCreateAndAddTag}
+                        >
+                          <Plus className="h-4 w-4" />
+                          Create &quot;{searchValue}&quot;
+                        </button>
+                      ) : (
+                        <p className="p-2 text-sm text-slate-500">No tags found</p>
+                      )}
+                    </CommandEmpty>
+                    {filteredTags.length > 0 && (
+                      <CommandGroup heading="Available Tags">
+                        {filteredTags.map((tag) => (
+                          <CommandItem
+                            key={tag._id}
+                            onSelect={() => handleAddTag(tag._id)}
+                            className="cursor-pointer"
+                          >
+                            <div
+                              className="w-3 h-3 rounded-full mr-2 shrink-0"
+                              style={{
+                                backgroundColor: tag.color ?? "#94a3b8",
+                              }}
+                            />
+                            {tag.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
                     )}
-                  </CommandEmpty>
-                  {filteredTags.length > 0 && (
-                    <CommandGroup heading="Available Tags">
-                      {filteredTags.map((tag) => (
+                    {searchValue.trim() && !exactMatch && filteredTags.length > 0 && (
+                      <CommandGroup heading="Create New">
                         <CommandItem
-                          key={tag._id}
-                          onSelect={() => handleAddTag(tag._id)}
+                          onSelect={handleCreateAndAddTag}
                           className="cursor-pointer"
                         >
-                          <div
-                            className="w-3 h-3 rounded-full mr-2 flex-shrink-0"
-                            style={{
-                              backgroundColor: tag.color ?? "#94a3b8",
-                            }}
-                          />
-                          {tag.name}
+                          <Plus className="h-4 w-4 mr-2" />
+                          Create &quot;{searchValue}&quot;
                         </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  )}
-                  {searchValue.trim() && !exactMatch && filteredTags.length > 0 && (
-                    <CommandGroup heading="Create New">
-                      <CommandItem
-                        onSelect={handleCreateAndAddTag}
-                        className="cursor-pointer"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create &quot;{searchValue}&quot;
-                      </CommandItem>
-                    </CommandGroup>
-                  )}
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        </div>
+                      </CommandGroup>
+                    )}
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
 
-        {tags === undefined ? (
-          <div className="flex justify-center py-4">
-            <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
-          </div>
-        ) : tags.length === 0 ? (
-          <p className="text-sm text-slate-400 italic">
-            No tags - click + to add
-          </p>
-        ) : (
-          <div className="flex flex-wrap gap-1.5">
-            {tags.filter(Boolean).map((tag) => (
-              <Badge
-                key={tag!._id}
-                variant="secondary"
-                className="cursor-pointer group pr-1"
-                style={tag!.color ? { backgroundColor: tag!.color } : undefined}
-                onClick={() => onNavigate("tags", "tag", tag!._id)}
-              >
-                {tag!.name}
-                <button
-                  className="ml-1 opacity-0 group-hover:opacity-100 hover:bg-black/10 dark:hover:bg-white/10 rounded-full p-0.5 transition-opacity"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRemoveTag(tag!._id as Id<"tags">);
-                  }}
-                  title="Remove tag"
+          {tags === undefined ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+            </div>
+          ) : tags.length === 0 ? (
+            <p className="text-sm text-slate-400 italic">
+              No tags - click + to add
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {tags.filter(Boolean).map((tag) => (
+                <Badge
+                  key={tag!._id}
+                  variant="secondary"
+                  className="cursor-pointer group pr-1"
+                  style={tag!.color ? { backgroundColor: tag!.color } : undefined}
+                  onClick={() => onNavigate("tags", "tag", tag!._id)}
                 >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-          </div>
-        )}
-      </section>
+                  {tag!.name}
+                  <button
+                    className="ml-1 opacity-0 group-hover:opacity-100 hover:bg-black/10 dark:hover:bg-white/10 rounded-full p-0.5 transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveTag(tag!._id as Id<"tags">);
+                    }}
+                    title="Remove tag"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Explanations Section (only for word/verse/hadith/root) */}
       {(entityType === "word" ||
