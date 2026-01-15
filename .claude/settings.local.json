@@ -18,7 +18,8 @@
       "Bash(tsc:*)",
       "Bash(npm install:*)",
       "Bash(pnpm add:*)",
-      "Bash(pnpm lint:*)"
+      "Bash(pnpm lint:*)",
+      "Bash(grep:*)"
     ]
   }
 }

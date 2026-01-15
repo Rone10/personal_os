@@ -11,6 +11,7 @@ import RootsList from "./lists/RootsList";
 import CoursesList from "./lists/CoursesList";
 import BooksList from "./lists/BooksList";
 import NotesList from "./lists/NotesList";
+import TagsList from "./lists/TagsList";
 
 // View components
 import DashboardView from "./views/DashboardView";
@@ -286,6 +287,16 @@ export default function MainContent(props: MainContentProps) {
             selectedId={undefined}
             onSelect={(id) => onNavigate("notes", "note", id)}
             onAdd={() => openCreateDialog("note")}
+          />
+        );
+
+      case "tags":
+        return (
+          <TagsList
+            tags={searchData.tags}
+            selectedId={undefined}
+            onSelect={(id) => onNavigate("tags", "tag", id)}
+            onAdd={() => openCreateDialog("tag")}
           />
         );
 

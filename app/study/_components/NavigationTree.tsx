@@ -12,6 +12,7 @@ import {
   StickyNote,
   Hash,
   Plus,
+  Tag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -358,6 +359,30 @@ export default function NavigationTree({
             onClick={() => onNavigate("notes")}
           >
             View all {data.notes.length} notes...
+          </div>
+        )}
+      </TreeSection>
+
+      {/* Tags */}
+      <TreeSection
+        title={`Tags (${data.tags.length})`}
+        icon={<Tag className="h-4 w-4" />}
+        defaultOpen={currentView === "tags"}
+      >
+        {data.tags.slice(0, 10).map((tag) => (
+          <TreeItem
+            key={tag._id}
+            label={`#${tag.name}`}
+            isActive={currentEntityType === "tag" && currentEntityId === tag._id}
+            onClick={() => onNavigate("tags", "tag", tag._id)}
+          />
+        ))}
+        {data.tags.length > 10 && (
+          <div
+            className="px-2 py-1 text-xs text-slate-400 cursor-pointer hover:text-slate-600"
+            onClick={() => onNavigate("tags")}
+          >
+            View all {data.tags.length} tags...
           </div>
         )}
       </TreeSection>
