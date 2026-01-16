@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { Link2, Tag, MessageSquareText, Loader2, Plus, X, Pencil, Trash2 } from "lucide-react";
+import { Link2, Tag, MessageSquareText, Loader2, Plus, X, Pencil, Trash2, ArrowRight, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { EntityType, ViewType } from "./StudyPageClient";
 import ExplanationFormDialog from "./dialogs/ExplanationFormDialog";
+import EntityLinkFormDialog from "./dialogs/EntityLinkFormDialog";
 import RichTextViewer from "@/components/rich-text/RichTextViewer";
 
 // Entity types that support tagging (subset of EntityType that backend accepts)
@@ -81,6 +82,45 @@ function isExplainable(type: EntityType): type is ExplainableEntityType {
   return type === "word" || type === "verse" || type === "hadith" || type === "root";
 }
 
+// Type for entities that can have entity links
+type LinkableEntityType = "word" | "verse" | "hadith" | "root" | "note";
+
+// Check if an entity type supports entity linking
+function isLinkable(type: EntityType): type is LinkableEntityType {
+  return type === "word" || type === "verse" || type === "hadith" || type === "root" || type === "note";
+}
+
+// Relationship type labels for display
+const relationshipLabels: Record<string, string> = {
+  related: "Related",
+  synonym: "Synonym",
+  antonym: "Antonym",
+  explains: "Explains",
+  derived_from: "Derived from",
+  contrasts: "Contrasts",
+  supports: "Supports",
+  example_of: "Example of",
+};
+
+// Get display text for an entity
+function getEntityDisplayText(entity: any, entityType: string): string {
+  if (!entity) return "Unknown";
+  switch (entityType) {
+    case "word":
+      return entity.text || "Untitled Word";
+    case "verse":
+      return `${entity.surahNumber}:${entity.ayahStart}${entity.ayahEnd ? `-${entity.ayahEnd}` : ""}`;
+    case "hadith":
+      return `${entity.collection} #${entity.hadithNumber}`;
+    case "root":
+      return entity.letters || entity.latinized || "Unknown Root";
+    case "note":
+      return entity.title || "Untitled Note";
+    default:
+      return "Unknown";
+  }
+}
+
 export default function ContextPanel({
   entityType,
   entityId,
@@ -94,14 +134,33 @@ export default function ContextPanel({
   const [editingExplanationId, setEditingExplanationId] = useState<string | undefined>();
   const [deleteExplanationId, setDeleteExplanationId] = useState<string | null>(null);
 
+  // Entity link dialog state
+  const [entityLinkDialogOpen, setEntityLinkDialogOpen] = useState(false);
+  const [deleteLinkId, setDeleteLinkId] = useState<string | null>(null);
+
   const canTag = isTaggable(entityType);
   const canExplain = isExplainable(entityType);
+  const canLink = isLinkable(entityType);
 
   // Get backlinks for this entity
   const backlinks = useQuery(api.study.backlinks.getBacklinksFor, {
     targetType: entityType,
     targetId: entityId,
   });
+
+  // Get entity links for this entity (skip if not linkable)
+  const entityLinks = useQuery(
+    api.study.entityLinks.getEntityLinks,
+    canLink
+      ? {
+          entityType: entityType as LinkableEntityType,
+          entityId: entityId,
+        }
+      : "skip"
+  );
+
+  // Mutation for link deletion
+  const deleteEntityLink = useMutation(api.study.entityLinks.remove);
 
   // Get tags for this entity (skip if entity type doesn't support tagging)
   const tags = useQuery(
@@ -223,6 +282,136 @@ export default function ContextPanel({
           </div>
         )}
       </section>
+
+      {/* Entity Links Section (only for linkable entity types) */}
+      {canLink && (
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+              <Link2 className="h-4 w-4" />
+              Links
+            </h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              title="Add link"
+              onClick={() => setEntityLinkDialogOpen(true)}
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+          {entityLinks === undefined ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+            </div>
+          ) : (entityLinks.outgoing.length === 0 && entityLinks.incoming.length === 0) ? (
+            <p className="text-sm text-slate-400 italic">
+              No links - click + to add
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {/* Outgoing Links */}
+              {entityLinks.outgoing.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-xs text-slate-500 font-medium flex items-center gap-1">
+                    <ArrowRight className="h-3 w-3" /> Links to
+                  </p>
+                  {entityLinks.outgoing.map((link) => {
+                    const viewTypeMap: Record<string, ViewType> = {
+                      word: "words",
+                      verse: "verses",
+                      hadith: "hadiths",
+                      root: "roots",
+                      note: "notes",
+                    };
+                    return (
+                      <div
+                        key={link._id}
+                        className="p-2 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 cursor-pointer hover:border-blue-300 dark:hover:border-blue-700 group"
+                        onClick={() => onNavigate(viewTypeMap[link.targetType] || "dashboard", link.targetType as EntityType, link.targetId)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Badge variant="outline" className="text-xs shrink-0">
+                              {relationshipLabels[link.relationshipType] || link.relationshipType}
+                            </Badge>
+                            <span className="text-sm text-slate-700 dark:text-slate-300 truncate">
+                              {getEntityDisplayText(link.target, link.targetType)}
+                            </span>
+                          </div>
+                          <button
+                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteLinkId(link._id);
+                            }}
+                            title="Delete link"
+                          >
+                            <X className="h-3 w-3 text-red-500" />
+                          </button>
+                        </div>
+                        {link.note && (
+                          <p className="text-xs text-slate-500 mt-1 line-clamp-1">{link.note}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Incoming Links */}
+              {entityLinks.incoming.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-xs text-slate-500 font-medium flex items-center gap-1">
+                    <ArrowLeft className="h-3 w-3" /> Linked from
+                  </p>
+                  {entityLinks.incoming.map((link) => {
+                    const viewTypeMap: Record<string, ViewType> = {
+                      word: "words",
+                      verse: "verses",
+                      hadith: "hadiths",
+                      root: "roots",
+                      note: "notes",
+                    };
+                    return (
+                      <div
+                        key={link._id}
+                        className="p-2 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 cursor-pointer hover:border-blue-300 dark:hover:border-blue-700 group"
+                        onClick={() => onNavigate(viewTypeMap[link.sourceType] || "dashboard", link.sourceType as EntityType, link.sourceId)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Badge variant="outline" className="text-xs shrink-0">
+                              {relationshipLabels[link.relationshipType] || link.relationshipType}
+                            </Badge>
+                            <span className="text-sm text-slate-700 dark:text-slate-300 truncate">
+                              {getEntityDisplayText(link.source, link.sourceType)}
+                            </span>
+                          </div>
+                          <button
+                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteLinkId(link._id);
+                            }}
+                            title="Delete link"
+                          >
+                            <X className="h-3 w-3 text-red-500" />
+                          </button>
+                        </div>
+                        {link.note && (
+                          <p className="text-xs text-slate-500 mt-1 line-clamp-1">{link.note}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Tags Section (only for taggable entity types) */}
       {canTag && (
@@ -477,6 +666,48 @@ export default function ContextPanel({
                     id: deleteExplanationId as Id<"explanations">,
                   });
                   setDeleteExplanationId(null);
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Entity Link Form Dialog */}
+      {canLink && (
+        <EntityLinkFormDialog
+          open={entityLinkDialogOpen}
+          onClose={() => setEntityLinkDialogOpen(false)}
+          sourceType={entityType as LinkableEntityType}
+          sourceId={entityId}
+        />
+      )}
+
+      {/* Delete Entity Link Confirmation */}
+      <AlertDialog
+        open={!!deleteLinkId}
+        onOpenChange={(open) => !open && setDeleteLinkId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Link?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the link between these entities. The entities
+              themselves will not be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={async () => {
+                if (deleteLinkId) {
+                  await deleteEntityLink({
+                    id: deleteLinkId as Id<"entityLinks">,
+                  });
+                  setDeleteLinkId(null);
                 }
               }}
             >

@@ -52,7 +52,8 @@ export const list = query({
         v.literal("chapter"),
         v.literal("verse"),
         v.literal("hadith"),
-        v.literal("word")
+        v.literal("word"),
+        v.literal("standalone")
       )
     ),
     parentId: v.optional(v.string()),
@@ -183,7 +184,8 @@ export const create = mutation({
         v.literal("chapter"),
         v.literal("verse"),
         v.literal("hadith"),
-        v.literal("word")
+        v.literal("word"),
+        v.literal("standalone")
       )
     ),
     parentId: v.optional(v.string()),
@@ -238,7 +240,8 @@ export const update = mutation({
         v.literal("chapter"),
         v.literal("verse"),
         v.literal("hadith"),
-        v.literal("word")
+        v.literal("word"),
+        v.literal("standalone")
       )
     ),
     parentId: v.optional(v.string()),
@@ -393,7 +396,8 @@ async function updateBacklinksFromExtracted(
 }
 
 /**
- * List standalone notes (not attached to any parent).
+ * List standalone notes (atomic concept cards with no parent).
+ * Includes notes with parentType === "standalone" or no parentType at all.
  */
 export const listStandalone = query({
   args: {},
@@ -406,6 +410,7 @@ export const listStandalone = query({
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))
       .collect();
 
-    return allNotes.filter((n) => !n.parentType);
+    // Include notes with "standalone" parentType or no parentType
+    return allNotes.filter((n) => !n.parentType || n.parentType === "standalone");
   },
 });

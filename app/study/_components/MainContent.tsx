@@ -12,6 +12,7 @@ import CoursesList from "./lists/CoursesList";
 import BooksList from "./lists/BooksList";
 import NotesList from "./lists/NotesList";
 import TagsList from "./lists/TagsList";
+import CollectionsList from "./lists/CollectionsList";
 
 // View components
 import DashboardView from "./views/DashboardView";
@@ -28,6 +29,7 @@ import BookDetail from "./details/BookDetail";
 import ChapterDetail from "./details/ChapterDetail";
 import NoteDetail from "./details/NoteDetail";
 import TagDetail from "./details/TagDetail";
+import CollectionDetail from "./details/CollectionDetail";
 
 // Form dialogs
 import WordFormDialog from "./dialogs/WordFormDialog";
@@ -40,6 +42,7 @@ import BookFormDialog from "./dialogs/BookFormDialog";
 import ChapterFormDialog from "./dialogs/ChapterFormDialog";
 import NoteFormDialog from "./dialogs/NoteFormDialog";
 import TagFormDialog from "./dialogs/TagFormDialog";
+import CollectionFormDialog from "./dialogs/CollectionFormDialog";
 
 interface MainContentProps {
   view: ViewType;
@@ -56,7 +59,7 @@ type SearchData = Record<string, any[]>;
 
 type DialogType =
   | "word" | "root" | "verse" | "hadith"
-  | "course" | "lesson" | "book" | "chapter" | "note" | "tag"
+  | "course" | "lesson" | "book" | "chapter" | "note" | "tag" | "collection"
   | null;
 
 export default function MainContent(props: MainContentProps) {
@@ -190,6 +193,14 @@ export default function MainContent(props: MainContentProps) {
             onEdit={() => openEditDialog("tag", entityId!)}
           />
         );
+      case "collection":
+        return (
+          <CollectionDetail
+            collectionId={entityId!}
+            onNavigate={onNavigate}
+            onEdit={() => openEditDialog("collection", entityId!)}
+          />
+        );
       default:
         return (
           <div className="p-8 text-center text-slate-500">
@@ -300,6 +311,16 @@ export default function MainContent(props: MainContentProps) {
           />
         );
 
+      case "collections":
+        return (
+          <CollectionsList
+            collections={searchData.collections ?? []}
+            selectedId={undefined}
+            onSelect={(id) => onNavigate("collections", "collection", id)}
+            onAdd={() => openCreateDialog("collection")}
+          />
+        );
+
       default:
         return (
           <div className="p-8 text-center text-slate-500">
@@ -365,6 +386,11 @@ export default function MainContent(props: MainContentProps) {
           open={openDialog === "tag"}
           onClose={closeDialog}
           editId={openDialog === "tag" ? editId : undefined}
+        />
+        <CollectionFormDialog
+          open={openDialog === "collection"}
+          onClose={closeDialog}
+          editId={openDialog === "collection" ? editId : undefined}
         />
       </>
     );

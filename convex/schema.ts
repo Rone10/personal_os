@@ -364,6 +364,7 @@ export default defineSchema({
         v.literal("verse"),
         v.literal("hadith"),
         v.literal("word"),
+        v.literal("standalone"), // Atomic notes with no parent
       ),
     ),
     parentId: v.optional(v.string()),
@@ -484,4 +485,64 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_target", ["targetType", "targetId"])
     .index("by_note", ["noteId"]),
+
+  // --- ENTITY LINKS ---
+  // Direct relationships between entities (beyond note-based backlinks).
+  // Enables thematic study, synonym/antonym relationships, etc.
+  entityLinks: defineTable({
+    userId: v.string(),
+    sourceType: v.union(
+      v.literal("word"),
+      v.literal("verse"),
+      v.literal("hadith"),
+      v.literal("root"),
+      v.literal("note"),
+    ),
+    sourceId: v.string(),
+    targetType: v.union(
+      v.literal("word"),
+      v.literal("verse"),
+      v.literal("hadith"),
+      v.literal("root"),
+      v.literal("note"),
+    ),
+    targetId: v.string(),
+    relationshipType: v.union(
+      v.literal("related"), // General relationship
+      v.literal("synonym"), // Same/similar meaning (words)
+      v.literal("antonym"), // Opposite meaning (words)
+      v.literal("explains"), // One explains the other
+      v.literal("derived_from"), // Derivation (word from root)
+      v.literal("contrasts"), // Shows contrast
+      v.literal("supports"), // Supporting evidence
+      v.literal("example_of"), // Instance/example
+    ),
+    note: v.optional(v.string()), // Context for why they're linked
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_source", ["userId", "sourceType", "sourceId"])
+    .index("by_target", ["userId", "targetType", "targetId"]),
+
+  // --- COLLECTIONS ---
+  // Curated topic hubs with narrative and custom ordering.
+  // Aggregates entities into meaningful groupings for thematic study.
+  collections: defineTable({
+    userId: v.string(),
+    title: v.string(),
+    description: v.optional(v.string()),
+    contentJson: v.optional(v.any()), // Rich text introduction/narrative
+    items: v.array(
+      v.object({
+        entityType: v.string(), // word, verse, hadith, root, note, lesson, chapter
+        entityId: v.string(),
+        order: v.number(),
+        annotation: v.optional(v.string()), // Why this item is included
+      })
+    ),
+    tags: v.optional(v.array(v.id("tags"))),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"]),
 });

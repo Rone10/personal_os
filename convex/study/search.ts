@@ -26,6 +26,7 @@ export const getSearchData = query({
         books: [],
         chapters: [],
         tags: [],
+        collections: [],
       };
     }
 
@@ -43,6 +44,7 @@ export const getSearchData = query({
       books,
       chapters,
       tags,
+      collections,
     ] = await Promise.all([
       ctx.db
         .query("words")
@@ -84,6 +86,10 @@ export const getSearchData = query({
         .query("tags")
         .withIndex("by_user", (q) => q.eq("userId", userId))
         .collect(),
+      ctx.db
+        .query("collections")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect(),
     ]);
 
     return {
@@ -97,6 +103,7 @@ export const getSearchData = query({
       books,
       chapters,
       tags,
+      collections,
     };
   },
 });

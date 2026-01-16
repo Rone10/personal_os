@@ -23,7 +23,8 @@ export type ViewType =
   | "books"
   | "notes"
   | "flashcards"
-  | "tags";
+  | "tags"
+  | "collections";
 
 export type EntityType =
   | "root"
@@ -35,7 +36,8 @@ export type EntityType =
   | "book"
   | "chapter"
   | "note"
-  | "tag";
+  | "tag"
+  | "collection";
 
 export interface ViewState {
   view: ViewType;
@@ -110,22 +112,19 @@ export default function StudyPageClient() {
               onChange={setSearchQuery}
               searchData={searchData}
               onSelect={(type, id) => {
+                const viewMap: Record<string, ViewType> = {
+                  word: "words",
+                  verse: "verses",
+                  hadith: "hadiths",
+                  root: "roots",
+                  note: "notes",
+                  course: "courses",
+                  book: "books",
+                  tag: "tags",
+                  collection: "collections",
+                };
                 navigateTo(
-                  type === "word"
-                    ? "words"
-                    : type === "verse"
-                      ? "verses"
-                      : type === "hadith"
-                        ? "hadiths"
-                        : type === "root"
-                          ? "roots"
-                          : type === "note"
-                            ? "notes"
-                            : type === "course"
-                              ? "courses"
-                              : type === "book"
-                                ? "books"
-                                : "dashboard",
+                  viewMap[type] ?? "dashboard",
                   type as EntityType,
                   id
                 );

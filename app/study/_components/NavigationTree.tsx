@@ -13,6 +13,7 @@ import {
   Hash,
   Plus,
   Tag,
+  FolderOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ interface NavigationTreeProps {
     chapters: Array<{ _id: string; bookId: string; title: string }>;
     notes: Array<{ _id: string; title?: string; content: string }>;
     tags: Array<{ _id: string; name: string }>;
+    collections: Array<{ _id: string; title: string; description?: string }>;
   };
   currentView: ViewType;
   currentEntityType?: EntityType;
@@ -383,6 +385,31 @@ export default function NavigationTree({
             onClick={() => onNavigate("tags")}
           >
             View all {data.tags.length} tags...
+          </div>
+        )}
+      </TreeSection>
+
+      {/* Collections */}
+      <TreeSection
+        title={`Collections (${data.collections.length})`}
+        icon={<FolderOpen className="h-4 w-4" />}
+        defaultOpen={currentView === "collections"}
+      >
+        {data.collections.slice(0, 10).map((collection) => (
+          <TreeItem
+            key={collection._id}
+            label={collection.title}
+            sublabel={collection.description?.slice(0, 20)}
+            isActive={currentEntityType === "collection" && currentEntityId === collection._id}
+            onClick={() => onNavigate("collections", "collection", collection._id)}
+          />
+        ))}
+        {data.collections.length > 10 && (
+          <div
+            className="px-2 py-1 text-xs text-slate-400 cursor-pointer hover:text-slate-600"
+            onClick={() => onNavigate("collections")}
+          >
+            View all {data.collections.length} collections...
           </div>
         )}
       </TreeSection>
