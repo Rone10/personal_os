@@ -54,6 +54,7 @@ export const getById = query({
 export const create = mutation({
   args: {
     content: v.string(),
+    contentJson: v.optional(v.any()),
     sourceType: v.union(
       v.literal("lesson"),
       v.literal("chapter"),
@@ -86,6 +87,7 @@ export const create = mutation({
     return await ctx.db.insert("explanations", {
       userId,
       content: args.content,
+      contentJson: args.contentJson,
       sourceType: args.sourceType,
       sourceId: args.sourceId,
       sourceLabel: args.sourceLabel,
@@ -105,6 +107,7 @@ export const update = mutation({
   args: {
     id: v.id("explanations"),
     content: v.optional(v.string()),
+    contentJson: v.optional(v.any()),
     sourceType: v.optional(
       v.union(
         v.literal("lesson"),
@@ -124,6 +127,7 @@ export const update = mutation({
 
     const updates: Record<string, unknown> = { updatedAt: now() };
     if (args.content !== undefined) updates.content = args.content;
+    if (args.contentJson !== undefined) updates.contentJson = args.contentJson;
     if (args.sourceType !== undefined) updates.sourceType = args.sourceType;
     if (args.sourceId !== undefined) updates.sourceId = args.sourceId;
     if (args.sourceLabel !== undefined) updates.sourceLabel = args.sourceLabel;

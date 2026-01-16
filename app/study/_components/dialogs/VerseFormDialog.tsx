@@ -70,7 +70,6 @@ export default function VerseFormDialog({
   const [surahNumber, setSurahNumber] = useState("");
   const [ayahStart, setAyahStart] = useState("");
   const [ayahEnd, setAyahEnd] = useState("");
-  const [topic, setTopic] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
 
@@ -108,7 +107,6 @@ export default function VerseFormDialog({
       setSurahNumber(existingVerse.surahNumber.toString());
       setAyahStart(existingVerse.ayahStart.toString());
       setAyahEnd(existingVerse.ayahEnd?.toString() ?? "");
-      setTopic(existingVerse.topic ?? "");
 
       // Load existing ayahs if available
       if (existingVerse.ayahs && existingVerse.ayahs.length > 0) {
@@ -173,7 +171,6 @@ export default function VerseFormDialog({
     setSurahNumber("");
     setAyahStart("");
     setAyahEnd("");
-    setTopic("");
     setCustomTranslations({});
     setFetchedAyahs([]);
     setShowAddTranslation(false);
@@ -389,7 +386,6 @@ export default function VerseFormDialog({
           ayahStart: parseInt(ayahStart),
           ayahEnd: ayahEnd ? parseInt(ayahEnd) : undefined,
           arabicText: arabicText || existingVerse?.arabicText || "",
-          topic: topic || undefined,
           ayahs: ayahsToSave.length > 0 ? ayahsToSave : undefined,
         });
       } else {
@@ -398,7 +394,6 @@ export default function VerseFormDialog({
           ayahStart: parseInt(ayahStart),
           ayahEnd: ayahEnd ? parseInt(ayahEnd) : undefined,
           arabicText,
-          topic: topic || undefined,
           ayahs: ayahsToSave.length > 0 ? ayahsToSave : undefined,
         });
       }
@@ -708,17 +703,6 @@ export default function VerseFormDialog({
           )}
             </>
           )}
-
-          {/* Topic */}
-          <div>
-            <Label htmlFor="topic">Topic</Label>
-            <Input
-              id="topic"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder="e.g., Faith, Prayer, Charity"
-            />
-          </div>
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-4">

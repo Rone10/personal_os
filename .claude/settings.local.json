@@ -19,7 +19,8 @@
       "Bash(npm install:*)",
       "Bash(pnpm add:*)",
       "Bash(pnpm lint:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(find:*)"
     ]
   }
 }

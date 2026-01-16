@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { Link2, Tag, MessageSquareText, Loader2, Plus, X } from "lucide-react";
+import { Link2, Tag, MessageSquareText, Loader2, Plus, X, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +20,19 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { EntityType, ViewType } from "./StudyPageClient";
+import ExplanationFormDialog from "./dialogs/ExplanationFormDialog";
+import RichTextViewer from "@/components/rich-text/RichTextViewer";
 
 // Entity types that support tagging (subset of EntityType that backend accepts)
 type TaggableEntityType =
@@ -61,6 +73,14 @@ function isTaggable(type: EntityType): type is TaggableEntityType {
   return taggableTypes.includes(type as TaggableEntityType);
 }
 
+// Type for entities that can have explanations
+type ExplainableEntityType = "word" | "verse" | "hadith" | "root";
+
+// Check if an entity type can have explanations
+function isExplainable(type: EntityType): type is ExplainableEntityType {
+  return type === "word" || type === "verse" || type === "hadith" || type === "root";
+}
+
 export default function ContextPanel({
   entityType,
   entityId,
@@ -69,7 +89,13 @@ export default function ContextPanel({
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
 
+  // Explanation dialog state
+  const [explanationDialogOpen, setExplanationDialogOpen] = useState(false);
+  const [editingExplanationId, setEditingExplanationId] = useState<string | undefined>();
+  const [deleteExplanationId, setDeleteExplanationId] = useState<string | null>(null);
+
   const canTag = isTaggable(entityType);
+  const canExplain = isExplainable(entityType);
 
   // Get backlinks for this entity
   const backlinks = useQuery(api.study.backlinks.getBacklinksFor, {
@@ -95,6 +121,9 @@ export default function ContextPanel({
   const tagEntity = useMutation(api.study.tags.tagEntity);
   const untagEntity = useMutation(api.study.tags.untagEntity);
   const createTag = useMutation(api.study.tags.create);
+
+  // Mutation for explanation deletion
+  const deleteExplanation = useMutation(api.study.explanations.remove);
 
   // Get explanations if applicable
   const explanations = useQuery(
@@ -308,47 +337,137 @@ export default function ContextPanel({
       )}
 
       {/* Explanations Section (only for word/verse/hadith/root) */}
-      {(entityType === "word" ||
-        entityType === "verse" ||
-        entityType === "hadith" ||
-        entityType === "root") && (
+      {canExplain && (
         <section>
-          <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
-            <MessageSquareText className="h-4 w-4" />
-            Explanations
-          </h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+              <MessageSquareText className="h-4 w-4" />
+              Explanations
+            </h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              title="Add explanation"
+              onClick={() => {
+                setEditingExplanationId(undefined);
+                setExplanationDialogOpen(true);
+              }}
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+          </div>
           {explanations === undefined ? (
             <div className="flex justify-center py-4">
               <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
             </div>
           ) : explanations.length === 0 ? (
-            <p className="text-sm text-slate-400 italic">No explanations</p>
+            <p className="text-sm text-slate-400 italic">
+              No explanations - click + to add
+            </p>
           ) : (
             <div className="space-y-2">
               {explanations.map((exp) => (
                 <div
                   key={exp._id}
-                  className="p-2 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700"
+                  className="p-2 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 group"
                 >
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge variant="outline" className="text-xs">
-                      {exp.sourceType}
-                    </Badge>
-                    {exp.sourceLabel && (
-                      <span className="text-xs text-slate-500">
-                        {exp.sourceLabel}
-                      </span>
-                    )}
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {exp.sourceType}
+                      </Badge>
+                      {exp.sourceLabel && (
+                        <span className="text-xs text-slate-500">
+                          {exp.sourceLabel}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        title="Edit"
+                        onClick={() => {
+                          setEditingExplanationId(exp._id);
+                          setExplanationDialogOpen(true);
+                        }}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-red-500 hover:text-red-600"
+                        title="Delete"
+                        onClick={() => setDeleteExplanationId(exp._id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    {exp.content}
-                  </p>
+                  {exp.contentJson ? (
+                    <div className="text-sm text-slate-600 dark:text-slate-400 prose prose-sm dark:prose-invert max-w-none">
+                      <RichTextViewer content={exp.contentJson} />
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      {exp.content}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
           )}
         </section>
       )}
+
+      {/* Explanation Form Dialog */}
+      {canExplain && (
+        <ExplanationFormDialog
+          open={explanationDialogOpen}
+          onClose={() => {
+            setExplanationDialogOpen(false);
+            setEditingExplanationId(undefined);
+          }}
+          subjectType={entityType as ExplainableEntityType}
+          subjectId={entityId}
+          editId={editingExplanationId}
+        />
+      )}
+
+      {/* Delete Explanation Confirmation */}
+      <AlertDialog
+        open={!!deleteExplanationId}
+        onOpenChange={(open) => !open && setDeleteExplanationId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Explanation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The explanation will be permanently
+              deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={async () => {
+                if (deleteExplanationId) {
+                  await deleteExplanation({
+                    id: deleteExplanationId as Id<"explanations">,
+                  });
+                  setDeleteExplanationId(null);
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
