@@ -381,3 +381,14 @@ Here is Claude's plan:
  This sequence builds each layer on the previous, creating a cohesive knowledge management system that supports all
  your use cases with full manual control.
 ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+
+
+ Deferred Features (For Later Consideration)
+
+ The following were discussed but deferred:
+ - Knowledge Graph Visualization
+ - Extended SRS (Verses & Hadiths)
+ - Learning Paths
+ - Insights/Synthesis Layer
+ - Daily Review Dashboard Widget
+ - Export/Import
