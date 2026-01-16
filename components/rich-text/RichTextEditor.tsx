@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
@@ -147,6 +147,18 @@ export default function RichTextEditor({
     },
   });
 
+  // Sync editor content when value prop changes (e.g., when loading existing data for editing)
+  useEffect(() => {
+    if (editor && value && !editor.isDestroyed) {
+      // Only update if content is different to avoid cursor jumps during typing
+      const currentContent = JSON.stringify(editor.getJSON());
+      const newContent = JSON.stringify(value);
+      if (currentContent !== newContent) {
+        editor.commands.setContent(value);
+      }
+    }
+  }, [editor, value]);
+
   // Handle entity reference selection from LinkPicker
   const handleEntitySelect = useCallback(
     (ref: {
@@ -157,6 +169,7 @@ export default function RichTextEditor({
       if (!editor) return;
 
       // Insert the reference as a text node with the entityReference mark already applied
+      // Then unset the mark so subsequent typing is normal text
       editor
         .chain()
         .focus()
@@ -174,6 +187,7 @@ export default function RichTextEditor({
             },
           ],
         })
+        .unsetMark("entityReference")
         .run();
 
       setShowLinkPicker(false);

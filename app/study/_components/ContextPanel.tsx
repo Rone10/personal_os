@@ -409,7 +409,24 @@ export default function ContextPanel({
                   </div>
                   {exp.contentJson ? (
                     <div className="text-sm text-slate-600 dark:text-slate-400 prose prose-sm dark:prose-invert max-w-none">
-                      <RichTextViewer content={exp.contentJson} />
+                      <RichTextViewer
+                        content={exp.contentJson}
+                        onEntityClick={(ref) => {
+                          // Map entity type to view type (pluralized) and navigate
+                          const viewTypeMap: Record<string, ViewType> = {
+                            word: "words",
+                            verse: "verses",
+                            hadith: "hadiths",
+                            root: "roots",
+                            note: "notes",
+                            tag: "tags",
+                            course: "courses",
+                            book: "books",
+                          };
+                          const viewType = viewTypeMap[ref.targetType] || "dashboard";
+                          onNavigate(viewType, ref.targetType as EntityType, ref.targetId);
+                        }}
+                      />
                     </div>
                   ) : (
                     <p className="text-sm text-slate-600 dark:text-slate-400">
