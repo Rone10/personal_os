@@ -20,7 +20,8 @@
       "Bash(pnpm add:*)",
       "Bash(pnpm lint:*)",
       "Bash(grep:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm run lint:*)"
     ]
   }
 }

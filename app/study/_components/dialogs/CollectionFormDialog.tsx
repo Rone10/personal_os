@@ -61,6 +61,19 @@ const entityTabs: Array<{
   { value: "chapter", label: "Chapter", icon: <FileText className="h-4 w-4" /> },
 ];
 
+// Entity shape for display
+interface DisplayItem {
+  _id: string;
+  text?: string;
+  surahNumber?: number;
+  ayahStart?: number;
+  collection?: string;
+  hadithNumber?: string;
+  letters?: string;
+  latinized?: string;
+  title?: string;
+}
+
 function getEntityIcon(type: string) {
   switch (type) {
     case "word": return Languages;
@@ -215,7 +228,7 @@ export default function CollectionFormDialog({
     }
   }, [activeTab, search, words, verses, hadiths, roots, notes, lessons, chapters, items]);
 
-  const handleAddItem = (item: any) => {
+  const handleAddItem = (item: { _id: string }) => {
     const maxOrder = items.reduce((max, i) => Math.max(max, i.order), -1);
     setItems([
       ...items,
@@ -235,7 +248,7 @@ export default function CollectionFormDialog({
     );
   };
 
-  const getDisplayText = (item: any, type: string): string => {
+  const getDisplayText = (item: DisplayItem, type: string): string => {
     switch (type) {
       case "word":
         return item.text || "Untitled Word";
@@ -244,7 +257,7 @@ export default function CollectionFormDialog({
       case "hadith":
         return `${item.collection} #${item.hadithNumber}`;
       case "root":
-        return item.letters || item.latinized;
+        return item.letters || item.latinized || "Unknown Root";
       case "note":
         return item.title || "Untitled Note";
       case "lesson":
@@ -413,7 +426,7 @@ export default function CollectionFormDialog({
                     </p>
                   ) : (
                     <div className="space-y-1">
-                      {filteredItems.map((item: any) => (
+                      {filteredItems.map((item: DisplayItem) => (
                         <button
                           key={item._id}
                           type="button"

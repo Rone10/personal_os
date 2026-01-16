@@ -392,3 +392,124 @@ Here is Claude's plan:
  - Insights/Synthesis Layer
  - Daily Review Dashboard Widget
  - Export/Import
+
+
+
+ # Here are practical examples of how to use the three new Knowledge Management features:
+
+  ---
+  1. Entity Links - Direct Relationships Between Entities
+
+  Use Case: Building a Synonym Network for Arabic Words
+
+  Say you have the words "صبر" (sabr - patience) and "تحمّل" (tahammul - endurance). You can link them as synonyms:
+
+  1. Navigate to the word "صبر" in Study → Words
+  2. In the right Context Panel, find the new "Links" section
+  3. Click the "+" button
+  4. Select "Word" tab, search for "تحمّل"
+  5. Choose relationship type: "Synonym"
+  6. Add optional note: "Both refer to enduring hardship, but صبر has spiritual connotations"
+
+  Now when viewing either word, you'll see the link in both directions - "صبر" shows it links TO "تحمّل", and "تحمّل" shows it's linked FROM "صبر".
+
+  Use Case: Connecting Thematically Related Verses
+
+  You notice Surah 2:153 and Surah 3:200 both discuss patience:
+
+  1. Go to verse 2:153
+  2. In the Links section, click "+"
+  3. Select "Verse" tab, find 3:200
+  4. Relationship type: "Related"
+  5. Note: "Both command believers to be patient"
+
+  Use Case: Showing Word Derivation from Root
+
+  Link the word "كاتب" (writer) to the root "ك-ت-ب":
+
+  1. View the word "كاتب"
+  2. Add link → Root → find "ك-ت-ب"
+  3. Relationship type: "Derived from"
+
+  ---
+  2. Standalone Notes - Atomic Concept Cards
+
+  Use Case: Creating a Concept Card
+
+  You want to capture the concept of "Tawbah" (repentance) as a standalone idea that spans multiple sources:
+
+  1. Go to Study → Notes
+  2. Click "Add Note"
+  3. Title: "Tawbah - The Concept of Repentance"
+  4. In the rich text editor, write your synthesis:
+    - Reference verses using Ctrl+K: "See [2:222] where Allah loves those who repent"
+    - Reference words: "Related to the word توبة which means..."
+    - Reference hadiths about repentance conditions
+
+  This note isn't attached to any lesson or chapter - it's a standalone concept card that can be linked TO from other entities and can reference many sources.
+
+  Use Case: Cross-Cutting Observation
+
+  While studying, you notice a pattern across multiple surahs:
+
+  1. Create standalone note titled "Pattern: Pairs of Divine Attributes"
+  2. Write observations referencing multiple verses where Allah pairs الرحمن الرحيم, العزيز الحكيم, etc.
+  3. This observation doesn't belong to any single entity - it's a meta-insight
+
+  ---
+  3. Collections - Curated Topic Hubs
+
+  Use Case: Study Guide for "Patience in the Quran"
+
+  Create a focused study collection:
+
+  1. Go to Study → Collections
+  2. Click "New Collection"
+  3. Title: "Patience in the Quran"
+  4. Description: "Key verses, words, and concepts related to sabr"
+  5. In the Introduction (rich text), write a narrative overview
+  6. Add items in order:
+    - Word: "صبر" with annotation: "Core vocabulary"
+    - Verse: 2:153 with annotation: "Command to seek help through patience and prayer"
+    - Verse: 3:200 with annotation: "Final command in Surah Al-Imran"
+    - Hadith about patience with annotation: "Prophetic context"
+    - Your standalone note on patience with annotation: "Personal synthesis"
+
+  The collection becomes a curated study path - items appear in your chosen order with your annotations explaining why each is included.
+
+  Use Case: Course Summary Collection
+
+  After completing a course on Arabic morphology:
+
+  1. Create collection: "Verb Form II - Key Patterns"
+  2. Add words that follow Form II pattern (فعّل)
+  3. Add relevant lessons from the course
+  4. Add your notes synthesizing the patterns
+  5. Order them pedagogically - simple examples first, complex later
+
+  Use Case: Research Topic Aggregation
+
+  Researching a specific concept:
+
+  1. Create collection: "The Heart (Qalb) in Islamic Texts"
+  2. Add all verses mentioning قلب
+  3. Add relevant hadiths
+  4. Add the root ق-ل-ب
+  5. Add words derived from this root
+  6. Add your analytical notes
+  7. Write an introduction summarizing your findings
+
+  ---
+  Mental Model Summary
+  Feature: Entity Links
+  Think of it as...: Hyperlinks between atoms
+  Best for...: Building semantic networks, showing relationships (synonym, explains, contrasts)
+  ────────────────────────────────────────
+  Feature: Standalone Notes
+  Think of it as...: Index cards / Zettelkasten
+  Best for...: Capturing concepts that span multiple sources, personal insights
+  ────────────────────────────────────────
+  Feature: Collections
+  Think of it as...: Curated playlists
+  Best for...: Study guides, topic aggregation, ordered presentations
+  The three work together: you might have a Collection called "Understanding Tawbah" that includes linked Entities (verses, words) and your Standalone Notes synthesizing the concept. The entity links show you related content when viewing any single item.

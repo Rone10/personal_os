@@ -103,7 +103,8 @@ const relationshipLabels: Record<string, string> = {
 };
 
 // Get display text for an entity
-function getEntityDisplayText(entity: any, entityType: string): string {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getEntityDisplayText(entity: Record<string, any> | null | undefined, entityType: string): string {
   if (!entity) return "Unknown";
   switch (entityType) {
     case "word":
