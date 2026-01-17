@@ -24,6 +24,10 @@ pnpm start              # Start production server
 # Code Quality
 pnpm lint               # Run ESLint
 tsc --noEmit            # Run TypeScript type checking
+
+# Testing
+pnpm test               # Run all tests (Vitest)
+pnpm test:watch         # Run tests in watch mode
 ```
 
 ## Architecture & Structure
@@ -139,5 +143,66 @@ export const create = mutation({
 - Use `lucide-react` for all icons.
 - Ensure **Dark Mode** compatibility (use `dark:` variants).
 - Optimize for keyboard navigation (tab index, focus states).
+
+## Testing
+
+### Testing Stack
+- **Vitest**: Fast unit testing framework with TypeScript support.
+- **convex-test**: Integration testing for Convex queries and mutations.
+- **@edge-runtime/vm**: Provides edge runtime environment for Convex tests.
+
+### Test File Structure (VSA-aligned)
+Tests are colocated with their source files following the VSA pattern:
+```
+convex/
+├── test.setup.ts           # Shared test setup (modules glob)
+├── projects.ts
+├── projects.test.ts        # Integration tests for projects
+├── study/
+│   ├── _helpers.ts
+│   ├── _helpers.test.ts    # Unit tests for pure functions
+│   ├── collections.ts
+│   ├── collections.test.ts # Integration tests for collections
+│   ├── words.ts
+│   └── words.test.ts       # Integration tests for words
+lib/
+├── arabic.ts
+└── arabic.test.ts          # Unit tests for Arabic text utilities
+```
+
+### Convex Integration Test Pattern
+```typescript
+// convex/example.test.ts
+import { convexTest } from "convex-test";
+import { describe, it, expect } from "vitest";
+import { api } from "./_generated/api";
+import schema from "./schema";
+import { modules } from "./test.setup";
+
+describe("example", () => {
+  it("returns empty array when unauthenticated", async () => {
+    const t = convexTest(schema, modules);
+    const result = await t.query(api.example.list, {});
+    expect(result).toEqual([]);
+  });
+
+  it("creates item for authenticated user", async () => {
+    const t = convexTest(schema, modules);
+    const asUser = t.withIdentity({ subject: "user_1" });
+
+    const id = await asUser.mutation(api.example.create, { title: "Test" });
+    const items = await asUser.query(api.example.list, {});
+
+    expect(items).toHaveLength(1);
+    expect(items[0].title).toBe("Test");
+  });
+});
+```
+
+### Key Testing Patterns
+- **Auth Testing**: Use `t.withIdentity({ subject: "user_id" })` to simulate authenticated users.
+- **User Isolation**: Always test that users cannot access each other's data.
+- **Validation Testing**: Test error cases with `.rejects.toThrow()`.
+- **Time-Dependent Tests**: Use `vi.useFakeTimers()` and `vi.setSystemTime()` for SRS/review logic.
 
 This codebase prioritizes speed, data ownership, and a distraction-free environment for personal productivity.

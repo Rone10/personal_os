@@ -22,7 +22,11 @@
       "Bash(grep:*)",
       "Bash(find:*)",
       "Bash(npm run lint:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "WebFetch(domain:docs.convex.dev)",
+      "WebFetch(domain:www.npmjs.com)",
+      "Bash(pnpm test:*)",
+      "Bash(pnpm list:*)"
     ]
   }
 }
