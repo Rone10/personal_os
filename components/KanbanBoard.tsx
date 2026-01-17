@@ -708,7 +708,7 @@ function TaskQuickEditDialog({
           <PencilLine className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="!max-w-4xl w-[calc(100%-2rem)] md:w-[90vw] lg:w-[85vw] xl:w-[80vw] 2xl:max-w-4xl">
         <DialogHeader>
           <DialogTitle>Edit “{task.title}”</DialogTitle>
         </DialogHeader>
