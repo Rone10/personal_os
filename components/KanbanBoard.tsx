@@ -740,7 +740,7 @@ function TaskQuickEditDialog({
                 value={formState.priorityLevel}
                 onValueChange={(value) => updateField("priorityLevel", value as TaskPriorityLevel)}
               >
-                <SelectTrigger id={`${formId}-priority`}>
+                <SelectTrigger id={`${formId}-priority`} className="w-full">
                   <SelectValue placeholder="Priority" />
                 </SelectTrigger>
                 <SelectContent>
