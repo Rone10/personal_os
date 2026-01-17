@@ -123,6 +123,7 @@ export const create = mutation({
     description: v.optional(v.string()),
     assignees: v.optional(v.array(v.string())),
     attachments: v.optional(v.array(v.string())),
+    milestoneId: v.optional(v.id("milestones")),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -134,8 +135,20 @@ export const create = mutation({
       throw new Error("Unauthorized or Project not found");
     }
 
+    // Verify milestone ownership and project match if provided
+    if (args.milestoneId) {
+      const milestone = await ctx.db.get(args.milestoneId);
+      if (!milestone || milestone.userId !== identity.subject) {
+        throw new Error("Milestone not found");
+      }
+      if (milestone.projectId !== args.projectId) {
+        throw new Error("Milestone must belong to the same project");
+      }
+    }
+
     const priorityLevel = args.priorityLevel ?? "low";
     const numericPriority = PRIORITY_LEVEL_TO_NUMERIC[priorityLevel];
+    const now = Date.now();
 
     return await ctx.db.insert("tasks", {
       title: args.title,
@@ -149,7 +162,10 @@ export const create = mutation({
       priority: numericPriority,
       userId: identity.subject,
       status: "todo",
-      order: Date.now(), // Default order
+      order: now,
+      milestoneId: args.milestoneId,
+      createdAt: now,
+      updatedAt: now,
     });
   },
 });
@@ -169,10 +185,22 @@ export const move = mutation({
       throw new Error("Unauthorized");
     }
 
-    await ctx.db.patch(args.id, { 
+    const now = Date.now();
+    const patch: Record<string, unknown> = {
       status: args.status,
       order: args.newOrder,
-    });
+      updatedAt: now,
+    };
+
+    // Track when task is completed
+    if (args.status === "done" && task.status !== "done") {
+      patch.completedAt = now;
+    } else if (args.status !== "done" && task.status === "done") {
+      // Clear completedAt if moving out of done
+      patch.completedAt = undefined;
+    }
+
+    await ctx.db.patch(args.id, patch);
 
     await updateLinkedTodoForTask(ctx, args.id, args.status);
     await syncLinkedFeature(ctx, args.id);
@@ -193,7 +221,20 @@ export const toggle = mutation({
     }
 
     const newStatus = task.status === "todo" ? "in_progress" : task.status === "in_progress" ? "done" : "todo";
-    await ctx.db.patch(args.id, { status: newStatus });
+    const now = Date.now();
+    const patch: Record<string, unknown> = {
+      status: newStatus,
+      updatedAt: now,
+    };
+
+    // Track when task is completed
+    if (newStatus === "done" && task.status !== "done") {
+      patch.completedAt = now;
+    } else if (newStatus !== "done" && task.status === "done") {
+      patch.completedAt = undefined;
+    }
+
+    await ctx.db.patch(args.id, patch);
     await updateLinkedTodoForTask(ctx, args.id, newStatus);
     await syncLinkedFeature(ctx, args.id);
   },
@@ -212,6 +253,7 @@ export const updateTask = mutation({
     attachments: v.optional(v.array(v.string())),
     tags: v.optional(v.array(v.string())),
     status: v.optional(v.union(v.literal("todo"), v.literal("in_progress"), v.literal("done"))),
+    milestoneId: v.optional(v.union(v.id("milestones"), v.null())),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -222,7 +264,21 @@ export const updateTask = mutation({
       throw new Error("Unauthorized");
     }
 
-    const patch: Record<string, unknown> = {};
+    // Verify milestone ownership and project match if provided
+    if (args.milestoneId !== undefined && args.milestoneId !== null) {
+      const milestone = await ctx.db.get(args.milestoneId);
+      if (!milestone || milestone.userId !== identity.subject) {
+        throw new Error("Milestone not found");
+      }
+      if (milestone.projectId !== task.projectId) {
+        throw new Error("Milestone must belong to the same project");
+      }
+    }
+
+    const now = Date.now();
+    const patch: Record<string, unknown> = {
+      updatedAt: now,
+    };
     if (args.title !== undefined) patch.title = args.title;
     if (args.description !== undefined) patch.description = args.description ?? undefined;
     if (args.assignees !== undefined) patch.assignees = args.assignees;
@@ -232,10 +288,17 @@ export const updateTask = mutation({
     if (args.priorityLevel !== undefined) {
       Object.assign(patch, applyPriorityLevelPatch(args.priorityLevel));
     }
-    if (args.status !== undefined) patch.status = args.status;
-
-    if (Object.keys(patch).length === 0) {
-      return args.id;
+    if (args.milestoneId !== undefined) {
+      patch.milestoneId = args.milestoneId ?? undefined;
+    }
+    if (args.status !== undefined) {
+      patch.status = args.status;
+      // Track when task is completed
+      if (args.status === "done" && task.status !== "done") {
+        patch.completedAt = now;
+      } else if (args.status !== "done" && task.status === "done") {
+        patch.completedAt = undefined;
+      }
     }
 
     await ctx.db.patch(args.id, patch);
@@ -289,7 +352,20 @@ export const updateStatus = mutation({
       throw new Error("Unauthorized");
     }
 
-    await ctx.db.patch(args.id, { status: args.status });
+    const now = Date.now();
+    const patch: Record<string, unknown> = {
+      status: args.status,
+      updatedAt: now,
+    };
+
+    // Track when task is completed
+    if (args.status === "done" && task.status !== "done") {
+      patch.completedAt = now;
+    } else if (args.status !== "done" && task.status === "done") {
+      patch.completedAt = undefined;
+    }
+
+    await ctx.db.patch(args.id, patch);
     await updateLinkedTodoForTask(ctx, args.id, args.status);
     await syncLinkedFeature(ctx, args.id);
   },

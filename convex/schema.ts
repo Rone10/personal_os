@@ -12,9 +12,33 @@ export default defineSchema({
     type: v.optional(v.union(v.literal("coding"), v.literal("general"))),
     icon: v.optional(v.string()), // Emoji or icon name
     slug: v.string(),
+    // Timestamps
+    createdAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
   })
     .index("by_user_status", ["userId", "status"])
     .index("by_user_type", ["userId", "type"]),
+
+  // --- MILESTONES ---
+  // Organizes work into time-boxed release phases (MVP, Phase 2, etc.)
+  milestones: defineTable({
+    userId: v.string(),
+    projectId: v.id("projects"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    targetDate: v.optional(v.number()),
+    status: v.union(
+      v.literal("planned"),
+      v.literal("in_progress"),
+      v.literal("completed")
+    ),
+    order: v.number(),
+    color: v.optional(v.string()), // For visual distinction in timeline
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_project", ["projectId", "order"])
+    .index("by_user_project", ["userId", "projectId"]),
 
   tasks: defineTable({
     userId: v.string(),
@@ -40,10 +64,30 @@ export default defineSchema({
     tags: v.optional(v.array(v.string())),
     featureId: v.optional(v.id("projectFeatures")),
     featureChecklistItemId: v.optional(v.id("featureChecklistItems")),
+    // Milestone association
+    milestoneId: v.optional(v.id("milestones")),
+    // Timestamps
+    createdAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()), // When status changed to "done"
   })
     .index("by_user_project", ["userId", "projectId", "status"])
     .index("by_feature", ["featureId"])
-    .index("by_checklist_item", ["featureChecklistItemId"]),
+    .index("by_checklist_item", ["featureChecklistItemId"])
+    .index("by_milestone", ["milestoneId"]),
+
+  // --- SUBTASKS ---
+  // Breaks tasks into checkable items
+  subtasks: defineTable({
+    userId: v.string(),
+    taskId: v.id("tasks"),
+    title: v.string(),
+    status: v.union(v.literal("todo"), v.literal("done")),
+    order: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_task", ["taskId", "order"])
+    .index("by_user_task", ["userId", "taskId"]),
 
   projectFeatures: defineTable({
     userId: v.string(),
@@ -54,6 +98,9 @@ export default defineSchema({
     whatDoneLooksLike: v.optional(v.string()),
     whatDoneLooksLikeJson: v.optional(v.any()), // Rich text content (Tiptap JSON)
     order: v.number(),
+    // Timestamps
+    createdAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
   })
     .index("by_project", ["projectId", "order"])
     .index("by_user_project", ["userId", "projectId"]),
@@ -68,6 +115,9 @@ export default defineSchema({
     status: v.union(v.literal("todo"), v.literal("done")),
     order: v.number(),
     linkedTaskIds: v.optional(v.array(v.id("tasks"))),
+    // Timestamps
+    createdAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
   })
     .index("by_feature", ["featureId", "order"])
     .index("by_project", ["projectId", "featureId"]),

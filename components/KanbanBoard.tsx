@@ -50,11 +50,13 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import { FeaturePanel } from '@/app/projects/_components/FeaturePanel';
+import { SubtaskList, SubtaskProgressBadge } from '@/components/SubtaskList';
 import { toast } from 'sonner';
 
 interface KanbanBoardProps {
   projectId: Id<"projects">;
   showFeaturePanel?: boolean;
+  selectedMilestoneId?: Id<"milestones"> | null;
 }
 
 type TaskStatus = "todo" | "in_progress" | "done";
@@ -288,12 +290,14 @@ function TaskCard({
                   <span className={cn("h-1.5 w-1.5 rounded-full", priorityMeta.dot)} />
                   {priorityMeta.label}
                 </span>
-                
+
                 {task.dueDate && (
                   <span className="text-[10px] text-muted-foreground">
                     {formatRelativeDueDate(task.dueDate)}
                   </span>
                 )}
+
+                <SubtaskProgressBadge taskId={task._id} />
               </div>
             )}
 
@@ -422,6 +426,10 @@ function TaskCard({
           </DetailRow>
 
           {linkedTodo && <LinkedTodoBadge meta={linkedTodo} taskId={task._id} />}
+
+          <div className="border-t border-dashed border-muted-foreground/20 pt-3">
+            <SubtaskList taskId={task._id} />
+          </div>
         </div>
       )}
     </div>
@@ -796,8 +804,17 @@ function DroppableColumn({ id, title, count, children, className, headerColor }:
   );
 }
 
-export function KanbanBoard({ projectId, showFeaturePanel = false }: KanbanBoardProps) {
+export function KanbanBoard({ projectId, showFeaturePanel = false, selectedMilestoneId }: KanbanBoardProps) {
   const tasksQuery = useQuery(api.tasks.getByProject, { projectId });
+
+  // Filter tasks by selected milestone
+  const filteredTasksQuery = useMemo(() => {
+    if (!tasksQuery) return undefined;
+    if (selectedMilestoneId === undefined || selectedMilestoneId === null) {
+      return tasksQuery; // Show all tasks when no milestone is selected
+    }
+    return tasksQuery.filter((task) => task.milestoneId === selectedMilestoneId);
+  }, [tasksQuery, selectedMilestoneId]);
   const features = useQuery(api.features.listByProject, { projectId }) as FeatureRecord[] | undefined;
   const createTask = useMutation(api.tasks.create);
   const moveTask = useMutation(api.tasks.move);
@@ -811,7 +828,6 @@ export function KanbanBoard({ projectId, showFeaturePanel = false }: KanbanBoard
   const [localTasks, setLocalTasks] = useState<KanbanTask[]>([]);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [focusedFeatureId, setFocusedFeatureId] = useState<Id<"projectFeatures"> | null>(null);
-  const prevTasksQuery = React.useRef(tasksQuery);
 
   const handleAdvance = (task: KanbanTask) => {
     const nextStatus: "todo" | "in_progress" | "done" = task.status === 'todo' ? 'in_progress' : task.status === 'in_progress' ? 'done' : 'todo';
@@ -901,31 +917,21 @@ export function KanbanBoard({ projectId, showFeaturePanel = false }: KanbanBoard
     });
   };
 
-  // Sync local state with backend state when backend updates, 
+  // Sync local state with backend state when backend updates,
   // but ONLY if we are not currently dragging to avoid fighting with the drag state
   useEffect(() => {
-    if (!tasksQuery) return;
-    
-    if (tasksQuery !== prevTasksQuery.current && !activeId) {
+    if (!filteredTasksQuery) return;
+
+    if (!activeId) {
       // Sort by order if available, otherwise by creation time (id)
-      const sorted = [...tasksQuery].sort((a, b) => {
+      const sorted = [...filteredTasksQuery].sort((a, b) => {
         const orderA = a.order ?? 0;
         const orderB = b.order ?? 0;
         return orderA - orderB;
       }).map(normalizeTask);
       setLocalTasks(sorted);
-      prevTasksQuery.current = tasksQuery;
-    } else if (localTasks.length === 0 && tasksQuery.length > 0) {
-       // Initial load
-       const sorted = [...tasksQuery].sort((a, b) => {
-        const orderA = a.order ?? 0;
-        const orderB = b.order ?? 0;
-        return orderA - orderB;
-      }).map(normalizeTask);
-      setLocalTasks(sorted);
-      prevTasksQuery.current = tasksQuery;
     }
-  }, [tasksQuery, activeId, localTasks.length]);
+  }, [filteredTasksQuery, activeId, selectedMilestoneId]);
 
   // Keep expansion state in sync with the tasks that still exist in the column
   useEffect(() => {
@@ -1063,7 +1069,7 @@ export function KanbanBoard({ projectId, showFeaturePanel = false }: KanbanBoard
     return localTasks.filter((task) => task.featureId?.toString() === target);
   }, [focusedFeatureId, localTasks]);
 
-  if (tasksQuery === undefined) {
+  if (filteredTasksQuery === undefined) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full">
         {[1, 2, 3].map((i) => (
@@ -1082,13 +1088,15 @@ export function KanbanBoard({ projectId, showFeaturePanel = false }: KanbanBoard
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
-    
+
     await createTask({
       title: newTaskTitle,
       projectId,
       priorityLevel: "low",
+      // Assign to selected milestone if one is selected
+      milestoneId: selectedMilestoneId ?? undefined,
     });
-    
+
     setNewTaskTitle('');
   };
 

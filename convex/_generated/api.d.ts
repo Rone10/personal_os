@@ -11,6 +11,7 @@
 import type * as _lib_arabic from "../_lib/arabic.js";
 import type * as bugs from "../bugs.js";
 import type * as features from "../features.js";
+import type * as milestones from "../milestones.js";
 import type * as projects from "../projects.js";
 import type * as prompts from "../prompts.js";
 import type * as study__helpers from "../study/_helpers.js";
@@ -27,6 +28,7 @@ import type * as study_search from "../study/search.js";
 import type * as study_tags from "../study/tags.js";
 import type * as study_verses from "../study/verses.js";
 import type * as study_words from "../study/words.js";
+import type * as subtasks from "../subtasks.js";
 import type * as tasks from "../tasks.js";
 import type * as todos from "../todos.js";
 
@@ -40,6 +42,7 @@ declare const fullApi: ApiFromModules<{
   "_lib/arabic": typeof _lib_arabic;
   bugs: typeof bugs;
   features: typeof features;
+  milestones: typeof milestones;
   projects: typeof projects;
   prompts: typeof prompts;
   "study/_helpers": typeof study__helpers;
@@ -56,6 +59,7 @@ declare const fullApi: ApiFromModules<{
   "study/tags": typeof study_tags;
   "study/verses": typeof study_verses;
   "study/words": typeof study_words;
+  subtasks: typeof subtasks;
   tasks: typeof tasks;
   todos: typeof todos;
 }>;

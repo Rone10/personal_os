@@ -32,11 +32,15 @@ export const create = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthorized");
 
+    const now = Date.now();
+
     return await ctx.db.insert("projects", {
       ...args,
       type: args.type ?? "general",
       userId: identity.subject,
       status: "active",
+      createdAt: now,
+      updatedAt: now,
     });
   },
 });
@@ -55,7 +59,7 @@ export const updateStatus = mutation({
       throw new Error("Unauthorized");
     }
 
-    await ctx.db.patch(args.id, { status: args.status });
+    await ctx.db.patch(args.id, { status: args.status, updatedAt: Date.now() });
   },
 });
 
@@ -119,7 +123,7 @@ export const update = mutation({
     );
 
     if (Object.keys(filteredUpdates).length > 0) {
-      await ctx.db.patch(id, filteredUpdates);
+      await ctx.db.patch(id, { ...filteredUpdates, updatedAt: Date.now() });
     }
   },
 });

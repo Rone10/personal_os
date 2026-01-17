@@ -1,26 +1,22 @@
 'use client';
 
+import { useState } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Id, Doc } from '@/convex/_generated/dataModel';
 import { KanbanBoard } from '@/components/KanbanBoard';
+import { MilestoneBar } from '@/app/projects/_components/MilestoneBar';
 import { Loader2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 
 export default function ProjectDetailPage() {
   const params = useParams();
   const projectId = params.id as Id<"projects">;
-  
-  // We don't have a getById for projects yet, but we can use get and filter or add a getById.
-  // For now, let's add a getById to convex/projects.ts or just use get and find.
-  // Actually, `db.get` is available in mutations/queries if we expose it.
-  // Let's assume we need to add `getById` to `convex/projects.ts` for efficiency, 
-  // or just use `api.projects.get` and find it client side (not ideal but works for small data).
-  // Better: Add `getById` to `convex/projects.ts`.
-  
-  // Wait, I can't edit `convex/projects.ts` right now easily without interrupting flow.
-  // I'll use `api.projects.get` and filter for now.
+
+  const [selectedMilestoneId, setSelectedMilestoneId] = useState<Id<"milestones"> | null>(null);
+
   const projects = useQuery(api.projects.get, { status: 'active' });
+  const milestones = useQuery(api.milestones.listByProject, { projectId });
   const project = projects?.find((p: Doc<"projects">) => p._id === projectId);
   const isCodingProject = project?.type === 'coding';
 
@@ -46,8 +42,18 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 p-6">
-        <KanbanBoard projectId={projectId} showFeaturePanel={isCodingProject} />
+      <div className="flex-1 min-h-0 p-6 space-y-6 overflow-auto">
+        <MilestoneBar
+          projectId={projectId}
+          milestones={milestones}
+          selectedMilestoneId={selectedMilestoneId}
+          onSelectMilestone={setSelectedMilestoneId}
+        />
+        <KanbanBoard
+          projectId={projectId}
+          showFeaturePanel={isCodingProject}
+          selectedMilestoneId={selectedMilestoneId}
+        />
       </div>
     </div>
   );
