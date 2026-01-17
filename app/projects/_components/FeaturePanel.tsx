@@ -389,8 +389,9 @@ function FeatureCard({
   return (
     <div
       ref={setNodeRef}
+      onClick={onEdit}
       className={cn(
-        'group rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-900',
+        'group rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-900 cursor-pointer',
         enableTaskTargets && isDragActive && 'border-dashed border-slate-400 ring-2 ring-slate-400/20',
         isOver && 'border-blue-500 bg-blue-50/50 dark:border-blue-400 dark:bg-blue-950/30'
       )}
@@ -398,23 +399,23 @@ function FeatureCard({
       <div className="flex flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <div className={cn("h-2 w-2 rounded-full shrink-0", feature.progress.percentage === 1 ? "bg-emerald-500" : "bg-blue-500")} />
-              <h3 className="text-base font-semibold truncate">{feature.title}</h3>
+            <div className="flex items-start gap-2 mb-1">
+              <div className={cn("h-2 w-2 rounded-full shrink-0 mt-1.5", feature.progress.percentage === 1 ? "bg-emerald-500" : "bg-blue-500")} />
+              <h3 className="text-base font-semibold line-clamp-2">{feature.title}</h3>
             </div>
             {feature.description && (
               <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{feature.description}</p>
             )}
           </div>
           
-          <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity -mr-2">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => void onMove('up')} disabled={isFirst}>
+          <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity -mr-2" onClick={(e) => e.stopPropagation()}>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); void onMove('up'); }} disabled={isFirst}>
               <ArrowUp className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => void onMove('down')} disabled={isLast}>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); void onMove('down'); }} disabled={isLast}>
               <ArrowDown className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit}>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
               <Pencil className="h-3.5 w-3.5" />
             </Button>
             <AlertDialog>
@@ -482,6 +483,7 @@ function FeatureCard({
 
       <form
         className="mt-3 flex gap-2"
+        onClick={(e) => e.stopPropagation()}
         onSubmit={(e) => {
           e.preventDefault();
           void onChecklistAdd();
@@ -555,6 +557,7 @@ function ChecklistRow({
   return (
     <div
       ref={setNodeRef}
+      onClick={(e) => e.stopPropagation()}
       className={cn(
         'rounded-xl border border-slate-200 p-3 text-sm dark:border-slate-800 transition-all',
         item.status === 'done' && 'bg-emerald-50/70 dark:bg-emerald-950/40',

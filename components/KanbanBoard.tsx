@@ -87,6 +87,7 @@ type TaskEditPayload = {
   assignees: string[];
   attachments: string[];
   tags: string[];
+  milestoneId?: Id<"milestones"> | null;
 };
 
 type FeatureRecord = Doc<"projectFeatures"> & {
@@ -205,6 +206,11 @@ const dropAnimation: DropAnimation = {
   }),
 };
 
+type MilestoneMeta = {
+  _id: Id<"milestones">;
+  title: string;
+};
+
 function TaskCard({
   task,
   onAdvance,
@@ -220,6 +226,8 @@ function TaskCard({
   dependencyMeta,
   allTasks,
   onRemoveDependency,
+  projectId,
+  milestoneMeta,
 }: {
   task: KanbanTask;
   onAdvance?: (task: KanbanTask) => void;
@@ -235,6 +243,8 @@ function TaskCard({
   dependencyMeta?: TaskDependencyMeta;
   allTasks?: KanbanTask[];
   onRemoveDependency?: (blockedTaskId: Id<"tasks">, blockingTaskId: Id<"tasks">) => Promise<void>;
+  projectId?: Id<"projects">;
+  milestoneMeta?: MilestoneMeta;
 }) {
   const priorityMeta = priorityTokens[task.priorityLevel];
   const expanded = Boolean(isExpanded);
@@ -330,6 +340,13 @@ function TaskCard({
                     Blocked by {dependencyMeta.blockerIds.length}
                   </span>
                 )}
+
+                {milestoneMeta && (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-purple-600 dark:text-purple-400">
+                    <Flag className="h-3 w-3" />
+                    <span className="truncate max-w-[80px]">{milestoneMeta.title}</span>
+                  </span>
+                )}
               </div>
             )}
 
@@ -370,12 +387,13 @@ function TaskCard({
         </div>
 
         <div className="flex items-center opacity-0 transition-opacity group-hover:opacity-100">
-          {onSaveTask && (
+          {onSaveTask && projectId && (
             <TaskQuickEditDialog
               task={task}
               onSave={onSaveTask}
               featureMeta={featureMeta}
               onUnlinkFeature={onUnlinkFeature}
+              projectId={projectId}
             />
           )}
           {onDeleteTask && <TaskDeleteDialog taskTitle={task.title} onDelete={onDeleteTask} />}
@@ -563,6 +581,7 @@ type TaskQuickEditFormState = {
   assignees: string;
   attachments: string;
   tags: string;
+  milestoneId: string;
 };
 
 const toDateInputValue = (timestamp?: number) => {
@@ -596,6 +615,7 @@ const buildFormState = (task: KanbanTask): TaskQuickEditFormState => ({
   assignees: (task.assignees ?? []).join(", "),
   attachments: (task.attachments ?? []).join("\n"),
   tags: (task.tags ?? []).join(", "),
+  milestoneId: task.milestoneId ?? "",
 });
 
 function TaskQuickEditDialog({
@@ -603,11 +623,13 @@ function TaskQuickEditDialog({
   onSave,
   featureMeta,
   onUnlinkFeature,
+  projectId,
 }: {
   task: KanbanTask;
   onSave: (payload: TaskEditPayload) => Promise<void>;
   featureMeta?: TaskFeatureMeta;
   onUnlinkFeature?: () => Promise<void> | void;
+  projectId: Id<"projects">;
 }) {
   const formId = useId();
   const [open, setOpen] = useState(false);
@@ -615,6 +637,9 @@ function TaskQuickEditDialog({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isUnlinking, setIsUnlinking] = useState(false);
+
+  // Fetch milestones for this project
+  const milestones = useQuery(api.milestones.listByProject, { projectId });
 
   useEffect(() => {
     if (!open) {
@@ -653,6 +678,7 @@ function TaskQuickEditDialog({
       assignees: cleanCommaList(formState.assignees),
       attachments: cleanLineList(formState.attachments),
       tags: cleanCommaList(formState.tags),
+      milestoneId: formState.milestoneId ? (formState.milestoneId as Id<"milestones">) : null,
     };
 
     try {
@@ -767,6 +793,30 @@ function TaskQuickEditDialog({
               rows={3}
               placeholder="One URL per line"
             />
+          </div>
+
+          {/* Milestone Section */}
+          <div className="space-y-2">
+            <Label htmlFor={`${formId}-milestone`}>Milestone</Label>
+            <Select
+              value={formState.milestoneId || "none"}
+              onValueChange={(value) => updateField("milestoneId", value === "none" ? "" : value)}
+            >
+              <SelectTrigger id={`${formId}-milestone`} className="w-full">
+                <SelectValue placeholder="No milestone" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No milestone</SelectItem>
+                {milestones?.map((m) => (
+                  <SelectItem key={m._id} value={m._id}>
+                    <div className="flex items-center gap-2">
+                      <Flag className="h-3 w-3 text-purple-500" />
+                      <span>{m.title}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Feature Link Section */}
@@ -890,6 +940,8 @@ function SortableTask({
   dependencyMeta,
   allTasks,
   onRemoveDependency,
+  projectId,
+  milestoneMeta,
 }: {
   task: KanbanTask;
   onAdvance: (task: KanbanTask) => void;
@@ -904,6 +956,8 @@ function SortableTask({
   dependencyMeta?: TaskDependencyMeta;
   allTasks?: KanbanTask[];
   onRemoveDependency?: (blockedTaskId: Id<"tasks">, blockingTaskId: Id<"tasks">) => Promise<void>;
+  projectId: Id<"projects">;
+  milestoneMeta?: MilestoneMeta;
 }) {
   const {
     attributes,
@@ -936,6 +990,8 @@ function SortableTask({
           dependencyMeta={dependencyMeta}
           allTasks={allTasks}
           onRemoveDependency={onRemoveDependency}
+          projectId={projectId}
+          milestoneMeta={milestoneMeta}
         />
       </div>
     );
@@ -957,6 +1013,8 @@ function SortableTask({
         dependencyMeta={dependencyMeta}
         allTasks={allTasks}
         onRemoveDependency={onRemoveDependency}
+        projectId={projectId}
+        milestoneMeta={milestoneMeta}
       />
     </div>
   );
@@ -1031,6 +1089,7 @@ export function KanbanBoard({
     return result;
   }, [tasksQuery, selectedMilestoneId, filters]);
   const features = useQuery(api.features.listByProject, { projectId }) as FeatureRecord[] | undefined;
+  const milestones = useQuery(api.milestones.listByProject, { projectId });
   const createTask = useMutation(api.tasks.create);
   const moveTask = useMutation(api.tasks.move);
   const updateTaskMutation = useMutation(api.tasks.updateTask);
@@ -1038,6 +1097,7 @@ export function KanbanBoard({
   const linkTaskToFeatureMutation = useMutation(api.features.linkTaskToFeature);
   const unlinkTaskFromFeatureMutation = useMutation(api.features.unlinkTaskFromFeature);
   const removeDependencyMutation = useMutation(api.dependencies.remove);
+  const assignTaskToMilestoneMutation = useMutation(api.milestones.assignTaskToMilestone);
   
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [activeId, setActiveId] = useState<Id<"tasks"> | null>(null);
@@ -1064,6 +1124,10 @@ export function KanbanBoard({
 
   const persistTaskEdit = async (taskId: Id<"tasks">, payload: TaskEditPayload) => {
     let snapshot: KanbanTask[] = [];
+    const currentTask = localTasks.find((t) => t._id === taskId);
+    const milestoneChanged = payload.milestoneId !== undefined &&
+      (payload.milestoneId ?? undefined) !== currentTask?.milestoneId;
+
     setLocalTasks((prev) => {
       snapshot = prev;
       return prev.map((task) =>
@@ -1077,12 +1141,14 @@ export function KanbanBoard({
               assignees: payload.assignees,
               attachments: payload.attachments,
               tags: payload.tags,
+              milestoneId: payload.milestoneId ?? undefined,
             }
           : task,
       );
     });
 
     try {
+      // Update task fields
       await updateTaskMutation({
         id: taskId,
         title: payload.title,
@@ -1093,6 +1159,14 @@ export function KanbanBoard({
         attachments: payload.attachments,
         tags: payload.tags,
       });
+
+      // Update milestone assignment if changed
+      if (milestoneChanged) {
+        await assignTaskToMilestoneMutation({
+          taskId,
+          milestoneId: payload.milestoneId ?? null,
+        });
+      }
     } catch (error) {
       setLocalTasks(snapshot);
       throw error;
@@ -1229,6 +1303,15 @@ export function KanbanBoard({
     });
     return map;
   }, [localTasks, featureMap, checklistMap]);
+
+  const milestoneMetaMap = useMemo(() => {
+    const map = new Map<string, MilestoneMeta>();
+    if (!milestones) return map;
+    milestones.forEach((m) => {
+      map.set(m._id.toString(), { _id: m._id, title: m.title });
+    });
+    return map;
+  }, [milestones]);
 
   const handleLinkToFeatureTarget = async (
     taskId: Id<"tasks">,
@@ -1549,6 +1632,8 @@ export function KanbanBoard({
                         dependencyMeta={dependencyMetaMap.get(task._id.toString())}
                         allTasks={localTasks}
                         onRemoveDependency={handleRemoveDependency}
+                        projectId={projectId}
+                        milestoneMeta={task.milestoneId ? milestoneMetaMap.get(task.milestoneId.toString()) : undefined}
                       />
                     ))}
                   </SortableContext>
@@ -1598,6 +1683,8 @@ export function KanbanBoard({
                       dependencyMeta={dependencyMetaMap.get(task._id.toString())}
                       allTasks={localTasks}
                       onRemoveDependency={handleRemoveDependency}
+                      projectId={projectId}
+                      milestoneMeta={task.milestoneId ? milestoneMetaMap.get(task.milestoneId.toString()) : undefined}
                     />
                   ))}
                 </SortableContext>
@@ -1627,6 +1714,8 @@ export function KanbanBoard({
                       dependencyMeta={dependencyMetaMap.get(task._id.toString())}
                       allTasks={localTasks}
                       onRemoveDependency={handleRemoveDependency}
+                      projectId={projectId}
+                      milestoneMeta={task.milestoneId ? milestoneMetaMap.get(task.milestoneId.toString()) : undefined}
                     />
                   ))}
                 </SortableContext>
@@ -1663,6 +1752,8 @@ export function KanbanBoard({
                           dependencyMeta={dependencyMetaMap.get(task._id.toString())}
                           allTasks={localTasks}
                           onRemoveDependency={handleRemoveDependency}
+                          projectId={projectId}
+                          milestoneMeta={task.milestoneId ? milestoneMetaMap.get(task.milestoneId.toString()) : undefined}
                         />
                       ))}
                     </SortableContext>
