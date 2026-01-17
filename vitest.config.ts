@@ -3,12 +3,7 @@ import path from "path";
 
 export default defineConfig({
   test: {
-    environmentMatchGlobs: [
-      // Use edge-runtime for Convex tests (convex-test requirement)
-      ["convex/**", "edge-runtime"],
-      // Use node for non-Convex tests
-      ["**", "node"],
-    ],
+    environment: "edge-runtime",
     include: ["**/*.test.ts"],
     exclude: ["node_modules", ".next", "convex/_generated"],
     server: {
