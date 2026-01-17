@@ -3,7 +3,7 @@
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Id, Doc } from '@/convex/_generated/dataModel';
-import { Plus, CheckCircle2, Circle, Clock, Link as LinkIcon, RefreshCw, AlignLeft, Calendar, Users, Paperclip, Tag, Flag, PencilLine, Trash2, XCircle, Lock } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, Clock, Link as LinkIcon, RefreshCw, AlignLeft, Calendar, Users, Paperclip, Tag, Flag, PencilLine, Trash2, XCircle, Lock, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useMemo, useId } from 'react';
 import * as React from 'react';
@@ -370,7 +370,14 @@ function TaskCard({
         </div>
 
         <div className="flex items-center opacity-0 transition-opacity group-hover:opacity-100">
-          {onSaveTask && <TaskQuickEditDialog task={task} onSave={onSaveTask} />}
+          {onSaveTask && (
+            <TaskQuickEditDialog
+              task={task}
+              onSave={onSaveTask}
+              featureMeta={featureMeta}
+              onUnlinkFeature={onUnlinkFeature}
+            />
+          )}
           {onDeleteTask && <TaskDeleteDialog taskTitle={task.title} onDelete={onDeleteTask} />}
         </div>
       </div>
@@ -591,12 +598,23 @@ const buildFormState = (task: KanbanTask): TaskQuickEditFormState => ({
   tags: (task.tags ?? []).join(", "),
 });
 
-function TaskQuickEditDialog({ task, onSave }: { task: KanbanTask; onSave: (payload: TaskEditPayload) => Promise<void> }) {
+function TaskQuickEditDialog({
+  task,
+  onSave,
+  featureMeta,
+  onUnlinkFeature,
+}: {
+  task: KanbanTask;
+  onSave: (payload: TaskEditPayload) => Promise<void>;
+  featureMeta?: TaskFeatureMeta;
+  onUnlinkFeature?: () => Promise<void> | void;
+}) {
   const formId = useId();
   const [open, setOpen] = useState(false);
   const [formState, setFormState] = useState<TaskQuickEditFormState>(() => buildFormState(task));
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isUnlinking, setIsUnlinking] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -604,6 +622,16 @@ function TaskQuickEditDialog({ task, onSave }: { task: KanbanTask; onSave: (payl
       setError(null);
     }
   }, [task, open]);
+
+  const handleUnlink = async () => {
+    if (!onUnlinkFeature) return;
+    setIsUnlinking(true);
+    try {
+      await onUnlinkFeature();
+    } finally {
+      setIsUnlinking(false);
+    }
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -739,6 +767,43 @@ function TaskQuickEditDialog({ task, onSave }: { task: KanbanTask; onSave: (payl
               rows={3}
               placeholder="One URL per line"
             />
+          </div>
+
+          {/* Feature Link Section */}
+          <div className="space-y-2">
+            <Label>Feature Link</Label>
+            {featureMeta ? (
+              <div className="flex items-center gap-2 rounded-lg border border-border p-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Layers className="h-4 w-4 text-blue-500 shrink-0" />
+                    <span className="font-medium truncate">{featureMeta.featureTitle}</span>
+                    {featureMeta.checklistTitle && (
+                      <>
+                        <span className="text-muted-foreground">/</span>
+                        <span className="text-muted-foreground truncate">{featureMeta.checklistTitle}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                {onUnlinkFeature && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                    onClick={handleUnlink}
+                    disabled={isUnlinking}
+                  >
+                    {isUnlinking ? "Unlinking..." : "Unlink"}
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground italic rounded-lg border border-dashed border-border p-2">
+                Drag this task to a feature in the Feature Cockpit to link it.
+              </p>
+            )}
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
@@ -1630,6 +1695,7 @@ export function KanbanBoard({
             setFocusedFeatureId(null);
           }
         }}
+        onUnlinkTask={handleUnlinkFeature}
       />
     </DndContext>
   );
@@ -1640,11 +1706,13 @@ function FeatureDetailsSheet({
   linkedTasks = [],
   open,
   onOpenChange,
+  onUnlinkTask,
 }: {
   feature?: FeatureRecord;
   linkedTasks?: KanbanTask[];
   open: boolean;
   onOpenChange: (next: boolean) => void;
+  onUnlinkTask?: (taskId: Id<"tasks">) => Promise<void>;
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -1692,26 +1760,66 @@ function FeatureDetailsSheet({
                   </div>
                   {feature.checklist.length ? (
                     <div className="space-y-2">
-                      {feature.checklist.map((item) => (
-                        <div key={item._id} className="rounded-xl border border-border/60 p-3">
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <p className="text-sm font-medium text-foreground">{item.title}</p>
-                              {item.description && (
-                                <p className="text-xs text-muted-foreground">{item.description}</p>
-                              )}
+                      {feature.checklist.map((item) => {
+                        // Get tasks linked to this specific checklist item
+                        const itemTasks = linkedTasks.filter(
+                          (task) => task.featureChecklistItemId === item._id
+                        );
+                        return (
+                          <div key={item._id} className="rounded-xl border border-border/60 p-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <p className="text-sm font-medium text-foreground">{item.title}</p>
+                                {item.description && (
+                                  <p className="text-xs text-muted-foreground">{item.description}</p>
+                                )}
+                              </div>
+                              <Badge variant={item.status === 'done' ? 'default' : 'secondary'}>
+                                {item.status === 'done' ? 'Done' : 'Todo'}
+                              </Badge>
                             </div>
-                            <Badge variant={item.status === 'done' ? 'default' : 'secondary'}>
-                              {item.status === 'done' ? 'Done' : 'Todo'}
-                            </Badge>
+                            {itemTasks.length > 0 && (
+                              <div className="mt-3 space-y-1.5">
+                                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                  Linked tasks ({itemTasks.length})
+                                </p>
+                                {itemTasks.map((task) => (
+                                  <div
+                                    key={task._id}
+                                    className="group flex items-center justify-between gap-2 rounded-lg bg-muted/50 px-2.5 py-1.5 text-xs"
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      {task.status === 'done' ? (
+                                        <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+                                      ) : task.status === 'in_progress' ? (
+                                        <Clock className="h-3 w-3 text-blue-500 shrink-0" />
+                                      ) : (
+                                        <Circle className="h-3 w-3 text-muted-foreground shrink-0" />
+                                      )}
+                                      <span className={cn(
+                                        'truncate',
+                                        task.status === 'done' && 'line-through text-muted-foreground'
+                                      )}>
+                                        {task.title}
+                                      </span>
+                                    </div>
+                                    {onUnlinkTask && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-red-500"
+                                        onClick={() => void onUnlinkTask(task._id)}
+                                      >
+                                        <XCircle className="h-3.5 w-3.5" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                          {item.linkedTaskIds?.length ? (
-                            <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">
-                              Linked tasks: {item.linkedTaskIds.length}
-                            </p>
-                          ) : null}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground">No checklist items yet.</p>
@@ -1722,7 +1830,7 @@ function FeatureDetailsSheet({
 
                 <section className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Linked tasks</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">All linked tasks</p>
                     <Badge variant="secondary">{linkedTasks.length}</Badge>
                   </div>
                   {linkedTasks.length ? (
@@ -1732,12 +1840,24 @@ function FeatureDetailsSheet({
                           ? feature.checklist.find((item) => item._id === task.featureChecklistItemId)?.title
                           : undefined;
                         return (
-                          <div key={task._id} className="rounded-xl border border-border/60 p-3">
+                          <div key={task._id} className="group rounded-xl border border-border/60 p-3">
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-sm font-semibold text-foreground">{task.title}</p>
-                              <Badge variant="outline" className="text-[11px] uppercase">
-                                {priorityTokens[task.priorityLevel].label}
-                              </Badge>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-[11px] uppercase">
+                                  {priorityTokens[task.priorityLevel].label}
+                                </Badge>
+                                {onUnlinkTask && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-red-500"
+                                    onClick={() => void onUnlinkTask(task._id)}
+                                  >
+                                    <XCircle className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                             <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                               <span className="inline-flex items-center gap-1">

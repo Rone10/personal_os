@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useMutation } from 'convex/react';
+import { useState, useMemo } from 'react';
+import { useMutation, useQuery } from 'convex/react';
 import { useDroppable } from '@dnd-kit/core';
 import { api } from '@/convex/_generated/api';
 import { Doc, Id } from '@/convex/_generated/dataModel';
@@ -23,9 +23,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
-import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, ListChecks } from 'lucide-react';
+import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, ListChecks, ChevronDown, X, Circle, Clock, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface FeaturePanelProps {
@@ -50,6 +51,13 @@ const emptyFeatureForm = {
   whatDoneLooksLike: '',
 };
 
+type LinkedTaskInfo = {
+  _id: Id<'tasks'>;
+  title: string;
+  status: 'todo' | 'in_progress' | 'done';
+  priorityLevel: string;
+};
+
 export function FeaturePanel({ projectId, features, enableTaskTargets = false, activeTaskId }: FeaturePanelProps) {
   const createFeature = useMutation(api.features.createFeature);
   const updateFeature = useMutation(api.features.updateFeature);
@@ -59,6 +67,28 @@ export function FeaturePanel({ projectId, features, enableTaskTargets = false, a
   const updateChecklistItem = useMutation(api.features.updateChecklistItem);
   const deleteChecklistItem = useMutation(api.features.deleteChecklistItem);
   const reorderChecklist = useMutation(api.features.reorderChecklist);
+  const unlinkTaskFromFeature = useMutation(api.features.unlinkTaskFromFeature);
+
+  // Collect all checklist IDs to batch-fetch linked tasks
+  const allChecklistIds = useMemo(() => {
+    if (!features) return [];
+    return features.flatMap((f) => f.checklist.map((item) => item._id));
+  }, [features]);
+
+  const linkedTasksData = useQuery(
+    api.features.getLinkedTasksForChecklistItemsBatch,
+    allChecklistIds.length > 0 ? { checklistIds: allChecklistIds } : 'skip'
+  );
+
+  const handleUnlinkTask = async (taskId: Id<'tasks'>) => {
+    try {
+      await unlinkTaskFromFeature({ taskId });
+      toast.success('Task unlinked from feature');
+    } catch (error) {
+      console.error(error);
+      toast.error('Unable to unlink task');
+    }
+  };
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState<'create' | 'edit'>('create');
@@ -268,6 +298,8 @@ export function FeaturePanel({ projectId, features, enableTaskTargets = false, a
                 isLast={index === (features?.length ?? 0) - 1}
                 enableTaskTargets={enableTaskTargets}
                 isDragActive={isDragActive}
+                linkedTasksData={linkedTasksData}
+                onUnlinkTask={handleUnlinkTask}
                 onEdit={() => handleOpenEdit(feature)}
                 onDelete={() => handleFeatureDelete(feature._id)}
                 onMove={(direction) => handleFeatureMove(feature._id, direction)}
@@ -311,6 +343,8 @@ interface FeatureCardProps {
   isLast: boolean;
   enableTaskTargets?: boolean;
   isDragActive: boolean;
+  linkedTasksData?: Record<string, LinkedTaskInfo[]>;
+  onUnlinkTask: (taskId: Id<'tasks'>) => Promise<void>;
   onEdit: () => void;
   onDelete: () => Promise<void> | void;
   onMove: (direction: 'up' | 'down') => Promise<void> | void;
@@ -332,6 +366,8 @@ function FeatureCard({
   isLast,
   enableTaskTargets = false,
   isDragActive,
+  linkedTasksData,
+  onUnlinkTask,
   onEdit,
   onDelete,
   onMove,
@@ -429,6 +465,8 @@ function FeatureCard({
               enableTaskTargets={enableTaskTargets}
               isDragActive={isDragActive}
               disableToggle={disableChecklistToggle(item)}
+              linkedTasks={linkedTasksData?.[item._id] ?? []}
+              onUnlinkTask={onUnlinkTask}
               onChecklistMove={onChecklistMove}
               onChecklistToggle={onChecklistToggle}
               onChecklistEdit={onChecklistEdit}
@@ -470,6 +508,8 @@ interface ChecklistRowProps {
   enableTaskTargets?: boolean;
   isDragActive: boolean;
   disableToggle: boolean;
+  linkedTasks: LinkedTaskInfo[];
+  onUnlinkTask: (taskId: Id<'tasks'>) => Promise<void>;
   onChecklistToggle: (item: Doc<'featureChecklistItems'>) => Promise<void> | void;
   onChecklistMove: (itemId: Id<'featureChecklistItems'>, direction: 'up' | 'down') => Promise<void> | void;
   onChecklistEdit: (
@@ -486,53 +526,116 @@ function ChecklistRow({
   enableTaskTargets = false,
   isDragActive,
   disableToggle,
+  linkedTasks,
+  onUnlinkTask,
   onChecklistToggle,
   onChecklistMove,
   onChecklistEdit,
   onChecklistDelete,
 }: ChecklistRowProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const { setNodeRef, isOver } = useDroppable({
     id: `checklist:${item._id}`,
     disabled: !enableTaskTargets,
   });
 
+  const hasLinkedTasks = linkedTasks.length > 0;
+
+  const getStatusIcon = (status: 'todo' | 'in_progress' | 'done') => {
+    switch (status) {
+      case 'done':
+        return <CheckCircle2 className="h-3 w-3 text-emerald-500" />;
+      case 'in_progress':
+        return <Clock className="h-3 w-3 text-blue-500" />;
+      default:
+        return <Circle className="h-3 w-3 text-slate-400" />;
+    }
+  };
+
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        'flex items-start gap-3 rounded-xl border border-slate-200 p-3 text-sm dark:border-slate-800',
+        'rounded-xl border border-slate-200 p-3 text-sm dark:border-slate-800 transition-all',
         item.status === 'done' && 'bg-emerald-50/70 dark:bg-emerald-950/40',
-        enableTaskTargets && isDragActive && 'border-dashed border-slate-400/70',
-        isOver && 'border-blue-500 bg-blue-50/60 dark:border-blue-400 dark:bg-blue-950/40'
+        enableTaskTargets && isDragActive && 'border-dashed border-slate-400/70 ring-2 ring-slate-400/20',
+        isOver && 'border-blue-500 bg-blue-50/60 dark:border-blue-400 dark:bg-blue-950/40 scale-[1.02]'
       )}
     >
-      <Checkbox
-        checked={item.status === 'done'}
-        onCheckedChange={() => void onChecklistToggle(item)}
-        disabled={disableToggle}
-      />
-      <div className="flex-1">
-        <p className="font-medium">{item.title}</p>
-        {item.description && (
-          <p className="text-xs text-muted-foreground">{item.description}</p>
-        )}
-        {item.linkedTaskIds?.length ? (
-          <p className="text-xs text-blue-500">Linked tasks: {item.linkedTaskIds.length}</p>
-        ) : null}
-      </div>
-      <div className="flex items-center gap-1">
-        <Button size="icon" variant="ghost" onClick={() => void onChecklistMove(item._id, 'up')} disabled={isFirst}>
-          <ArrowUp className="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={() => void onChecklistMove(item._id, 'down')}
-          disabled={isLast}
-        >
-          <ArrowDown className="h-3.5 w-3.5" />
-        </Button>
-        <ChecklistEditDialog item={item} onSave={onChecklistEdit} onDelete={onChecklistDelete} />
+      <div className="flex items-start gap-3">
+        <Checkbox
+          checked={item.status === 'done'}
+          onCheckedChange={() => void onChecklistToggle(item)}
+          disabled={disableToggle}
+        />
+        <div className="flex-1 min-w-0">
+          <p className="font-medium">{item.title}</p>
+          {item.description && (
+            <p className="text-xs text-muted-foreground">{item.description}</p>
+          )}
+
+          {hasLinkedTasks && (
+            <Collapsible open={isExpanded} onOpenChange={setIsExpanded} className="mt-2">
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                >
+                  <ChevronDown
+                    className={cn(
+                      'h-3 w-3 transition-transform',
+                      isExpanded && 'rotate-180'
+                    )}
+                  />
+                  <span>
+                    {linkedTasks.length} task{linkedTasks.length > 1 ? 's' : ''}
+                  </span>
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2 space-y-1.5">
+                {linkedTasks.map((task) => (
+                  <div
+                    key={task._id}
+                    className="group/task flex items-center justify-between gap-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 px-2.5 py-1.5 text-xs"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      {getStatusIcon(task.status)}
+                      <span className={cn(
+                        'truncate',
+                        task.status === 'done' && 'line-through text-muted-foreground'
+                      )}>
+                        {task.title}
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 opacity-0 group-hover/task:opacity-100 transition-opacity text-muted-foreground hover:text-red-500"
+                      onClick={() => void onUnlinkTask(task._id)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => void onChecklistMove(item._id, 'up')} disabled={isFirst}>
+            <ArrowUp className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7"
+            onClick={() => void onChecklistMove(item._id, 'down')}
+            disabled={isLast}
+          >
+            <ArrowDown className="h-3.5 w-3.5" />
+          </Button>
+          <ChecklistEditDialog item={item} onSave={onChecklistEdit} onDelete={onChecklistDelete} />
+        </div>
       </div>
     </div>
   );

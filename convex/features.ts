@@ -437,3 +437,73 @@ export const reorderChecklist = mutation({
     );
   },
 });
+
+export const getLinkedTasksForChecklistItem = query({
+  args: { checklistId: v.id("featureChecklistItems") },
+  handler: async (ctx, args) => {
+    const identity = await requireIdentity(ctx);
+    const item = await ensureChecklistOwnership(ctx, args.checklistId, identity.subject);
+
+    const linkedTaskIds = item.linkedTaskIds ?? [];
+    if (linkedTaskIds.length === 0) {
+      return [];
+    }
+
+    const tasks = await Promise.all(
+      linkedTaskIds.map((taskId) => ctx.db.get(taskId))
+    );
+
+    return tasks
+      .filter((task): task is Doc<"tasks"> => task !== null && task.userId === identity.subject)
+      .map((task) => ({
+        _id: task._id,
+        title: task.title,
+        status: task.status,
+        priorityLevel: task.priorityLevel ?? "low",
+      }));
+  },
+});
+
+export const getLinkedTasksForChecklistItemsBatch = query({
+  args: { checklistIds: v.array(v.id("featureChecklistItems")) },
+  handler: async (ctx, args) => {
+    const identity = await requireIdentity(ctx);
+    if (!identity) return {};
+
+    const result: Record<string, Array<{
+      _id: Id<"tasks">;
+      title: string;
+      status: "todo" | "in_progress" | "done";
+      priorityLevel: string;
+    }>> = {};
+
+    for (const checklistId of args.checklistIds) {
+      const item = await ctx.db.get(checklistId);
+      if (!item || item.userId !== identity.subject) {
+        result[checklistId] = [];
+        continue;
+      }
+
+      const linkedTaskIds = item.linkedTaskIds ?? [];
+      if (linkedTaskIds.length === 0) {
+        result[checklistId] = [];
+        continue;
+      }
+
+      const tasks = await Promise.all(
+        linkedTaskIds.map((taskId) => ctx.db.get(taskId))
+      );
+
+      result[checklistId] = tasks
+        .filter((task): task is Doc<"tasks"> => task !== null && task.userId === identity.subject)
+        .map((task) => ({
+          _id: task._id,
+          title: task.title,
+          status: task.status,
+          priorityLevel: task.priorityLevel ?? "low",
+        }));
+    }
+
+    return result;
+  },
+});
