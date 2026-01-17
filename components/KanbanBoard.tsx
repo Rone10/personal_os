@@ -59,15 +59,25 @@ type TaskDependencyMeta = {
   blockingIds: Id<"tasks">[];
 };
 
+export type KanbanFilters = {
+  assignees: Set<string>;
+  tags: Set<string>;
+};
+
+export type KanbanViewMode = 'status' | 'priority';
+
 interface KanbanBoardProps {
   projectId: Id<"projects">;
   showFeaturePanel?: boolean;
   selectedMilestoneId?: Id<"milestones"> | null;
+  filters?: KanbanFilters;
+  viewMode?: KanbanViewMode;
 }
 
 type TaskStatus = "todo" | "in_progress" | "done";
 const COLUMN_IDS: TaskStatus[] = ["todo", "in_progress", "done"];
 type TaskPriorityLevel = "low" | "medium" | "high" | "urgent" | "critical";
+const PRIORITY_LEVELS: TaskPriorityLevel[] = ["critical", "urgent", "high", "medium", "low"];
 type KanbanTask = Doc<"tasks"> & { priorityLevel: TaskPriorityLevel };
 type TaskEditPayload = {
   title: string;
@@ -918,17 +928,43 @@ function DroppableColumn({ id, title, count, children, className, headerColor }:
   );
 }
 
-export function KanbanBoard({ projectId, showFeaturePanel = false, selectedMilestoneId }: KanbanBoardProps) {
+export function KanbanBoard({
+  projectId,
+  showFeaturePanel = false,
+  selectedMilestoneId,
+  filters,
+  viewMode = 'status',
+}: KanbanBoardProps) {
   const tasksQuery = useQuery(api.tasks.getByProject, { projectId });
+  const updatePriorityMutation = useMutation(api.tasks.updateTask);
 
-  // Filter tasks by selected milestone
+  // Filter tasks by selected milestone and active filters
   const filteredTasksQuery = useMemo(() => {
     if (!tasksQuery) return undefined;
-    if (selectedMilestoneId === undefined || selectedMilestoneId === null) {
-      return tasksQuery; // Show all tasks when no milestone is selected
+
+    let result = tasksQuery;
+
+    // Filter by milestone
+    if (selectedMilestoneId !== undefined && selectedMilestoneId !== null) {
+      result = result.filter((task) => task.milestoneId === selectedMilestoneId);
     }
-    return tasksQuery.filter((task) => task.milestoneId === selectedMilestoneId);
-  }, [tasksQuery, selectedMilestoneId]);
+
+    // Filter by assignees
+    if (filters?.assignees && filters.assignees.size > 0) {
+      result = result.filter((task) =>
+        task.assignees?.some((a) => filters.assignees.has(a))
+      );
+    }
+
+    // Filter by tags
+    if (filters?.tags && filters.tags.size > 0) {
+      result = result.filter((task) =>
+        task.tags?.some((t) => filters.tags.has(t))
+      );
+    }
+
+    return result;
+  }, [tasksQuery, selectedMilestoneId, filters]);
   const features = useQuery(api.features.listByProject, { projectId }) as FeatureRecord[] | undefined;
   const createTask = useMutation(api.tasks.create);
   const moveTask = useMutation(api.tasks.move);
@@ -1073,11 +1109,23 @@ export function KanbanBoard({ projectId, showFeaturePanel = false, selectedMiles
     })
   );
 
-  const columns = useMemo(() => {
+  // Status-based columns (default view)
+  const statusColumns = useMemo(() => {
     return {
       todo: localTasks.filter((t) => t.status === 'todo'),
       in_progress: localTasks.filter((t) => t.status === 'in_progress'),
       done: localTasks.filter((t) => t.status === 'done'),
+    };
+  }, [localTasks]);
+
+  // Priority-based columns (priority swimlanes view)
+  const priorityColumns = useMemo(() => {
+    return {
+      critical: localTasks.filter((t) => t.priorityLevel === 'critical'),
+      urgent: localTasks.filter((t) => t.priorityLevel === 'urgent'),
+      high: localTasks.filter((t) => t.priorityLevel === 'high'),
+      medium: localTasks.filter((t) => t.priorityLevel === 'medium'),
+      low: localTasks.filter((t) => t.priorityLevel === 'low'),
     };
   }, [localTasks]);
 
@@ -1246,14 +1294,14 @@ export function KanbanBoard({ projectId, showFeaturePanel = false, selectedMiles
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     const activeId = active.id as Id<"tasks">;
-    
+
     setActiveId(null);
 
     if (!over) return;
 
     const overId = over.id;
     const activeTask = localTasks.find(t => t._id === activeId);
-    
+
     if (!activeTask) return;
 
     if (typeof overId === 'string' && overId.startsWith('feature:')) {
@@ -1274,6 +1322,45 @@ export function KanbanBoard({ projectId, showFeaturePanel = false, selectedMiles
       }
     }
 
+    // Handle priority column drag in priority view mode
+    if (viewMode === 'priority') {
+      const isPriorityColumnTarget = PRIORITY_LEVELS.includes(overId as TaskPriorityLevel);
+      if (isPriorityColumnTarget) {
+        const newPriority = overId as TaskPriorityLevel;
+        if (activeTask.priorityLevel === newPriority) return;
+
+        // Optimistic update
+        setLocalTasks(prev =>
+          prev.map(t =>
+            t._id === activeId ? { ...t, priorityLevel: newPriority } : t
+          )
+        );
+
+        // Persist to backend
+        void updatePriorityMutation({
+          id: activeId,
+          priorityLevel: newPriority,
+        });
+        return;
+      }
+
+      // Dragging onto another task in priority view - change priority to match target task
+      const overTask = localTasks.find(t => t._id === overId);
+      if (overTask && activeTask.priorityLevel !== overTask.priorityLevel) {
+        setLocalTasks(prev =>
+          prev.map(t =>
+            t._id === activeId ? { ...t, priorityLevel: overTask.priorityLevel } : t
+          )
+        );
+        void updatePriorityMutation({
+          id: activeId,
+          priorityLevel: overTask.priorityLevel,
+        });
+      }
+      return;
+    }
+
+    // Status view mode (default behavior)
     const isColumnTarget = COLUMN_IDS.includes(overId as TaskStatus);
     const overTask = isColumnTarget ? undefined : localTasks.find(t => t._id === overId);
 
@@ -1333,10 +1420,10 @@ export function KanbanBoard({ projectId, showFeaturePanel = false, selectedMiles
         t._id === activeId ? { ...t, order: newOrder, status: newStatus } : t
       ));
 
-      moveTask({ 
-        id: activeId, 
-        status: newStatus, 
-        newOrder: newOrder || Date.now() 
+      moveTask({
+        id: activeId,
+        status: newStatus,
+        newOrder: newOrder || Date.now()
       });
     }
   };
@@ -1369,18 +1456,68 @@ export function KanbanBoard({ projectId, showFeaturePanel = false, selectedMiles
         )}
 
         <div className={cn('w-full', showFeaturePanel && 'lg:col-start-2')}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full overflow-hidden">
-            {/* TODO Column */}
-            <div className="flex flex-col h-full">
-              <DroppableColumn 
-                id="todo" 
-                title="To Do" 
-                count={columns.todo.length} 
-                headerColor="bg-slate-500"
-                className="flex-1"
+          {viewMode === 'status' ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full overflow-hidden">
+              {/* TODO Column */}
+              <div className="flex flex-col h-full">
+                <DroppableColumn
+                  id="todo"
+                  title="To Do"
+                  count={statusColumns.todo.length}
+                  headerColor="bg-slate-500"
+                  className="flex-1"
+                >
+                  <SortableContext items={statusColumns.todo.map(t => t._id)} strategy={verticalListSortingStrategy}>
+                    {statusColumns.todo.map((task) => (
+                      <SortableTask
+                        key={task._id}
+                        task={task}
+                        onAdvance={handleAdvance}
+                        linkedTodo={linkedMetaMap.get(task._id.toString())}
+                        featureMeta={taskFeatureMetaMap.get(task._id.toString())}
+                        onFeatureInspect={(featureId) => setFocusedFeatureId(featureId)}
+                        onUnlinkFeature={() => handleUnlinkFeature(task._id)}
+                        isExpanded={expandedTasks.has(task._id.toString())}
+                        onToggleExpand={() => toggleTaskExpansion(task._id)}
+                        onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
+                        onDeleteTask={() => deleteTaskOptimistic(task._id)}
+                        dependencyMeta={dependencyMetaMap.get(task._id.toString())}
+                        allTasks={localTasks}
+                        onRemoveDependency={handleRemoveDependency}
+                      />
+                    ))}
+                  </SortableContext>
+
+                  <form onSubmit={handleCreateTask} className="mt-2">
+                    <div className="relative">
+                      <Input
+                        placeholder="Add a task..."
+                        value={newTaskTitle}
+                        onChange={(e) => setNewTaskTitle(e.target.value)}
+                        className="pr-8 bg-background shadow-sm border-dashed border-muted-foreground/30 focus:border-solid"
+                      />
+                      <Button
+                        type="submit"
+                        size="icon"
+                        variant="ghost"
+                        className="absolute right-1 top-1 h-7 w-7 text-muted-foreground hover:text-primary"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </form>
+                </DroppableColumn>
+              </div>
+
+              {/* IN PROGRESS Column */}
+              <DroppableColumn
+                id="in_progress"
+                title="In Progress"
+                count={statusColumns.in_progress.length}
+                headerColor="bg-blue-500"
               >
-                <SortableContext items={columns.todo.map(t => t._id)} strategy={verticalListSortingStrategy}>
-                  {columns.todo.map((task) => (
+                <SortableContext items={statusColumns.in_progress.map(t => t._id)} strategy={verticalListSortingStrategy}>
+                  {statusColumns.in_progress.map((task) => (
                     <SortableTask
                       key={task._id}
                       task={task}
@@ -1399,86 +1536,76 @@ export function KanbanBoard({ projectId, showFeaturePanel = false, selectedMiles
                     />
                   ))}
                 </SortableContext>
-                
-                <form onSubmit={handleCreateTask} className="mt-2">
-                  <div className="relative">
-                    <Input 
-                      placeholder="Add a task..." 
-                      value={newTaskTitle}
-                      onChange={(e) => setNewTaskTitle(e.target.value)}
-                      className="pr-8 bg-background shadow-sm border-dashed border-muted-foreground/30 focus:border-solid"
+              </DroppableColumn>
+
+              {/* DONE Column */}
+              <DroppableColumn
+                id="done"
+                title="Done"
+                count={statusColumns.done.length}
+                headerColor="bg-green-500"
+              >
+                <SortableContext items={statusColumns.done.map(t => t._id)} strategy={verticalListSortingStrategy}>
+                  {statusColumns.done.map((task) => (
+                    <SortableTask
+                      key={task._id}
+                      task={task}
+                      onAdvance={handleAdvance}
+                      linkedTodo={linkedMetaMap.get(task._id.toString())}
+                      featureMeta={taskFeatureMetaMap.get(task._id.toString())}
+                      onFeatureInspect={(featureId) => setFocusedFeatureId(featureId)}
+                      onUnlinkFeature={() => handleUnlinkFeature(task._id)}
+                      isExpanded={expandedTasks.has(task._id.toString())}
+                      onToggleExpand={() => toggleTaskExpansion(task._id)}
+                      onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
+                      onDeleteTask={() => deleteTaskOptimistic(task._id)}
+                      dependencyMeta={dependencyMetaMap.get(task._id.toString())}
+                      allTasks={localTasks}
+                      onRemoveDependency={handleRemoveDependency}
                     />
-                    <Button 
-                      type="submit" 
-                      size="icon" 
-                      variant="ghost"
-                      className="absolute right-1 top-1 h-7 w-7 text-muted-foreground hover:text-primary"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </form>
+                  ))}
+                </SortableContext>
               </DroppableColumn>
             </div>
-
-            {/* IN PROGRESS Column */}
-            <DroppableColumn 
-              id="in_progress" 
-              title="In Progress" 
-              count={columns.in_progress.length} 
-              headerColor="bg-blue-500"
-            >
-              <SortableContext items={columns.in_progress.map(t => t._id)} strategy={verticalListSortingStrategy}>
-                  {columns.in_progress.map((task) => (
-                    <SortableTask
-                      key={task._id}
-                      task={task}
-                      onAdvance={handleAdvance}
-                      linkedTodo={linkedMetaMap.get(task._id.toString())}
-                      featureMeta={taskFeatureMetaMap.get(task._id.toString())}
-                      onFeatureInspect={(featureId) => setFocusedFeatureId(featureId)}
-                      onUnlinkFeature={() => handleUnlinkFeature(task._id)}
-                      isExpanded={expandedTasks.has(task._id.toString())}
-                      onToggleExpand={() => toggleTaskExpansion(task._id)}
-                      onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
-                      onDeleteTask={() => deleteTaskOptimistic(task._id)}
-                      dependencyMeta={dependencyMetaMap.get(task._id.toString())}
-                      allTasks={localTasks}
-                      onRemoveDependency={handleRemoveDependency}
-                    />
-                ))}
-              </SortableContext>
-            </DroppableColumn>
-
-            {/* DONE Column */}
-            <DroppableColumn 
-              id="done" 
-              title="Done" 
-              count={columns.done.length} 
-              headerColor="bg-green-500"
-            >
-              <SortableContext items={columns.done.map(t => t._id)} strategy={verticalListSortingStrategy}>
-                  {columns.done.map((task) => (
-                    <SortableTask
-                      key={task._id}
-                      task={task}
-                      onAdvance={handleAdvance}
-                      linkedTodo={linkedMetaMap.get(task._id.toString())}
-                      featureMeta={taskFeatureMetaMap.get(task._id.toString())}
-                      onFeatureInspect={(featureId) => setFocusedFeatureId(featureId)}
-                      onUnlinkFeature={() => handleUnlinkFeature(task._id)}
-                      isExpanded={expandedTasks.has(task._id.toString())}
-                      onToggleExpand={() => toggleTaskExpansion(task._id)}
-                      onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
-                      onDeleteTask={() => deleteTaskOptimistic(task._id)}
-                      dependencyMeta={dependencyMetaMap.get(task._id.toString())}
-                      allTasks={localTasks}
-                      onRemoveDependency={handleRemoveDependency}
-                    />
-                ))}
-              </SortableContext>
-            </DroppableColumn>
-          </div>
+          ) : (
+            /* Priority Swimlanes View */
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 h-full overflow-hidden">
+              {PRIORITY_LEVELS.map((level) => {
+                const levelTasks = priorityColumns[level];
+                const { label, dot } = priorityTokens[level];
+                return (
+                  <DroppableColumn
+                    key={level}
+                    id={level}
+                    title={label}
+                    count={levelTasks.length}
+                    headerColor={dot}
+                  >
+                    <SortableContext items={levelTasks.map(t => t._id)} strategy={verticalListSortingStrategy}>
+                      {levelTasks.map((task) => (
+                        <SortableTask
+                          key={task._id}
+                          task={task}
+                          onAdvance={handleAdvance}
+                          linkedTodo={linkedMetaMap.get(task._id.toString())}
+                          featureMeta={taskFeatureMetaMap.get(task._id.toString())}
+                          onFeatureInspect={(featureId) => setFocusedFeatureId(featureId)}
+                          onUnlinkFeature={() => handleUnlinkFeature(task._id)}
+                          isExpanded={expandedTasks.has(task._id.toString())}
+                          onToggleExpand={() => toggleTaskExpansion(task._id)}
+                          onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
+                          onDeleteTask={() => deleteTaskOptimistic(task._id)}
+                          dependencyMeta={dependencyMetaMap.get(task._id.toString())}
+                          allTasks={localTasks}
+                          onRemoveDependency={handleRemoveDependency}
+                        />
+                      ))}
+                    </SortableContext>
+                  </DroppableColumn>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Id, Doc } from '@/convex/_generated/dataModel';
-import { KanbanBoard } from '@/components/KanbanBoard';
+import { KanbanBoard, KanbanFilters, KanbanViewMode } from '@/components/KanbanBoard';
+import { KanbanFilterBar } from '@/components/KanbanFilterBar';
 import { MilestoneBar } from '@/app/projects/_components/MilestoneBar';
 import { Loader2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
@@ -14,11 +15,32 @@ export default function ProjectDetailPage() {
   const projectId = params.id as Id<"projects">;
 
   const [selectedMilestoneId, setSelectedMilestoneId] = useState<Id<"milestones"> | null>(null);
+  const [kanbanFilters, setKanbanFilters] = useState<KanbanFilters>({
+    assignees: new Set<string>(),
+    tags: new Set<string>(),
+  });
+  const [viewMode, setViewMode] = useState<KanbanViewMode>('status');
 
   const projects = useQuery(api.projects.get, { status: 'active' });
   const milestones = useQuery(api.milestones.listByProject, { projectId });
+  const tasks = useQuery(api.tasks.getByProject, { projectId });
   const project = projects?.find((p: Doc<"projects">) => p._id === projectId);
   const isCodingProject = project?.type === 'coding';
+
+  // Extract unique assignees and tags from all tasks
+  const uniqueAssignees = useMemo(() => {
+    if (!tasks) return [];
+    const set = new Set<string>();
+    tasks.forEach(t => t.assignees?.forEach(a => set.add(a)));
+    return Array.from(set).sort();
+  }, [tasks]);
+
+  const uniqueTags = useMemo(() => {
+    if (!tasks) return [];
+    const set = new Set<string>();
+    tasks.forEach(t => t.tags?.forEach(tag => set.add(tag)));
+    return Array.from(set).sort();
+  }, [tasks]);
 
   if (projects === undefined) {
     return <div className="p-8 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>;
@@ -42,17 +64,27 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 p-6 space-y-6 overflow-auto">
+      <div className="flex-1 min-h-0 p-6 space-y-4 overflow-auto">
         <MilestoneBar
           projectId={projectId}
           milestones={milestones}
           selectedMilestoneId={selectedMilestoneId}
           onSelectMilestone={setSelectedMilestoneId}
         />
+        <KanbanFilterBar
+          filters={kanbanFilters}
+          onFiltersChange={setKanbanFilters}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          availableAssignees={uniqueAssignees}
+          availableTags={uniqueTags}
+        />
         <KanbanBoard
           projectId={projectId}
           showFeaturePanel={isCodingProject}
           selectedMilestoneId={selectedMilestoneId}
+          filters={kanbanFilters}
+          viewMode={viewMode}
         />
       </div>
     </div>
