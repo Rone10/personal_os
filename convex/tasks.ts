@@ -327,6 +327,22 @@ export const deleteTask = mutation({
 
     const links = await ctx.db.query("todoTaskLinks").withIndex("by_task", (q) => q.eq("taskId", args.id)).collect();
     await detachTaskFromFeature(ctx, args.id);
+
+    // Cascade delete dependencies where this task is either blocking or blocked
+    const depsAsBlocked = await ctx.db
+      .query("taskDependencies")
+      .withIndex("by_blocked", (q) => q.eq("blockedTaskId", args.id))
+      .collect();
+    const depsAsBlocking = await ctx.db
+      .query("taskDependencies")
+      .withIndex("by_blocking", (q) => q.eq("blockingTaskId", args.id))
+      .collect();
+
+    await Promise.all([
+      ...depsAsBlocked.map((dep) => ctx.db.delete(dep._id)),
+      ...depsAsBlocking.map((dep) => ctx.db.delete(dep._id)),
+    ]);
+
     await ctx.db.delete(args.id);
 
     if (links.length) {

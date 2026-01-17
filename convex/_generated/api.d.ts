@@ -10,6 +10,7 @@
 
 import type * as _lib_arabic from "../_lib/arabic.js";
 import type * as bugs from "../bugs.js";
+import type * as dependencies from "../dependencies.js";
 import type * as features from "../features.js";
 import type * as milestones from "../milestones.js";
 import type * as projects from "../projects.js";
@@ -41,6 +42,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   "_lib/arabic": typeof _lib_arabic;
   bugs: typeof bugs;
+  dependencies: typeof dependencies;
   features: typeof features;
   milestones: typeof milestones;
   projects: typeof projects;

@@ -3,7 +3,7 @@
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Id, Doc } from '@/convex/_generated/dataModel';
-import { Plus, CheckCircle2, Circle, Clock, Link as LinkIcon, RefreshCw, AlignLeft, Calendar, Users, Paperclip, Tag, Flag, PencilLine, Trash2, XCircle } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, Clock, Link as LinkIcon, RefreshCw, AlignLeft, Calendar, Users, Paperclip, Tag, Flag, PencilLine, Trash2, XCircle, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useMemo, useId } from 'react';
 import * as React from 'react';
@@ -51,7 +51,13 @@ import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import { FeaturePanel } from '@/app/projects/_components/FeaturePanel';
 import { SubtaskList, SubtaskProgressBadge } from '@/components/SubtaskList';
+import { DependencyPicker, DependencyListItem } from '@/components/DependencyPicker';
 import { toast } from 'sonner';
+
+type TaskDependencyMeta = {
+  blockerIds: Id<"tasks">[];
+  blockingIds: Id<"tasks">[];
+};
 
 interface KanbanBoardProps {
   projectId: Id<"projects">;
@@ -201,6 +207,9 @@ function TaskCard({
   onToggleExpand,
   onSaveTask,
   onDeleteTask,
+  dependencyMeta,
+  allTasks,
+  onRemoveDependency,
 }: {
   task: KanbanTask;
   onAdvance?: (task: KanbanTask) => void;
@@ -213,6 +222,9 @@ function TaskCard({
   onToggleExpand?: () => void;
   onSaveTask?: (payload: TaskEditPayload) => Promise<void>;
   onDeleteTask?: () => Promise<void>;
+  dependencyMeta?: TaskDependencyMeta;
+  allTasks?: KanbanTask[];
+  onRemoveDependency?: (blockedTaskId: Id<"tasks">, blockingTaskId: Id<"tasks">) => Promise<void>;
 }) {
   const priorityMeta = priorityTokens[task.priorityLevel];
   const expanded = Boolean(isExpanded);
@@ -272,11 +284,14 @@ function TaskCard({
           >
             <span
               className={cn(
-                "block text-sm font-medium leading-snug mb-2",
+                "flex items-center gap-1.5 text-sm font-medium leading-snug mb-2",
                 task.status === "done" && "text-muted-foreground line-through",
               )}
             >
-              {task.title}
+              {dependencyMeta && dependencyMeta.blockerIds.length > 0 && (
+                <Lock className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+              )}
+              <span className="truncate">{task.title}</span>
             </span>
             
             {!expanded && (
@@ -298,6 +313,13 @@ function TaskCard({
                 )}
 
                 <SubtaskProgressBadge taskId={task._id} />
+
+                {dependencyMeta && dependencyMeta.blockerIds.length > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400">
+                    <Lock className="h-3 w-3" />
+                    Blocked by {dependencyMeta.blockerIds.length}
+                  </span>
+                )}
               </div>
             )}
 
@@ -424,6 +446,86 @@ function TaskCard({
               <span className="text-sm text-muted-foreground">No attachments</span>
             )}
           </DetailRow>
+
+          {/* Dependencies Section */}
+          <div className="border-t border-dashed border-muted-foreground/20 pt-3 space-y-3">
+            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <Lock className="h-3.5 w-3.5" />
+              <span>Dependencies</span>
+            </div>
+
+            {/* Blocked by (tasks that block this one) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Blocked by:</span>
+                <DependencyPicker
+                  taskId={task._id}
+                  mode="add_blocker"
+                  trigger={
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add
+                    </Button>
+                  }
+                />
+              </div>
+              {dependencyMeta && dependencyMeta.blockerIds.length > 0 ? (
+                <div className="space-y-1">
+                  {dependencyMeta.blockerIds.map((blockerId) => {
+                    const blockerTask = allTasks?.find((t) => t._id === blockerId);
+                    if (!blockerTask) return null;
+                    return (
+                      <DependencyListItem
+                        key={blockerId}
+                        task={blockerTask}
+                        onRemove={async () => {
+                          await onRemoveDependency?.(task._id, blockerId);
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">No blockers</p>
+              )}
+            </div>
+
+            {/* Blocks (tasks that this one blocks) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Blocks:</span>
+                <DependencyPicker
+                  taskId={task._id}
+                  mode="add_blocked"
+                  trigger={
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add
+                    </Button>
+                  }
+                />
+              </div>
+              {dependencyMeta && dependencyMeta.blockingIds.length > 0 ? (
+                <div className="space-y-1">
+                  {dependencyMeta.blockingIds.map((blockedId) => {
+                    const blockedTask = allTasks?.find((t) => t._id === blockedId);
+                    if (!blockedTask) return null;
+                    return (
+                      <DependencyListItem
+                        key={blockedId}
+                        task={blockedTask}
+                        onRemove={async () => {
+                          await onRemoveDependency?.(blockedId, task._id);
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">Not blocking any tasks</p>
+              )}
+            </div>
+          </div>
 
           {linkedTodo && <LinkedTodoBadge meta={linkedTodo} taskId={task._id} />}
 
@@ -710,6 +812,9 @@ function SortableTask({
   onToggleExpand,
   onSaveTask,
   onDeleteTask,
+  dependencyMeta,
+  allTasks,
+  onRemoveDependency,
 }: {
   task: KanbanTask;
   onAdvance: (task: KanbanTask) => void;
@@ -721,6 +826,9 @@ function SortableTask({
   onToggleExpand: () => void;
   onSaveTask: (payload: TaskEditPayload) => Promise<void>;
   onDeleteTask: () => Promise<void>;
+  dependencyMeta?: TaskDependencyMeta;
+  allTasks?: KanbanTask[];
+  onRemoveDependency?: (blockedTaskId: Id<"tasks">, blockingTaskId: Id<"tasks">) => Promise<void>;
 }) {
   const {
     attributes,
@@ -735,7 +843,7 @@ function SortableTask({
     transform: CSS.Translate.toString(transform),
     transition,
   };
-  
+
   if (isDragging) {
     return (
       <div ref={setNodeRef} style={style} className="opacity-0">
@@ -750,6 +858,9 @@ function SortableTask({
           onToggleExpand={onToggleExpand}
           onSaveTask={onSaveTask}
           onDeleteTask={onDeleteTask}
+          dependencyMeta={dependencyMeta}
+          allTasks={allTasks}
+          onRemoveDependency={onRemoveDependency}
         />
       </div>
     );
@@ -768,6 +879,9 @@ function SortableTask({
         onToggleExpand={onToggleExpand}
         onSaveTask={onSaveTask}
         onDeleteTask={onDeleteTask}
+        dependencyMeta={dependencyMeta}
+        allTasks={allTasks}
+        onRemoveDependency={onRemoveDependency}
       />
     </div>
   );
@@ -822,6 +936,7 @@ export function KanbanBoard({ projectId, showFeaturePanel = false, selectedMiles
   const deleteTaskMutation = useMutation(api.tasks.deleteTask);
   const linkTaskToFeatureMutation = useMutation(api.features.linkTaskToFeature);
   const unlinkTaskFromFeatureMutation = useMutation(api.features.unlinkTaskFromFeature);
+  const removeDependencyMutation = useMutation(api.dependencies.remove);
   
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [activeId, setActiveId] = useState<Id<"tasks"> | null>(null);
@@ -1062,6 +1177,26 @@ export function KanbanBoard({ projectId, showFeaturePanel = false, selectedMiles
     return map;
   }, [linkedMeta]);
 
+  // Fetch dependencies for all visible tasks
+  const dependenciesBatch = useQuery(api.dependencies.getDependenciesForTasksBatch, { taskIds });
+  const dependencyMetaMap = useMemo(() => {
+    const map = new Map<string, TaskDependencyMeta>();
+    if (!dependenciesBatch) return map;
+    Object.entries(dependenciesBatch).forEach(([taskIdStr, deps]) => {
+      map.set(taskIdStr, deps);
+    });
+    return map;
+  }, [dependenciesBatch]);
+
+  const handleRemoveDependency = async (blockedTaskId: Id<"tasks">, blockingTaskId: Id<"tasks">) => {
+    try {
+      await removeDependencyMutation({ blockedTaskId, blockingTaskId });
+      toast.success('Dependency removed');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to remove dependency');
+    }
+  };
+
   const focusedFeature = focusedFeatureId ? featureMap.get(focusedFeatureId.toString()) : undefined;
   const focusedFeatureTasks = useMemo(() => {
     if (!focusedFeatureId) return [] as KanbanTask[];
@@ -1258,6 +1393,9 @@ export function KanbanBoard({ projectId, showFeaturePanel = false, selectedMiles
                       onToggleExpand={() => toggleTaskExpansion(task._id)}
                       onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
                       onDeleteTask={() => deleteTaskOptimistic(task._id)}
+                      dependencyMeta={dependencyMetaMap.get(task._id.toString())}
+                      allTasks={localTasks}
+                      onRemoveDependency={handleRemoveDependency}
                     />
                   ))}
                 </SortableContext>
@@ -1304,6 +1442,9 @@ export function KanbanBoard({ projectId, showFeaturePanel = false, selectedMiles
                       onToggleExpand={() => toggleTaskExpansion(task._id)}
                       onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
                       onDeleteTask={() => deleteTaskOptimistic(task._id)}
+                      dependencyMeta={dependencyMetaMap.get(task._id.toString())}
+                      allTasks={localTasks}
+                      onRemoveDependency={handleRemoveDependency}
                     />
                 ))}
               </SortableContext>
@@ -1330,6 +1471,9 @@ export function KanbanBoard({ projectId, showFeaturePanel = false, selectedMiles
                       onToggleExpand={() => toggleTaskExpansion(task._id)}
                       onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
                       onDeleteTask={() => deleteTaskOptimistic(task._id)}
+                      dependencyMeta={dependencyMetaMap.get(task._id.toString())}
+                      allTasks={localTasks}
+                      onRemoveDependency={handleRemoveDependency}
                     />
                 ))}
               </SortableContext>
@@ -1345,6 +1489,7 @@ export function KanbanBoard({ projectId, showFeaturePanel = false, selectedMiles
             isOverlay
             featureMeta={taskFeatureMetaMap.get(activeTask._id.toString())}
             isExpanded={expandedTasks.has(activeTask._id.toString())}
+            dependencyMeta={dependencyMetaMap.get(activeTask._id.toString())}
           />
         ) : null}
       </DragOverlay>

@@ -89,6 +89,21 @@ export default defineSchema({
     .index("by_task", ["taskId", "order"])
     .index("by_user_task", ["userId", "taskId"]),
 
+  // --- TASK DEPENDENCIES ---
+  // Junction table for task blocking relationships
+  taskDependencies: defineTable({
+    userId: v.string(),
+    blockingTaskId: v.id("tasks"), // Task that must complete first
+    blockedTaskId: v.id("tasks"),  // Task that is waiting
+    dependencyType: v.union(
+      v.literal("finish_to_start"), // Default: blocker must be done first
+    ),
+    createdAt: v.number(),
+  })
+    .index("by_blocked", ["blockedTaskId"])   // Find all blockers OF a task
+    .index("by_blocking", ["blockingTaskId"]) // Find all tasks blocked BY this task
+    .index("by_user", ["userId"]),
+
   projectFeatures: defineTable({
     userId: v.string(),
     projectId: v.id("projects"),
