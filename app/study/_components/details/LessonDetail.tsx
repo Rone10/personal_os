@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EntityType, ViewType } from "../StudyPageClient";
+import RichTextViewer from "@/components/rich-text/RichTextViewer";
+import type { JSONContent, EntityReferenceAttributes } from "@/components/rich-text/types";
 
 interface LessonDetailProps {
   lessonId: string;
@@ -62,6 +64,29 @@ export default function LessonDetail({
     await deleteLesson({ id: lessonId as Id<"lessons"> });
     onNavigate("courses", "course", courseId);
   };
+
+  const handleEntityClick = (attrs: EntityReferenceAttributes) => {
+    // Map entity types to navigation views
+    const typeToView: Record<string, ViewType> = {
+      word: "words",
+      verse: "verses",
+      hadith: "hadiths",
+      root: "roots",
+      tag: "tags",
+      course: "courses",
+      book: "books",
+      note: "notes",
+      lesson: "courses",
+      chapter: "books",
+    };
+
+    const view = typeToView[attrs.targetType];
+    if (view) {
+      onNavigate(view, attrs.targetType as EntityType, attrs.targetId);
+    }
+  };
+
+  const hasContent = lesson.contentJson || lesson.content;
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
@@ -119,12 +144,19 @@ export default function LessonDetail({
       </div>
 
       {/* Content */}
-      {lesson.content ? (
+      {hasContent ? (
         <div className="prose dark:prose-invert max-w-none">
           <div className="p-6 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-            <p className="text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
-              {lesson.content}
-            </p>
+            {lesson.contentJson ? (
+              <RichTextViewer
+                content={lesson.contentJson as JSONContent}
+                onEntityClick={handleEntityClick}
+              />
+            ) : (
+              <p className="text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
+                {lesson.content}
+              </p>
+            )}
           </div>
         </div>
       ) : (

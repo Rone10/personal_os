@@ -7,6 +7,8 @@ import { useState } from "react";
 import { BookText, Edit2, Trash2, Loader2, Plus, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EntityType, ViewType } from "../StudyPageClient";
+import RichTextViewer from "@/components/rich-text/RichTextViewer";
+import type { JSONContent, EntityReferenceAttributes } from "@/components/rich-text/types";
 
 interface BookDetailProps {
   bookId: string;
@@ -56,6 +58,29 @@ export default function BookDetail({
     onNavigate("books");
   };
 
+  const handleEntityClick = (attrs: EntityReferenceAttributes) => {
+    // Map entity types to navigation views
+    const typeToView: Record<string, ViewType> = {
+      word: "words",
+      verse: "verses",
+      hadith: "hadiths",
+      root: "roots",
+      tag: "tags",
+      course: "courses",
+      book: "books",
+      note: "notes",
+      lesson: "courses",
+      chapter: "books",
+    };
+
+    const view = typeToView[attrs.targetType];
+    if (view) {
+      onNavigate(view, attrs.targetType as EntityType, attrs.targetId);
+    }
+  };
+
+  const hasRichContent = book.descriptionJson || book.description;
+
   return (
     <div className="p-6 max-w-2xl mx-auto">
       {/* Header */}
@@ -104,11 +129,18 @@ export default function BookDetail({
       </div>
 
       {/* Description */}
-      {book.description && (
+      {hasRichContent && (
         <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-          <p className="text-slate-600 dark:text-slate-400">
-            {book.description}
-          </p>
+          {book.descriptionJson ? (
+            <RichTextViewer
+              content={book.descriptionJson as JSONContent}
+              onEntityClick={handleEntityClick}
+            />
+          ) : (
+            <p className="text-slate-600 dark:text-slate-400">
+              {book.description}
+            </p>
+          )}
         </div>
       )}
 

@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EntityType, ViewType } from "../StudyPageClient";
+import RichTextViewer from "@/components/rich-text/RichTextViewer";
+import type { JSONContent, EntityReferenceAttributes } from "@/components/rich-text/types";
 
 interface CourseDetailProps {
   courseId: string;
@@ -63,6 +65,29 @@ export default function CourseDetail({
     onNavigate("courses");
   };
 
+  const handleEntityClick = (attrs: EntityReferenceAttributes) => {
+    // Map entity types to navigation views
+    const typeToView: Record<string, ViewType> = {
+      word: "words",
+      verse: "verses",
+      hadith: "hadiths",
+      root: "roots",
+      tag: "tags",
+      course: "courses",
+      book: "books",
+      note: "notes",
+      lesson: "courses",
+      chapter: "books",
+    };
+
+    const view = typeToView[attrs.targetType];
+    if (view) {
+      onNavigate(view, attrs.targetType as EntityType, attrs.targetId);
+    }
+  };
+
+  const hasRichContent = course.descriptionJson || course.description;
+
   return (
     <div className="p-6 max-w-2xl mx-auto">
       {/* Header */}
@@ -111,11 +136,18 @@ export default function CourseDetail({
       </div>
 
       {/* Description */}
-      {course.description && (
+      {hasRichContent && (
         <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-          <p className="text-slate-600 dark:text-slate-400">
-            {course.description}
-          </p>
+          {course.descriptionJson ? (
+            <RichTextViewer
+              content={course.descriptionJson as JSONContent}
+              onEntityClick={handleEntityClick}
+            />
+          ) : (
+            <p className="text-slate-600 dark:text-slate-400">
+              {course.description}
+            </p>
+          )}
         </div>
       )}
 

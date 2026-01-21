@@ -69,6 +69,7 @@ export const createCourse = mutation({
   args: {
     title: v.string(),
     description: v.optional(v.string()),
+    descriptionJson: v.optional(v.any()),
     source: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -86,6 +87,7 @@ export const createCourse = mutation({
       userId,
       title: args.title,
       description: args.description,
+      descriptionJson: args.descriptionJson,
       source: args.source,
       order: maxOrder + 1,
       createdAt: timestamp,
@@ -102,6 +104,7 @@ export const updateCourse = mutation({
     id: v.id("courses"),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
+    descriptionJson: v.optional(v.any()),
     source: v.optional(v.string()),
     order: v.optional(v.number()),
   },
@@ -113,6 +116,7 @@ export const updateCourse = mutation({
     const updates: Record<string, unknown> = { updatedAt: now() };
     if (args.title !== undefined) updates.title = args.title;
     if (args.description !== undefined) updates.description = args.description;
+    if (args.descriptionJson !== undefined) updates.descriptionJson = args.descriptionJson;
     if (args.source !== undefined) updates.source = args.source;
     if (args.order !== undefined) updates.order = args.order;
 
@@ -271,6 +275,7 @@ export const createLesson = mutation({
     courseId: v.id("courses"),
     title: v.string(),
     content: v.optional(v.string()),
+    contentJson: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuth(ctx);
@@ -293,6 +298,7 @@ export const createLesson = mutation({
       courseId: args.courseId,
       title: args.title,
       content: args.content,
+      contentJson: args.contentJson,
       order: maxOrder + 1,
       createdAt: timestamp,
       updatedAt: timestamp,
@@ -308,6 +314,7 @@ export const updateLesson = mutation({
     id: v.id("lessons"),
     title: v.optional(v.string()),
     content: v.optional(v.string()),
+    contentJson: v.optional(v.any()),
     order: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -318,6 +325,7 @@ export const updateLesson = mutation({
     const updates: Record<string, unknown> = { updatedAt: now() };
     if (args.title !== undefined) updates.title = args.title;
     if (args.content !== undefined) updates.content = args.content;
+    if (args.contentJson !== undefined) updates.contentJson = args.contentJson;
     if (args.order !== undefined) updates.order = args.order;
 
     await ctx.db.patch(args.id, updates);

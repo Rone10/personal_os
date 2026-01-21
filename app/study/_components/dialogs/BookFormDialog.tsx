@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -13,8 +13,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
+import RichTextEditor from "@/components/rich-text/RichTextEditor";
+import type { JSONContent } from "@/components/rich-text/types";
 
 interface BookFormDialogProps {
   open: boolean;
@@ -36,14 +37,30 @@ export default function BookFormDialog({
 
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
-  const [description, setDescription] = useState("");
+  const [descriptionJson, setDescriptionJson] = useState<JSONContent | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (existingBook) {
       setTitle(existingBook.title);
       setAuthor(existingBook.author ?? "");
-      setDescription(existingBook.description ?? "");
+      // Load existing rich text content, falling back to creating content from plain text
+      if (existingBook.descriptionJson) {
+        setDescriptionJson(existingBook.descriptionJson as JSONContent);
+      } else if (existingBook.description) {
+        // Convert plain text to Tiptap JSON format for backwards compatibility
+        setDescriptionJson({
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: existingBook.description }],
+            },
+          ],
+        });
+      } else {
+        setDescriptionJson(undefined);
+      }
     } else if (!editId) {
       resetForm();
     }
@@ -52,12 +69,33 @@ export default function BookFormDialog({
   const resetForm = () => {
     setTitle("");
     setAuthor("");
-    setDescription("");
+    setDescriptionJson(undefined);
   };
 
   const handleClose = () => {
     resetForm();
     onClose();
+  };
+
+  const handleDescriptionChange = useCallback((content: JSONContent) => {
+    setDescriptionJson(content);
+  }, []);
+
+  // Extract plain text from Tiptap JSON for backwards compatibility
+  const getPlainText = (json: JSONContent | undefined): string => {
+    if (!json) return "";
+
+    const extractText = (node: JSONContent): string => {
+      if (node.type === "text") {
+        return node.text || "";
+      }
+      if (node.content) {
+        return node.content.map(extractText).join("");
+      }
+      return "";
+    };
+
+    return extractText(json);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,18 +104,22 @@ export default function BookFormDialog({
 
     setIsSaving(true);
     try {
+      const plainText = getPlainText(descriptionJson);
+
       if (editId) {
         await updateBook({
           id: editId as Id<"books">,
           title,
           author: author || undefined,
-          description: description || undefined,
+          description: plainText || undefined,
+          descriptionJson: descriptionJson,
         });
       } else {
         await createBook({
           title,
           author: author || undefined,
-          description: description || undefined,
+          description: plainText || undefined,
+          descriptionJson: descriptionJson,
         });
       }
       handleClose();
@@ -88,7 +130,7 @@ export default function BookFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editId ? "Edit Book" : "Add Book"}</DialogTitle>
         </DialogHeader>
@@ -116,13 +158,14 @@ export default function BookFormDialog({
           </div>
 
           <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Book description..."
-              rows={3}
+            <Label>Description</Label>
+            <RichTextEditor
+              value={descriptionJson}
+              onChange={handleDescriptionChange}
+              placeholder="Book description... Press Ctrl+K to insert a reference."
+              enableEntityReferences={true}
+              minHeight="200px"
+              className="mt-2"
             />
           </div>
 

@@ -6,7 +6,7 @@ Your task is NOT to implement this yet, but to fully understand and prepare. Thi
 Here is exactly what I need implemented:
 
 <feature_description>
- I want you to add a rich text editor and extract it as a reusable component across the project. Use tiptap. I'll use the editor when writing notes or descriptions. This way I can have many editing capabilities etc
+ I want you to add a rich text editor to the books and courses feature in /study. Currently only has a text box. Give it the rich text editor and allow me to enter notes and use the features we currently have (notes, tags, books, courses, verses, etc). I want to be able to reference the features we have.
 </feature_description>
 --
 Error: Tiptap Error: SSR has been detected, please set `immediatelyRender` explicitly to `false` to avoid hydration mismatches.

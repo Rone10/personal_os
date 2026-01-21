@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -13,8 +13,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
+import RichTextEditor from "@/components/rich-text/RichTextEditor";
+import type { JSONContent } from "@/components/rich-text/types";
 
 interface ChapterFormDialogProps {
   open: boolean;
@@ -37,13 +38,29 @@ export default function ChapterFormDialog({
   const updateChapter = useMutation(api.study.books.updateChapter);
 
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const [contentJson, setContentJson] = useState<JSONContent | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (existingChapter) {
       setTitle(existingChapter.title);
-      setContent(existingChapter.content ?? "");
+      // Load existing rich text content, falling back to creating content from plain text
+      if (existingChapter.contentJson) {
+        setContentJson(existingChapter.contentJson as JSONContent);
+      } else if (existingChapter.content) {
+        // Convert plain text to Tiptap JSON format for backwards compatibility
+        setContentJson({
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: existingChapter.content }],
+            },
+          ],
+        });
+      } else {
+        setContentJson(undefined);
+      }
     } else if (!editId) {
       resetForm();
     }
@@ -51,12 +68,33 @@ export default function ChapterFormDialog({
 
   const resetForm = () => {
     setTitle("");
-    setContent("");
+    setContentJson(undefined);
   };
 
   const handleClose = () => {
     resetForm();
     onClose();
+  };
+
+  const handleContentChange = useCallback((content: JSONContent) => {
+    setContentJson(content);
+  }, []);
+
+  // Extract plain text from Tiptap JSON for backwards compatibility
+  const getPlainText = (json: JSONContent | undefined): string => {
+    if (!json) return "";
+
+    const extractText = (node: JSONContent): string => {
+      if (node.type === "text") {
+        return node.text || "";
+      }
+      if (node.content) {
+        return node.content.map(extractText).join("");
+      }
+      return "";
+    };
+
+    return extractText(json);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,17 +103,21 @@ export default function ChapterFormDialog({
 
     setIsSaving(true);
     try {
+      const plainText = getPlainText(contentJson);
+
       if (editId) {
         await updateChapter({
           id: editId as Id<"chapters">,
           title,
-          content: content || undefined,
+          content: plainText || undefined,
+          contentJson: contentJson,
         });
       } else {
         await createChapter({
           bookId: bookId as Id<"books">,
           title,
-          content: content || undefined,
+          content: plainText || undefined,
+          contentJson: contentJson,
         });
       }
       handleClose();
@@ -86,7 +128,7 @@ export default function ChapterFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editId ? "Edit Chapter" : "Add Chapter"}</DialogTitle>
         </DialogHeader>
@@ -104,13 +146,14 @@ export default function ChapterFormDialog({
           </div>
 
           <div>
-            <Label htmlFor="content">Content</Label>
-            <Textarea
-              id="content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Chapter content..."
-              rows={8}
+            <Label>Content</Label>
+            <RichTextEditor
+              value={contentJson}
+              onChange={handleContentChange}
+              placeholder="Chapter content... Press Ctrl+K to insert a reference."
+              enableEntityReferences={true}
+              minHeight="400px"
+              className="mt-2"
             />
           </div>
 
