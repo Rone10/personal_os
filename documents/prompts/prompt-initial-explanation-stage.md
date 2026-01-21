@@ -9,7 +9,6 @@ Here is exactly what I need implemented:
  I want you to add a rich text editor to the books and courses feature in /study. Currently only has a text box. Give it the rich text editor and allow me to enter notes and use the features we currently have (notes, tags, books, courses, verses, etc). I want to be able to reference the features we have.
 </feature_description>
 --
-Error: Tiptap Error: SSR has been detected, please set `immediatelyRender` explicitly to `false` to avoid hydration mismatches.
   
 Your responsibilities:
 
