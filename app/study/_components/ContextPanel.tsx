@@ -249,7 +249,7 @@ export default function ContextPanel({
   };
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="p-5 space-y-6">
       {/* Backlinks Section */}
       <section>
         <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
@@ -269,7 +269,7 @@ export default function ContextPanel({
             {backlinks.map((bl) => (
               <div
                 key={bl._id}
-                className="p-2 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 cursor-pointer hover:border-blue-300 dark:hover:border-blue-700"
+                className="study-card p-3 cursor-pointer transition-colors hover:border-blue-300 dark:hover:border-blue-700"
                 onClick={() => onNavigate("notes", "note", bl.noteId)}
               >
                 <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">
@@ -329,7 +329,7 @@ export default function ContextPanel({
                     return (
                       <div
                         key={link._id}
-                        className="p-2 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 cursor-pointer hover:border-blue-300 dark:hover:border-blue-700 group"
+                        className="study-card p-3 cursor-pointer hover:border-blue-300 dark:hover:border-blue-700 group"
                         onClick={() => onNavigate(viewTypeMap[link.targetType] || "dashboard", link.targetType as EntityType, link.targetId)}
                       >
                         <div className="flex items-center justify-between">

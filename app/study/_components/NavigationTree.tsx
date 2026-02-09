@@ -69,7 +69,7 @@ function TreeSection({
   return (
     <div className="mb-1">
       <div
-        className="flex items-center gap-1 px-2 py-1.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 rounded group"
+        className="study-nav-section flex items-center gap-1 px-2 py-1.5 cursor-pointer rounded group transition-colors"
         onClick={() => setOpen(!open)}
       >
         {open ? (
@@ -118,10 +118,8 @@ function TreeItem({
   return (
     <div
       className={cn(
-        "px-2 py-1 text-sm cursor-pointer rounded truncate",
-        isActive
-          ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-          : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+        "study-nav-item px-2 py-1 text-sm cursor-pointer truncate transition-colors",
+        isActive ? "study-nav-item-active" : ""
       )}
       onClick={onClick}
     >
@@ -162,7 +160,14 @@ export default function NavigationTree({
   );
 
   return (
-    <div className="p-2">
+    <div className="p-4">
+      <div className="mb-4">
+        <p className="study-kicker">Library</p>
+        <h2 className="study-title text-lg">Study Index</h2>
+        <p className="study-subtitle text-xs">
+          Jump quickly between roots, texts, and notes.
+        </p>
+      </div>
       {/* Vocabulary */}
       <TreeSection
         title={`Roots (${data.roots.length})`}

@@ -47,6 +47,9 @@ interface SearchBarProps {
   onChange: (value: string) => void;
   onSelect: (type: string, id: string) => void;
   searchData?: SearchData;
+  className?: string;
+  inputClassName?: string;
+  popoverClassName?: string;
 }
 
 interface FilterChip {
@@ -130,6 +133,9 @@ export default function SearchBar({
   onChange,
   onSelect,
   searchData,
+  className,
+  inputClassName,
+  popoverClassName,
 }: SearchBarProps) {
   const [open, setOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState<EntityType[]>([]);
@@ -193,7 +199,7 @@ export default function SearchBar({
   const resultCount = searchResults.length;
 
   return (
-    <div className="space-y-2">
+    <div className={cn("space-y-2", className)}>
       {/* Search Input */}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
@@ -205,7 +211,7 @@ export default function SearchBar({
               placeholder="Search words, verses, hadiths..."
               value={value}
               onChange={(e) => onChange(e.target.value)}
-              className="pl-9 pr-16 w-full"
+              className={cn("pl-9 pr-16 w-full", inputClassName)}
             />
             {value && (
               <Button
@@ -220,7 +226,7 @@ export default function SearchBar({
           </div>
         </PopoverTrigger>
         <PopoverContent
-          className="w-[450px] p-0"
+          className={cn("w-[450px] p-0", popoverClassName)}
           align="start"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
@@ -324,7 +330,7 @@ export default function SearchBar({
             key={chip.type}
             onClick={() => toggleFilter(chip.type)}
             className={cn(
-              "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-all",
+              "study-chip inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-all",
               activeFilters.includes(chip.type)
                 ? chip.color + " ring-2 ring-offset-1 ring-slate-400"
                 : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
