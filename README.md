@@ -1,62 +1,95 @@
-# Welcome to your Convex + Next.js + WorkOS AuthKit app
+# Personal OS Monorepo (Convex + Next.js + WorkOS)
 
-This is a [Convex](https://convex.dev/) project migrated to use WorkOS AuthKit for authentication.
+This repository is now a **Turborepo monorepo** with:
 
-After the initial setup (<2 minutes) you'll have a working full-stack app using:
+- **apps/web**: Next.js 15 frontend
+- **apps/backend**: Convex backend (database + functions)
+- **apps/mobile**: Expo React Native (placeholder for now)
 
-- Convex as your backend (database, server logic)
-- [React](https://react.dev/) as your frontend (web page interactivity)
-- [Next.js](https://nextjs.org/) for optimized web hosting and page routing
-- [Tailwind](https://tailwindcss.com/) for building great looking accessible UI
-- [WorkOS AuthKit](https://authkit.com/) for authentication
+## Requirements
 
-## Get started
+- **pnpm** (this repo uses the `packageManager` field in `package.json`)
+- Node.js compatible with Next.js 15
 
-1. Clone this repository and install dependencies:
+## Setup
 
+1. Install dependencies:
    ```bash
-   npm install
+   pnpm install
    ```
 
-2. Set up your environment variables:
+2. Create your environment file for the web app:
    ```bash
-   cp .env.local.example .env.local
-   ```
-3. Configure WorkOS AuthKit:
-   - Create a [WorkOS account](https://workos.com/)
-   - Get your Client ID and API Key from the WorkOS dashboard
-   - In the WorkOS dashboard, add `http://localhost:3000/callback` as a redirect URI
-   - Generate a secure password for cookie encryption (minimum 32 characters)
-   - Update your `.env.local` file with these values
-
-4. Configure Convex:
-
-   ```bash
-   npx convex dev
+   cp apps/web/.env.local.example apps/web/.env.local
    ```
 
-   This will:
-   - Set up your Convex deployment
-   - Add your Convex URL to `.env.local`
-   - Open the Convex dashboard
+3. Configure WorkOS AuthKit (web):
+   - Create a WorkOS account
+   - Add `http://localhost:3700/callback` as a redirect URI
+   - Update `apps/web/.env.local` with your WorkOS credentials
 
-   Then configure WorkOS authentication in Convex:
-
+4. Configure Convex (backend):
    ```bash
-   npx convex auth add workos
+   pnpm --filter backend dev
+   ```
+   Then add WorkOS auth to Convex:
+   ```bash
+   pnpm --filter backend exec convex auth add workos
    ```
 
-   This creates `convex/auth.config.ts` with WorkOS integration
+## Development Commands
 
-5. Run the development server:
+Note: use `pnpm turbo ...` or `pnpm exec turbo ...` (the `turbo` binary is not on PATH by default).
 
-   ```bash
-   npm run dev
-   ```
+- **Run everything**:
+  ```bash
+  pnpm turbo run dev
+  ```
+- **Web only**:
+  ```bash
+  pnpm turbo run dev --filter=web
+  ```
+- **Backend only**:
+  ```bash
+  pnpm turbo run dev --filter=backend
+  ```
 
-   This starts both the Next.js frontend and Convex backend in parallel
+## Production / Build Commands
 
-6. Open [http://localhost:3000](http://localhost:3000) to see your app
+- **Build everything**:
+  ```bash
+  pnpm turbo run build
+  ```
+- **Build web only**:
+  ```bash
+  pnpm turbo run build --filter=web
+  ```
+- **Start web (after build)**:
+  ```bash
+  pnpm --filter web start
+  ```
+
+## Old → New Command Mapping
+
+Use this table to translate the **old single-repo commands** to the **new monorepo equivalents**.
+
+| Old command (root) | New command (monorepo) | Notes |
+| --- | --- | --- |
+| `pnpm run dev` | `pnpm turbo run dev` | Runs all apps with a `dev` script |
+| `next dev` | `pnpm --filter web dev` | Web only |
+| `npx convex dev` | `pnpm --filter backend dev` | Backend only |
+| `pnpm build` | `pnpm turbo run build` | Builds all apps |
+| `pnpm start` | `pnpm --filter web start` | Start web after build |
+| `pnpm lint` | `pnpm turbo run lint` | Lints all packages with `lint` |
+| `tsc --noEmit` | `pnpm --filter web typecheck` | Web typecheck |
+| `pnpm test` | `pnpm turbo run test` | Tests across apps |
+| `pnpm test:watch` | `pnpm turbo run test:watch` | Watch mode |
+
+If you previously used `pnpm run start` (or `pnpm run stat`), the new equivalent for the built web app is:
+```bash
+pnpm turbo run build --filter=web
+pnpm --filter web start
+```
 
 ## WorkOS AuthKit Setup
 

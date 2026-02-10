@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
+  "packageManager": "pnpm@10.2.1",
   "homepage": "https://github.com/workos/template-convex-nextjs-authkit/#readme",
   "convex-authkit-auto-provisioning": true,
   "repository": {
