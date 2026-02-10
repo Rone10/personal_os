@@ -32,6 +32,14 @@ turbo run test                  # Run all tests (Vitest)
 turbo run test:watch            # Run tests in watch mode
 ```
 
+### Mobile (Expo) Quick Commands
+```bash
+pnpm --filter mobile dev         # Expo dev server
+pnpm --filter mobile android     # Android
+pnpm --filter mobile ios         # iOS
+pnpm --filter mobile web         # Web
+```
+
 ## Architecture & Structure
 
 ### Vertical Slice Architecture (VSA)

@@ -102,6 +102,38 @@ pnpm turbo run build --filter=web
 pnpm --filter web start
 ```
 
+## Vercel Deployment (Monorepo)
+
+Because the web app imports Convex types from `apps/backend/convex/_generated`, deploy **from the repo root** so those files are available during build.
+
+**Vercel Project Settings**
+- **Root Directory**: `/` (repo root)
+- **Framework**: Next.js
+- **Install Command**:
+  ```bash
+  pnpm install --frozen-lockfile
+  ```
+- **Build Command**:
+  ```bash
+  pnpm turbo run build --filter=web
+  ```
+- **Output Directory**:
+  ```
+  apps/web/.next
+  ```
+- **Development Command**:
+  ```bash
+  pnpm turbo run dev --filter=web
+  ```
+
+**Environment Variables**
+Copy the values from `apps/web/.env.local` into Vercel’s Environment Variables:
+- `NEXT_PUBLIC_CONVEX_URL`
+- WorkOS AuthKit values (Client ID, API key, cookie encryption key, etc.)
+
+**Backend Deployment Note**
+Convex deploys separately from Vercel. Make sure your Convex production deployment is live and `NEXT_PUBLIC_CONVEX_URL` points to that production URL.
+
 ## WorkOS AuthKit Setup
 
 This app uses WorkOS AuthKit for authentication. Key features:
