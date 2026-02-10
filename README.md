@@ -4,7 +4,7 @@ This repository is now a **Turborepo monorepo** with:
 
 - **apps/web**: Next.js 15 frontend
 - **apps/backend**: Convex backend (database + functions)
-- **apps/mobile**: Expo React Native (placeholder for now)
+- **apps/mobile**: Expo React Native app (Expo Router tabs template)
 
 ## Requirements
 
@@ -53,6 +53,17 @@ Note: use `pnpm turbo ...` or `pnpm exec turbo ...` (the `turbo` binary is not o
   ```bash
   pnpm turbo run dev --filter=backend
   ```
+- **Mobile only**:
+  ```bash
+  pnpm turbo run dev --filter=mobile
+  ```
+
+Mobile platform targets (from `apps/mobile`):
+```bash
+pnpm --filter mobile android
+pnpm --filter mobile ios
+pnpm --filter mobile web
+```
 
 ## Production / Build Commands
 
