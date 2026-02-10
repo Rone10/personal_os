@@ -83,6 +83,13 @@ root/
 └── turbo.json                      # Turborepo configuration
 ```
 
+### Monorepo Principles
+- **Apps vs Packages**: `apps/` are deployables; `packages/` are shared libraries/configs.
+- **VSA per App**: Each app keeps feature-first slices; no shared feature logic inside an app.
+- **Shared Code**: Move cross-cutting logic to `packages/shared` (types, validators, API helpers).
+- **Boundaries**: Apps may depend on packages; packages should not depend on apps.
+- **Workspace Protocol**: Use `workspace:*` for internal deps to keep versions aligned.
+
 ### Key Technologies
 - **Next.js 15**: App Router with Server Components.
 - **Convex**: Real-time backend-as-a-service (Database + Functions).
