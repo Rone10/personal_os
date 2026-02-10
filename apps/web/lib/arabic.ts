@@ -9,7 +9,7 @@
  * - Alef/hamza variants (أ إ آ ا) are PRESERVED, not normalized
  * - This allows distinguishing between different alef forms in exact search
  *
- * Keep this logic in sync with `./convex/_lib/arabic.ts` on the backend.
+ * Keep this logic in sync with `apps/backend/convex/_lib/arabic.ts` on the backend.
  */
 
 // Harakat (vowel marks) + Quranic annotation marks

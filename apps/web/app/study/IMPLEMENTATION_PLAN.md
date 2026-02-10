@@ -8,7 +8,7 @@ This feature expands the existing Study Center (`./app/study/page.tsx`) from a s
 
 All search will operate **only across saved items** (no external Quran/hadith databases). Search must support **diacritics-insensitive Arabic matching** and **fuzzy English matching**. When viewing a term’s Quran reference, the UI should automatically show any saved Quran passage capture(s) that overlap that reference range.
 
-This work integrates with the existing architecture: Next.js App Router feature slice under `./app/study/`, shared UI primitives via shadcn/ui, and a Convex backend (`./convex/schema.ts`, `./convex/study.ts`) with strict `userId` scoping using `ctx.auth.getUserIdentity()`.
+This work integrates with the existing architecture: Next.js App Router feature slice under `apps/web/app/study/`, shared UI primitives via shadcn/ui, and a Convex backend (`apps/backend/convex/schema.ts`, `apps/backend/convex/study.ts`) with strict `userId` scoping using `ctx.auth.getUserIdentity()`.
 
 **Build Note:** Next.js requires `useSearchParams()` to be inside a Suspense boundary during prerender. The route uses a Server Component wrapper (`./app/study/page.tsx`) that renders the Client UI (`./app/study/_components/StudyPageClient.tsx`) within `Suspense`.
 
@@ -16,7 +16,7 @@ This work integrates with the existing architecture: Next.js App Router feature 
 
 - [x] 🟩 **Step 1: Define study data model (schema + migration)**
   - **Goal:** Add the minimum set of Convex tables to represent words, phrases, meanings, references, Quran passages, and notes in a clean, queryable way (while preserving existing vocab data).
-  - [ ] 🟥 Update `./convex/schema.ts` to add new tables (names can be adjusted, but keep “word” vs “phrase” separate):
+  - [ ] 🟥 Update `apps/backend/convex/schema.ts` to add new tables (names can be adjusted, but keep “word” vs “phrase” separate):
     - [ ] 🟥 `studyWords`: `userId`, `arabicText`, `arabicNormalized`, `transliteration?`, `root?`
     - [ ] 🟥 `studyPhrases`: `userId`, `arabicText`, `arabicNormalized`, `transliteration?`
     - [ ] 🟥 `studyQuranPassages`: `userId`, `surah`, `ayahStart`, `ayahEnd?`, `arabicText` (raw pasted text is acceptable)
@@ -41,11 +41,11 @@ This work integrates with the existing architecture: Next.js App Router feature 
 
 - [x] 🟩 **Step 2: Implement Convex API for CRUD + safe cascading deletes**
   - **Goal:** Provide a complete, strictly-authenticated API surface for create/read/update/delete across words, phrases, meanings, references, Quran passages, sources, and notes.
-  - [ ] 🟥 Add helpers in `./convex/study.ts` (or a small `./convex/_lib/studyAuth.ts`) mirroring patterns in `./convex/todos.ts`:
+  - [ ] 🟥 Add helpers in `apps/backend/convex/study.ts` (or a small `apps/backend/convex/_lib/studyAuth.ts`) mirroring patterns in `apps/backend/convex/todos.ts`:
     - [ ] 🟥 `requireIdentity(ctx)` returning `identity.subject`
     - [ ] 🟥 `ensureOwnership(ctx, table, id, userId)`
   - [ ] 🟥 Add Arabic normalization utility used on create/update:
-    - [ ] 🟥 Create `./convex/_lib/arabic.ts` with `normalizeArabic(text: string)` that strips tashkeel/harakat and tatweel and normalizes common letter variants.
+    - [ ] 🟥 Create `apps/backend/convex/_lib/arabic.ts` with `normalizeArabic(text: string)` that strips tashkeel/harakat and tatweel and normalizes common letter variants.
   - [ ] 🟥 Queries (read):
     - [ ] 🟥 `listWords` (optionally filter by `root`)
     - [ ] 🟥 `listPhrases`
@@ -132,7 +132,7 @@ This work integrates with the existing architecture: Next.js App Router feature 
     - [ ] 🟥 Update `./app/study/page.tsx` to pass a word list that includes primary meaning and review metadata.
     - [ ] 🟥 Update `./components/Flashcard.tsx` (or replace with `./app/study/_components/Flashcard.tsx`) to read from the new shape.
     - [ ] 🟥 Extend the schema for spaced repetition on words (either keep current fields on a new word table or add `masteryLevel` + `nextReview` to `studyWords`).
-    - [ ] 🟥 Update review mutation logic in `./convex/study.ts` to patch the new word table.
+    - [ ] 🟥 Update review mutation logic in `apps/backend/convex/study.ts` to patch the new word table.
   - [ ] 🟥 Ensure any existing widgets don’t break:
     - [ ] 🟥 Update `./app/_components/RecentVocab.tsx` to use the new word query (or keep a compatibility query like `getVocab` that returns “words”).
     - [ ] 🟥 If migrating from `vocab`, ensure the dashboard still shows recent words after migration.

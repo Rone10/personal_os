@@ -4,8 +4,8 @@ import path from "path";
 export default defineConfig({
   test: {
     environment: "edge-runtime",
-    include: ["**/*.test.ts"],
-    exclude: ["node_modules", ".next", "convex/_generated"],
+    include: ["convex/**/*.test.ts"],
+    exclude: ["node_modules", "convex/_generated"],
     server: {
       deps: {
         inline: ["convex-test"],

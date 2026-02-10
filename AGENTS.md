@@ -37,9 +37,9 @@ turbo run test:watch            # Run tests in watch mode
 ### Vertical Slice Architecture (VSA)
 This project follows VSA principles where code is organized by feature/route rather than technical layers:
 
-- **Feature-First**: Each route (`app/projects`, `app/study`) is a self-contained slice.
+- **Feature-First**: Each route (`apps/web/app/projects`, `apps/web/app/study`, `apps/mobile/app/projects`) is a self-contained slice.
 - **Colocation**: Use underscore-prefixed folders (`_components`) for route-specific UI.
-- **Backend Cohesion**: Convex functions (`convex/projects.ts`, `convex/study.ts`) mirror the frontend slices.
+- **Backend Cohesion**: Convex functions (`apps/backend/convex/projects.ts`, `apps/backend/convex/study.ts`) mirror the frontend slices.
 
 ### Project Structure (Monorepo + VSA)
 ```
@@ -137,14 +137,14 @@ root/
 ## Development Guidelines
 
 ### When Creating New Features
-1. **Schema First**: Define the table in `convex/schema.ts` with `userId` index.
-2. **Backend Logic**: Implement CRUD in `convex/[feature].ts` with strict auth checks.
-3. **Frontend Slice**: Create `app/[feature]/page.tsx` and colocated components.
-4. **Global Access**: Register the new route in `Sidebar.tsx` and `CommandPalette.tsx`.
+1. **Schema First**: Define the table in `apps/backend/convex/schema.ts` with `userId` index.
+2. **Backend Logic**: Implement CRUD in `apps/backend/convex/[feature].ts` with strict auth checks.
+3. **Frontend Slice**: Create `apps/web/app/[feature]/page.tsx` and colocated components.
+4. **Global Access**: Register the new route in `apps/web/components/Sidebar.tsx` and `apps/web/components/CommandPalette.tsx`.
 
 ### Convex Mutation Pattern
 ```typescript
-// convex/example.ts
+// apps/backend/convex/example.ts
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
 
@@ -190,14 +190,14 @@ apps/backend/convex/
 │   ├── collections.test.ts # Integration tests for collections
 │   ├── words.ts
 │   └── words.test.ts       # Integration tests for words
-packages/shared/
+apps/web/lib/
 ├── arabic.ts
 └── arabic.test.ts          # Unit tests for Arabic text utilities
 ```
 
 ### Convex Integration Test Pattern
 ```typescript
-// convex/example.test.ts
+// apps/backend/convex/example.test.ts
 import { convexTest } from "convex-test";
 import { describe, it, expect } from "vitest";
 import { api } from "./_generated/api";
