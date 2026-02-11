@@ -68,7 +68,7 @@ export default function CoursesList({
           <GraduationCap className="h-12 w-12 text-slate-300 mx-auto mb-4" />
           <p className="text-slate-500">No courses yet</p>
           <p className="text-sm text-slate-400 mt-1">
-            Create courses to organize your learning
+            Create courses to organize your learning across any subject
           </p>
           <Button
             variant="outline"
@@ -101,14 +101,19 @@ export default function CoursesList({
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="font-medium text-slate-900 dark:text-slate-100">
-                        {course.title}
-                      </h3>
-                      {course.description && (
-                        <p className="text-sm text-slate-500 mt-1">
-                          {course.description}
-                        </p>
-                      )}
+                  <h3 className="font-medium text-slate-900 dark:text-slate-100">
+                    {course.title}
+                  </h3>
+                  {course.source && (
+                    <p className="text-xs text-slate-400 mt-1">
+                      {course.source}
+                    </p>
+                  )}
+                  {course.description && (
+                    <p className="text-sm text-slate-500 mt-1">
+                      {course.description}
+                    </p>
+                  )}
                       <p className="text-xs text-slate-400 mt-1">
                         {courseLessons.length} lessons
                       </p>

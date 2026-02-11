@@ -87,6 +87,8 @@ export default function CourseDetail({
   };
 
   const hasRichContent = course.descriptionJson || course.description;
+  const source = course.source?.trim();
+  const sourceIsUrl = !!source && /^https?:\/\//i.test(source);
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
@@ -102,6 +104,23 @@ export default function CourseDetail({
             </h1>
             {lessons && (
               <p className="text-slate-500">{lessons.length} lessons</p>
+            )}
+            {source && (
+              <p className="text-sm text-slate-500">
+                Source:{" "}
+                {sourceIsUrl ? (
+                  <a
+                    href={source}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+                  >
+                    {source}
+                  </a>
+                ) : (
+                  source
+                )}
+              </p>
             )}
           </div>
         </div>

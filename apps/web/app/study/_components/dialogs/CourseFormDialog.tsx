@@ -36,12 +36,14 @@ export default function CourseFormDialog({
   const updateCourse = useMutation(api.study.courses.updateCourse);
 
   const [title, setTitle] = useState("");
+  const [source, setSource] = useState("");
   const [descriptionJson, setDescriptionJson] = useState<JSONContent | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (existingCourse) {
       setTitle(existingCourse.title);
+      setSource(existingCourse.source ?? "");
       // Load existing rich text content, falling back to creating content from plain text
       if (existingCourse.descriptionJson) {
         setDescriptionJson(existingCourse.descriptionJson as JSONContent);
@@ -66,6 +68,7 @@ export default function CourseFormDialog({
 
   const resetForm = () => {
     setTitle("");
+    setSource("");
     setDescriptionJson(undefined);
   };
 
@@ -107,12 +110,14 @@ export default function CourseFormDialog({
         await updateCourse({
           id: editId as Id<"courses">,
           title,
+          source: source.trim() || undefined,
           description: plainText || undefined,
           descriptionJson: descriptionJson,
         });
       } else {
         await createCourse({
           title,
+          source: source.trim() || undefined,
           description: plainText || undefined,
           descriptionJson: descriptionJson,
         });
@@ -139,6 +144,16 @@ export default function CourseFormDialog({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Course title"
               required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="source">Source</Label>
+            <Input
+              id="source"
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              placeholder="Platform, instructor, or URL"
             />
           </div>
 

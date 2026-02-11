@@ -165,7 +165,7 @@ export default function NavigationTree({
         <p className="study-kicker">Library</p>
         <h2 className="study-title text-lg">Study Index</h2>
         <p className="study-subtitle text-xs">
-          Jump quickly between roots, texts, and notes.
+          Jump quickly between courses, texts, and notes.
         </p>
       </div>
       {/* Vocabulary */}

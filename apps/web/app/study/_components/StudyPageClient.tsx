@@ -87,7 +87,9 @@ export default function StudyPageClient() {
   }
 
   const quickStats = [
-    { label: "Roots", value: searchData.roots.length },
+    { label: "Courses", value: searchData.courses.length },
+    { label: "Lessons", value: searchData.lessons.length },
+    { label: "Notes", value: searchData.notes.length },
     { label: "Words", value: searchData.words.length },
     { label: "Verses", value: searchData.verses.length },
     { label: "Hadiths", value: searchData.hadiths.length },
@@ -106,10 +108,10 @@ export default function StudyPageClient() {
               <div className="space-y-1">
                 <p className="study-kicker">Study Center</p>
                 <h1 className="study-title text-2xl md:text-3xl">
-                  Quranic Knowledge Atelier
+                  Learning Studio
                 </h1>
                 <p className="study-subtitle">
-                  Curate vocabulary, verses, and meaning networks with intention.
+                  Organize courses, texts, and notes across any subject.
                 </p>
               </div>
             </div>

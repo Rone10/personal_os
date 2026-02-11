@@ -174,7 +174,7 @@ export default function DashboardView({
           <p className="text-slate-500">Loading...</p>
         ) : recentItems.length === 0 ? (
           <p className="text-slate-500 italic">
-            No activity yet. Start by adding some vocabulary or verses.
+            No activity yet. Start by adding a course, note, or study item.
           </p>
         ) : (
           <div className="space-y-2">
