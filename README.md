@@ -126,6 +126,8 @@ Because the web app imports Convex types from `apps/backend/convex/_generated`, 
   pnpm turbo run dev --filter=web
   ```
 
+If Vercel reports "No Next.js version detected", add `next` to the **root** `package.json` devDependencies (to satisfy framework detection) and re-run `pnpm install` so the lockfile updates.
+
 If you see `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH` in Vercel, update and commit the lockfile locally:
 ```bash
 pnpm install --no-frozen-lockfile
