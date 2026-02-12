@@ -126,6 +126,12 @@ Because the web app imports Convex types from `apps/backend/convex/_generated`, 
   pnpm turbo run dev --filter=web
   ```
 
+If you see `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH` in Vercel, update and commit the lockfile locally:
+```bash
+pnpm install --no-frozen-lockfile
+```
+Then re-deploy. As a temporary workaround, you can change the Vercel Install Command to `pnpm install --no-frozen-lockfile`.
+
 **Environment Variables**
 Copy the values from `apps/web/.env.local` into Vercel’s Environment Variables:
 - `NEXT_PUBLIC_CONVEX_URL`
