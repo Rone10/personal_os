@@ -57,6 +57,12 @@ export default function LessonFormDialog({
     resolvedCourseId ? { courseId: resolvedCourseId as Id<"courses"> } : "skip"
   );
 
+  const resetForm = useCallback(() => {
+    setTitle("");
+    setContentJson(undefined);
+    setTopicId(defaultTopicId ?? "");
+  }, [defaultTopicId]);
+
   useEffect(() => {
     if (existingLesson) {
       setTitle(existingLesson.title);
@@ -81,13 +87,7 @@ export default function LessonFormDialog({
     } else if (!editId) {
       resetForm();
     }
-  }, [existingLesson, editId, defaultTopicId]);
-
-  const resetForm = () => {
-    setTitle("");
-    setContentJson(undefined);
-    setTopicId(defaultTopicId ?? "");
-  };
+  }, [existingLesson, editId, resetForm]);
 
   const handleClose = () => {
     resetForm();
