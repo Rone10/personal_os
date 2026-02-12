@@ -134,6 +134,8 @@ pnpm install --no-frozen-lockfile
 ```
 Then re-deploy. As a temporary workaround, you can change the Vercel Install Command to `pnpm install --no-frozen-lockfile`.
 
+If Vercel runs `npx convex deploy` and fails with “add `convex` to your package.json dependencies”, add `convex` to the **root** `package.json` (devDependencies is fine), run `pnpm install`, and commit the lockfile.
+
 **Environment Variables**
 Copy the values from `apps/web/.env.local` into Vercel’s Environment Variables:
 - `NEXT_PUBLIC_CONVEX_URL`

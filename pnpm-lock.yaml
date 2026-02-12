@@ -14,6 +14,9 @@ importers:
 
   .:
     devDependencies:
+      convex:
+        specifier: ^1.29.1
+        version: 1.29.3(react@19.1.0)
       next:
         specifier: 15.4.10
         version: 15.4.10(babel-plugin-react-compiler@1.0.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)

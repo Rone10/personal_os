@@ -22,6 +22,7 @@
     "format": "turbo run format"
   },
   "devDependencies": {
+    "convex": "^1.29.1",
     "next": "15.4.10",
     "turbo": "^2.5.0"
   },
