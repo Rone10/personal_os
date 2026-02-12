@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "convex dev",
+    "dep": "convex deploy",
     "typecheck": "tsc --noEmit -p convex/tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest"
