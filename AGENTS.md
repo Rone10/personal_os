@@ -40,6 +40,9 @@ pnpm --filter mobile ios         # iOS
 pnpm --filter mobile web         # Web
 ```
 
+### Monorepo Type Safety Note
+Keep React + `@types/react` versions aligned across apps (use `pnpm.overrides` in root) to avoid duplicate React type errors during `next build`.
+
 ## Architecture & Structure
 
 ### Vertical Slice Architecture (VSA)
