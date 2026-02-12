@@ -41,6 +41,10 @@ export default function LessonDetail({
   const course = useQuery(api.study.courses.getCourse, {
     id: courseId as Id<"courses">,
   });
+  const topic = useQuery(
+    api.study.courses.getTopic,
+    lesson?.topicId ? { id: lesson.topicId as Id<"topics"> } : "skip"
+  );
   const deleteLesson = useMutation(api.study.courses.removeLesson);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -110,7 +114,10 @@ export default function LessonDetail({
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               {lesson.title}
             </h1>
-            <p className="text-slate-500">Lesson {lesson.order + 1}</p>
+            <p className="text-slate-500">
+              Lesson {lesson.order}
+              {topic ? ` · ${topic.title}` : ""}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">

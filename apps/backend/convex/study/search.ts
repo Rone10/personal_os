@@ -8,7 +8,7 @@ import { v } from "convex/values";
 
 /**
  * Get all searchable data for client-side search.
- * Returns words, verses, hadiths, roots, notes, lessons, chapters.
+ * Returns words, verses, hadiths, roots, notes, courses, topics, lessons, chapters.
  */
 export const getSearchData = query({
   args: {},
@@ -23,6 +23,7 @@ export const getSearchData = query({
         notes: [],
         courses: [],
         lessons: [],
+        topics: [],
         books: [],
         chapters: [],
         tags: [],
@@ -41,6 +42,7 @@ export const getSearchData = query({
       notes,
       courses,
       lessons,
+      topics,
       books,
       chapters,
       tags,
@@ -75,6 +77,10 @@ export const getSearchData = query({
         .withIndex("by_user", (q) => q.eq("userId", userId))
         .collect(),
       ctx.db
+        .query("topics")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect(),
+      ctx.db
         .query("books")
         .withIndex("by_user", (q) => q.eq("userId", userId))
         .collect(),
@@ -100,6 +106,7 @@ export const getSearchData = query({
       notes,
       courses,
       lessons,
+      topics,
       books,
       chapters,
       tags,

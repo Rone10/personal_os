@@ -14,6 +14,14 @@ interface Course {
 interface Lesson {
   _id: string;
   courseId: string;
+  topicId?: string | null;
+  title: string;
+  order: number;
+}
+
+interface Topic {
+  _id: string;
+  courseId: string;
   title: string;
   order: number;
 }
@@ -21,6 +29,7 @@ interface Lesson {
 interface CoursesListProps {
   courses: Course[];
   lessons: Lesson[];
+  topics: Topic[];
   selectedCourseId?: string;
   selectedLessonId?: string;
   onSelectCourse: (id: string) => void;
@@ -31,6 +40,7 @@ interface CoursesListProps {
 export default function CoursesList({
   courses,
   lessons,
+  topics,
   selectedCourseId,
   selectedLessonId,
   onSelectCourse,
@@ -83,6 +93,7 @@ export default function CoursesList({
         <div className="space-y-4">
           {courses.map((course) => {
             const courseLessons = getLessonsForCourse(course._id);
+            const hasTopics = topics.some((topic) => topic.courseId === course._id);
             const isExpanded = selectedCourseId === course._id;
 
             return (
@@ -101,19 +112,19 @@ export default function CoursesList({
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                  <h3 className="font-medium text-slate-900 dark:text-slate-100">
-                    {course.title}
-                  </h3>
-                  {course.source && (
-                    <p className="text-xs text-slate-400 mt-1">
-                      {course.source}
-                    </p>
-                  )}
-                  {course.description && (
-                    <p className="text-sm text-slate-500 mt-1">
-                      {course.description}
-                    </p>
-                  )}
+                      <h3 className="font-medium text-slate-900 dark:text-slate-100">
+                        {course.title}
+                      </h3>
+                      {course.source && (
+                        <p className="text-xs text-slate-400 mt-1">
+                          {course.source}
+                        </p>
+                      )}
+                      {course.description && (
+                        <p className="text-sm text-slate-500 mt-1">
+                          {course.description}
+                        </p>
+                      )}
                       <p className="text-xs text-slate-400 mt-1">
                         {courseLessons.length} lessons
                       </p>
@@ -127,23 +138,85 @@ export default function CoursesList({
                   </div>
                 </div>
 
-                {isExpanded && courseLessons.length > 0 && (
+                {isExpanded && (courseLessons.length > 0 || hasTopics) && (
                   <div className="border-t border-slate-200 dark:border-slate-700">
-                    {courseLessons.map((lesson) => (
-                      <div
-                        key={lesson._id}
-                        onClick={() => onSelectLesson(lesson._id, course._id)}
-                        className={cn(
-                          "px-4 py-3 pl-8 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 border-b last:border-b-0 border-slate-100 dark:border-slate-700",
-                          selectedLessonId === lesson._id &&
-                            "bg-blue-50 dark:bg-blue-900/20"
-                        )}
-                      >
-                        <p className="text-sm text-slate-700 dark:text-slate-300">
-                          {lesson.order}. {lesson.title}
-                        </p>
-                      </div>
-                    ))}
+                    {(() => {
+                      const courseTopics = topics
+                        .filter((t) => t.courseId === course._id)
+                        .sort((a, b) => a.order - b.order);
+                      const ungroupedLessons = courseLessons
+                        .filter((lesson) => !lesson.topicId)
+                        .sort((a, b) => a.order - b.order);
+
+                      return (
+                        <div className="py-2">
+                          {courseLessons.length === 0 && courseTopics.length === 0 && (
+                            <p className="px-4 py-2 text-xs text-slate-400">
+                              No lessons yet
+                            </p>
+                          )}
+                          {ungroupedLessons.length > 0 && (
+                            <div className="mb-2">
+                              <p className="px-4 pt-2 text-xs uppercase tracking-wide text-slate-400">
+                                General
+                              </p>
+                              {ungroupedLessons.map((lesson) => (
+                                <div
+                                  key={lesson._id}
+                                  onClick={() => onSelectLesson(lesson._id, course._id)}
+                                  className={cn(
+                                    "px-4 py-3 pl-8 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 border-b last:border-b-0 border-slate-100 dark:border-slate-700",
+                                    selectedLessonId === lesson._id &&
+                                      "bg-blue-50 dark:bg-blue-900/20"
+                                  )}
+                                >
+                                  <p className="text-sm text-slate-700 dark:text-slate-300">
+                                    {lesson.order}. {lesson.title}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {courseTopics.map((topic) => {
+                            const topicLessons = courseLessons
+                              .filter((lesson) => lesson.topicId === topic._id)
+                              .sort((a, b) => a.order - b.order);
+
+                            return (
+                              <div key={topic._id} className="mb-2">
+                                <p className="px-4 pt-2 text-xs uppercase tracking-wide text-slate-400">
+                                  {topic.title}
+                                </p>
+                                {topicLessons.length === 0 ? (
+                                  <p className="px-4 pb-2 text-xs text-slate-400">
+                                    No lessons yet
+                                  </p>
+                                ) : (
+                                  topicLessons.map((lesson) => (
+                                    <div
+                                      key={lesson._id}
+                                      onClick={() =>
+                                        onSelectLesson(lesson._id, course._id)
+                                      }
+                                      className={cn(
+                                        "px-4 py-3 pl-8 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 border-b last:border-b-0 border-slate-100 dark:border-slate-700",
+                                        selectedLessonId === lesson._id &&
+                                          "bg-blue-50 dark:bg-blue-900/20"
+                                      )}
+                                    >
+                                      <p className="text-sm text-slate-700 dark:text-slate-300">
+                                        {lesson.order}. {lesson.title}
+                                      </p>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>

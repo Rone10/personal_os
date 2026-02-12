@@ -167,6 +167,131 @@ export const removeCourse = mutation({
       await ctx.db.delete(lesson._id);
     }
 
+    const topics = await ctx.db
+      .query("topics")
+      .withIndex("by_course", (q) => q.eq("courseId", args.id))
+      .collect();
+    for (const topic of topics) {
+      await ctx.db.delete(topic._id);
+    }
+
+    await ctx.db.delete(args.id);
+  },
+});
+
+// ============================================================================
+// TOPICS
+// ============================================================================
+
+/**
+ * List topics for a course.
+ */
+export const listTopics = query({
+  args: { courseId: v.id("courses") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    const course = await ctx.db.get(args.courseId);
+    if (!course || course.userId !== identity.subject) return [];
+
+    return await ctx.db
+      .query("topics")
+      .withIndex("by_course", (q) => q.eq("courseId", args.courseId))
+      .collect();
+  },
+});
+
+/**
+ * Get a single topic by ID.
+ */
+export const getTopic = query({
+  args: { id: v.id("topics") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    const topic = await ctx.db.get(args.id);
+    if (!topic || topic.userId !== identity.subject) return null;
+    return topic;
+  },
+});
+
+/**
+ * Create a new topic.
+ */
+export const createTopic = mutation({
+  args: {
+    courseId: v.id("courses"),
+    title: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuth(ctx);
+    const course = await ctx.db.get(args.courseId);
+    verifyOwnership(course, userId, "Course");
+
+    const timestamp = now();
+    const topics = await ctx.db
+      .query("topics")
+      .withIndex("by_course", (q) => q.eq("courseId", args.courseId))
+      .collect();
+    const maxOrder = Math.max(0, ...topics.map((t) => t.order));
+
+    return await ctx.db.insert("topics", {
+      userId,
+      courseId: args.courseId,
+      title: args.title,
+      order: maxOrder + 1,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+  },
+});
+
+/**
+ * Update an existing topic.
+ */
+export const updateTopic = mutation({
+  args: {
+    id: v.id("topics"),
+    title: v.optional(v.string()),
+    order: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuth(ctx);
+    const topic = await ctx.db.get(args.id);
+    verifyOwnership(topic, userId, "Topic");
+
+    const updates: Record<string, unknown> = { updatedAt: now() };
+    if (args.title !== undefined) updates.title = args.title;
+    if (args.order !== undefined) updates.order = args.order;
+
+    await ctx.db.patch(args.id, updates);
+    return args.id;
+  },
+});
+
+/**
+ * Delete a topic and ungroup its lessons.
+ */
+export const removeTopic = mutation({
+  args: { id: v.id("topics") },
+  handler: async (ctx, args) => {
+    const userId = await requireAuth(ctx);
+    const topic = await ctx.db.get(args.id);
+    verifyOwnership(topic, userId, "Topic");
+
+    const lessons = await ctx.db
+      .query("lessons")
+      .withIndex("by_course", (q) => q.eq("courseId", topic.courseId))
+      .collect();
+
+    for (const lesson of lessons) {
+      if (lesson.topicId === args.id) {
+        await ctx.db.patch(lesson._id, { topicId: null, updatedAt: now() });
+      }
+    }
+
     await ctx.db.delete(args.id);
   },
 });
@@ -211,13 +336,15 @@ export const listAllLessons = query({
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))
       .collect();
 
-    // Hydrate with course title for display
+    // Hydrate with course and topic titles for display
     const lessonsWithCourse = await Promise.all(
       lessons.map(async (lesson) => {
         const course = await ctx.db.get(lesson.courseId);
+        const topic = lesson.topicId ? await ctx.db.get(lesson.topicId) : null;
         return {
           ...lesson,
           courseTitle: course?.title,
+          topicTitle: topic?.title,
         };
       })
     );
@@ -273,6 +400,7 @@ export const getLessonWithNotes = query({
 export const createLesson = mutation({
   args: {
     courseId: v.id("courses"),
+    topicId: v.optional(v.union(v.id("topics"), v.null())),
     title: v.string(),
     content: v.optional(v.string()),
     contentJson: v.optional(v.any()),
@@ -284,18 +412,34 @@ export const createLesson = mutation({
     const course = await ctx.db.get(args.courseId);
     verifyOwnership(course, userId, "Course");
 
+    // Verify topic belongs to course (if provided)
+    const normalizedTopicId = args.topicId ?? null;
+    if (normalizedTopicId) {
+      const topic = await ctx.db.get(normalizedTopicId);
+      verifyOwnership(topic, userId, "Topic");
+      if (topic.courseId !== args.courseId) {
+        throw new Error("Topic does not belong to this course");
+      }
+    }
+
     const timestamp = now();
 
-    // Get max order for this course
+    // Get max order for this topic (or ungrouped lessons)
     const lessons = await ctx.db
       .query("lessons")
       .withIndex("by_course", (q) => q.eq("courseId", args.courseId))
       .collect();
-    const maxOrder = Math.max(0, ...lessons.map((l) => l.order));
+    const maxOrder = Math.max(
+      0,
+      ...lessons
+        .filter((l) => (l.topicId ?? null) === normalizedTopicId)
+        .map((l) => l.order)
+    );
 
     return await ctx.db.insert("lessons", {
       userId,
       courseId: args.courseId,
+      topicId: normalizedTopicId ?? undefined,
       title: args.title,
       content: args.content,
       contentJson: args.contentJson,
@@ -315,6 +459,7 @@ export const updateLesson = mutation({
     title: v.optional(v.string()),
     content: v.optional(v.string()),
     contentJson: v.optional(v.any()),
+    topicId: v.optional(v.union(v.id("topics"), v.null())),
     order: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -327,6 +472,33 @@ export const updateLesson = mutation({
     if (args.content !== undefined) updates.content = args.content;
     if (args.contentJson !== undefined) updates.contentJson = args.contentJson;
     if (args.order !== undefined) updates.order = args.order;
+
+    if (args.topicId !== undefined) {
+      const normalizedTopicId = args.topicId ?? null;
+      if (normalizedTopicId) {
+        const topic = await ctx.db.get(normalizedTopicId);
+        verifyOwnership(topic, userId, "Topic");
+        if (topic.courseId !== lesson.courseId) {
+          throw new Error("Topic does not belong to this course");
+        }
+      }
+
+      if (normalizedTopicId !== (lesson.topicId ?? null)) {
+        const lessons = await ctx.db
+          .query("lessons")
+          .withIndex("by_course", (q) => q.eq("courseId", lesson.courseId))
+          .collect();
+        const maxOrder = Math.max(
+          0,
+          ...lessons
+            .filter((l) => (l.topicId ?? null) === normalizedTopicId)
+            .map((l) => l.order)
+        );
+        updates.order = maxOrder + 1;
+      }
+
+      updates.topicId = normalizedTopicId;
+    }
 
     await ctx.db.patch(args.id, updates);
     return args.id;

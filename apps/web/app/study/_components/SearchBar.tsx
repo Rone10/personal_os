@@ -208,7 +208,7 @@ export default function SearchBar({
             <Input
               ref={inputRef}
               type="text"
-              placeholder="Search courses, lessons, notes..."
+              placeholder="Search courses, topics, lessons..."
               value={value}
               onChange={(e) => onChange(e.target.value)}
               className={cn("pl-9 pr-16 w-full", inputClassName)}

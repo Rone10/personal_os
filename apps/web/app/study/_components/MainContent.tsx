@@ -38,6 +38,7 @@ import VerseFormDialog from "./dialogs/VerseFormDialog";
 import HadithFormDialog from "./dialogs/HadithFormDialog";
 import CourseFormDialog from "./dialogs/CourseFormDialog";
 import LessonFormDialog from "./dialogs/LessonFormDialog";
+import TopicFormDialog from "./dialogs/TopicFormDialog";
 import BookFormDialog from "./dialogs/BookFormDialog";
 import ChapterFormDialog from "./dialogs/ChapterFormDialog";
 import NoteFormDialog from "./dialogs/NoteFormDialog";
@@ -59,7 +60,7 @@ type SearchData = Record<string, any[]>;
 
 type DialogType =
   | "word" | "root" | "verse" | "hadith"
-  | "course" | "lesson" | "book" | "chapter" | "note" | "tag" | "collection"
+  | "course" | "topic" | "lesson" | "book" | "chapter" | "note" | "tag" | "collection"
   | null;
 
 export default function MainContent(props: MainContentProps) {
@@ -74,20 +75,41 @@ export default function MainContent(props: MainContentProps) {
   } = props;
   const [openDialog, setOpenDialog] = useState<DialogType>(null);
   const [editId, setEditId] = useState<string | undefined>();
+  const [topicCourseId, setTopicCourseId] = useState<string | undefined>();
+  const [lessonContext, setLessonContext] = useState<{
+    courseId?: string;
+    topicId?: string;
+  }>({});
 
-  const openCreateDialog = (type: DialogType) => {
+  const openCreateDialog = (
+    type: DialogType,
+    options?: { courseId?: string; topicId?: string }
+  ) => {
     setEditId(undefined);
     setOpenDialog(type);
+    if (type === "topic") {
+      setTopicCourseId(options?.courseId);
+    }
+    if (type === "lesson") {
+      setLessonContext({
+        courseId: options?.courseId,
+        topicId: options?.topicId,
+      });
+    }
   };
 
   const openEditDialog = (type: DialogType, id: string) => {
     setEditId(id);
     setOpenDialog(type);
+    setTopicCourseId(undefined);
+    setLessonContext({});
   };
 
   const closeDialog = () => {
     setOpenDialog(null);
     setEditId(undefined);
+    setTopicCourseId(undefined);
+    setLessonContext({});
   };
 
   // If we have an entityId, show the detail view
@@ -148,7 +170,11 @@ export default function MainContent(props: MainContentProps) {
             courseId={entityId!}
             onNavigate={onNavigate}
             onEdit={() => openEditDialog("course", entityId!)}
-            onAddLesson={() => openCreateDialog("lesson")}
+            onAddLesson={(topicId) =>
+              openCreateDialog("lesson", { courseId: entityId!, topicId })
+            }
+            onAddTopic={() => openCreateDialog("topic", { courseId: entityId! })}
+            onEditTopic={(topicId) => openEditDialog("topic", topicId)}
           />
         );
       case "lesson":
@@ -270,6 +296,7 @@ export default function MainContent(props: MainContentProps) {
           <CoursesList
             courses={searchData.courses}
             lessons={searchData.lessons}
+            topics={searchData.topics ?? []}
             selectedCourseId={undefined}
             selectedLessonId={undefined}
             onSelectCourse={(id) => onNavigate("courses", "course", id)}
@@ -360,10 +387,17 @@ export default function MainContent(props: MainContentProps) {
           onClose={closeDialog}
           editId={openDialog === "course" ? editId : undefined}
         />
+        <TopicFormDialog
+          open={openDialog === "topic"}
+          onClose={closeDialog}
+          courseId={topicCourseId ?? entityId ?? ""}
+          editId={openDialog === "topic" ? editId : undefined}
+        />
         <LessonFormDialog
           open={openDialog === "lesson"}
           onClose={closeDialog}
-          courseId={entityId ?? ""}
+          courseId={lessonContext.courseId ?? ""}
+          defaultTopicId={lessonContext.topicId}
           editId={openDialog === "lesson" ? editId : undefined}
         />
         <BookFormDialog

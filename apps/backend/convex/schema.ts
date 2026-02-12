@@ -355,10 +355,23 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_user", ["userId"]),
 
+  // --- TOPICS (belong to a Course) ---
+  topics: defineTable({
+    userId: v.string(),
+    courseId: v.id("courses"),
+    title: v.string(),
+    order: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_course", ["courseId", "order"]),
+
   // --- LESSONS (belong to a Course) ---
   lessons: defineTable({
     userId: v.string(),
     courseId: v.id("courses"),
+    topicId: v.optional(v.union(v.id("topics"), v.null())),
     title: v.string(),
     content: v.optional(v.string()),
     contentJson: v.optional(v.any()), // Rich text content (Tiptap JSON)

@@ -31,7 +31,14 @@ interface NavigationTreeProps {
     }>;
     hadiths: Array<{ _id: string; collection: string; hadithNumber: string }>;
     courses: Array<{ _id: string; title: string }>;
-    lessons: Array<{ _id: string; courseId: string; title: string }>;
+    lessons: Array<{
+      _id: string;
+      courseId: string;
+      title: string;
+      order: number;
+      topicId?: string | null;
+    }>;
+    topics: Array<{ _id: string; courseId: string; title: string; order: number }>;
     books: Array<{ _id: string; title: string }>;
     chapters: Array<{ _id: string; bookId: string; title: string }>;
     notes: Array<{ _id: string; title?: string; content: string }>;
@@ -278,9 +285,16 @@ export default function NavigationTree({
       >
         {data.courses.map((course) => {
           const lessons = data.lessons.filter((l) => l.courseId === course._id);
+          const topics = data.topics
+            .filter((t) => t.courseId === course._id)
+            .sort((a, b) => a.order - b.order);
+          const ungroupedLessons = lessons
+            .filter((l) => !l.topicId)
+            .sort((a, b) => a.order - b.order);
           const isExpanded =
             (currentEntityType === "course" && currentEntityId === course._id) ||
-            (currentEntityType === "lesson" && lessons.some((l) => l._id === currentEntityId));
+            (currentEntityType === "lesson" &&
+              lessons.some((l) => l._id === currentEntityId));
           return (
             <div key={course._id}>
               <TreeItem
@@ -291,18 +305,62 @@ export default function NavigationTree({
                 }
                 onClick={() => onNavigate("courses", "course", course._id)}
               />
-              {isExpanded &&
-                lessons.map((lesson) => (
-                  <div key={lesson._id} className="ml-3">
-                    <TreeItem
-                      label={lesson.title}
-                      isActive={currentEntityId === lesson._id}
-                      onClick={() =>
-                        onNavigate("courses", "lesson", lesson._id, course._id)
-                      }
-                    />
-                  </div>
-                ))}
+              {isExpanded && (
+                <div className="ml-3">
+                  {ungroupedLessons.length > 0 && (
+                    <div className="mb-2">
+                      <div className="px-2 py-1 text-xs text-slate-400">
+                        General
+                      </div>
+                      {ungroupedLessons.map((lesson) => (
+                        <div key={lesson._id} className="ml-3">
+                          <TreeItem
+                            label={lesson.title}
+                            isActive={currentEntityId === lesson._id}
+                            onClick={() =>
+                              onNavigate(
+                                "courses",
+                                "lesson",
+                                lesson._id,
+                                course._id
+                              )
+                            }
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {topics.map((topic) => {
+                    const topicLessons = lessons
+                      .filter((lesson) => lesson.topicId === topic._id)
+                      .sort((a, b) => a.order - b.order);
+                    return (
+                      <div key={topic._id} className="mb-2">
+                        <div className="px-2 py-1 text-xs text-slate-400">
+                          {topic.title}
+                        </div>
+                        {topicLessons.map((lesson) => (
+                          <div key={lesson._id} className="ml-3">
+                            <TreeItem
+                              label={lesson.title}
+                              isActive={currentEntityId === lesson._id}
+                              onClick={() =>
+                                onNavigate(
+                                  "courses",
+                                  "lesson",
+                                  lesson._id,
+                                  course._id
+                                )
+                              }
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
         })}
