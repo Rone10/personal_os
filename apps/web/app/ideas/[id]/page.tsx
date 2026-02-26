@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 type IdeaStatus = 'captured' | 'worth_exploring' | 'parked';
 
@@ -65,7 +66,8 @@ export default function IdeaDetailPage() {
   const linkedProjects =
     useQuery(api.ideas.getLinkedProjects, { ideaId }) ?? [];
   const linkedPrompts = useQuery(api.ideas.getLinkedPrompts, { ideaId }) ?? [];
-  const linkedIdeas = useQuery(api.ideas.getLinkedIdeas, { ideaId }) ?? [];
+  const linkedIdeasQuery = useQuery(api.ideas.getLinkedIdeas, { ideaId });
+  const linkedIdeas = linkedIdeasQuery ?? [];
 
   const activeProjectsQuery = useQuery(api.projects.get, { status: 'active' });
   const ideaProjectsQuery = useQuery(api.projects.get, { status: 'idea' });
@@ -81,9 +83,15 @@ export default function IdeaDetailPage() {
   const unlinkIdea = useMutation(api.ideas.unlinkIdea);
   const createProjectFromIdea = useMutation(api.ideas.createProjectFromIdea);
 
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
-  const [selectedPromptId, setSelectedPromptId] = useState<string>('');
-  const [selectedIdeaId, setSelectedIdeaId] = useState<string>('');
+  const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(
+    undefined,
+  );
+  const [selectedPromptId, setSelectedPromptId] = useState<string | undefined>(
+    undefined,
+  );
+  const [selectedIdeaId, setSelectedIdeaId] = useState<string | undefined>(
+    undefined,
+  );
   const [projectName, setProjectName] = useState('');
 
   const availableProjects = useMemo(() => {
@@ -95,6 +103,8 @@ export default function IdeaDetailPage() {
     }
     return Array.from(map.values());
   }, [activeProjectsQuery, ideaProjectsQuery]);
+
+  const linkedIdeaIdSet = new Set(linkedIdeas.map((linked) => linked._id));
 
   if (idea === undefined) {
     return (
@@ -338,16 +348,24 @@ export default function IdeaDetailPage() {
               size="sm"
               variant="outline"
               className="h-8 shrink-0"
+              disabled={!selectedProjectId}
               onClick={async () => {
                 if (!selectedProjectId) return;
-                await linkProject({
-                  ideaId,
-                  projectId: selectedProjectId as Id<'projects'>,
-                });
-                setSelectedProjectId('');
+                try {
+                  await linkProject({
+                    ideaId,
+                    projectId: selectedProjectId as Id<'projects'>,
+                  });
+                  toast.success('Project linked to idea');
+                  setSelectedProjectId(undefined);
+                } catch (error) {
+                  const message =
+                    error instanceof Error ? error.message : 'Failed to link project';
+                  toast.error(message);
+                }
               }}
             >
-              <Link2 className="mr-1.5 h-3 w-3" /> Link
+              <Link2 className="mr-1.5 h-3 w-3" /> Save Link
             </Button>
           </div>
 
@@ -413,16 +431,24 @@ export default function IdeaDetailPage() {
               size="sm"
               variant="outline"
               className="h-8 shrink-0"
+              disabled={!selectedPromptId}
               onClick={async () => {
                 if (!selectedPromptId) return;
-                await linkPrompt({
-                  ideaId,
-                  promptId: selectedPromptId as Id<'prompts'>,
-                });
-                setSelectedPromptId('');
+                try {
+                  await linkPrompt({
+                    ideaId,
+                    promptId: selectedPromptId as Id<'prompts'>,
+                  });
+                  toast.success('Prompt linked to idea');
+                  setSelectedPromptId(undefined);
+                } catch (error) {
+                  const message =
+                    error instanceof Error ? error.message : 'Failed to link prompt';
+                  toast.error(message);
+                }
               }}
             >
-              <Link2 className="mr-1.5 h-3 w-3" /> Link
+              <Link2 className="mr-1.5 h-3 w-3" /> Save Link
             </Button>
           </div>
 
@@ -474,7 +500,11 @@ export default function IdeaDetailPage() {
               </SelectTrigger>
               <SelectContent>
                 {allIdeas
-                  .filter((candidate) => candidate._id !== ideaId)
+                  .filter(
+                    (candidate) =>
+                      candidate._id !== ideaId &&
+                      !linkedIdeaIdSet.has(candidate._id),
+                  )
                   .map((candidate) => (
                     <SelectItem key={candidate._id} value={candidate._id}>
                       {candidate.title}
@@ -487,16 +517,24 @@ export default function IdeaDetailPage() {
               size="sm"
               variant="outline"
               className="h-8 shrink-0"
+              disabled={!selectedIdeaId}
               onClick={async () => {
                 if (!selectedIdeaId) return;
-                await linkIdea({
-                  fromIdeaId: ideaId,
-                  toIdeaId: selectedIdeaId as Id<'ideas'>,
-                });
-                setSelectedIdeaId('');
+                try {
+                  await linkIdea({
+                    fromIdeaId: ideaId,
+                    toIdeaId: selectedIdeaId as Id<'ideas'>,
+                  });
+                  toast.success('Related idea linked successfully');
+                  setSelectedIdeaId(undefined);
+                } catch (error) {
+                  const message =
+                    error instanceof Error ? error.message : 'Failed to link idea';
+                  toast.error(message);
+                }
               }}
             >
-              <Link2 className="mr-1.5 h-3 w-3" /> Link
+              <Link2 className="mr-1.5 h-3 w-3" /> Save Link
             </Button>
           </div>
 
