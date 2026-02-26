@@ -1,12 +1,13 @@
 'use client';
 
 import { useMutation, useQuery } from 'convex/react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Lightbulb, FolderKanban } from 'lucide-react';
 import { api } from '@/convex/_generated/api';
 import { IdeaQuickCreate } from './_components/IdeaQuickCreate';
 import { IdeasList } from './_components/IdeasList';
 import { ProjectCard } from '@/components/ProjectCard';
 import { Id } from '@/convex/_generated/dataModel';
+import { Badge } from '@/components/ui/badge';
 
 type IdeaStatus = 'captured' | 'worth_exploring' | 'parked';
 
@@ -24,65 +25,87 @@ export default function IdeasPage() {
 
   if (ideas === undefined) {
     return (
-      <div className="p-8 flex justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
+          <p className="text-sm text-muted-foreground">Loading ideas…</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Ideas</h1>
-        <p className="text-muted-foreground">Capture ideas fast and keep lightweight links to projects and prompts.</p>
+    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-10">
+      {/* Page Header */}
+      <div className="flex items-start gap-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 dark:bg-amber-400/10 mt-0.5">
+          <Lightbulb className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Ideas</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Capture fast. Link to projects and prompts. Let nothing slip away.
+          </p>
+        </div>
       </div>
 
+      {/* Quick Capture Zone */}
       <IdeaQuickCreate />
 
+      {/* Ideas Kanban */}
       <IdeasList ideas={ideas} onStatusChange={onStatusChange} />
 
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold">Projects by Status</h2>
-          <p className="text-sm text-muted-foreground">Simple kanban view of execution state.</p>
+      {/* Projects Pipeline */}
+      <section className="space-y-5">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <FolderKanban className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-lg font-semibold tracking-tight">Projects Pipeline</h2>
+          </div>
+          <div className="h-px flex-1 bg-border" />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-lg border bg-card p-3">
-            <h3 className="mb-3 font-medium">Idea</h3>
-            <div className="space-y-3">
-              {ideaProjects.map((project) => (
-                <ProjectCard key={project._id} project={project} />
-              ))}
-              {ideaProjects.length === 0 ? (
-                <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">No idea-stage projects.</div>
-              ) : null}
+        <div className="grid gap-5 md:grid-cols-3">
+          {[
+            {
+              label: 'Idea',
+              projects: ideaProjects,
+              empty: 'No idea-stage projects',
+              dotClass: 'bg-amber-500 dark:bg-amber-400',
+            },
+            {
+              label: 'Active',
+              projects: activeProjects,
+              empty: 'No active projects',
+              dotClass: 'bg-emerald-500 dark:bg-emerald-400',
+            },
+            {
+              label: 'Archived',
+              projects: doneProjects,
+              empty: 'No archived projects',
+              dotClass: 'bg-slate-400 dark:bg-slate-500',
+            },
+          ].map((col) => (
+            <div key={col.label} className="rounded-xl border bg-card/50 backdrop-blur-sm">
+              <div className="flex items-center gap-2 px-4 py-3 border-b">
+                <span className={`h-2 w-2 rounded-full ${col.dotClass}`} />
+                <h3 className="text-sm font-semibold">{col.label}</h3>
+                <Badge variant="outline" className="ml-auto text-[11px] font-mono tabular-nums">
+                  {col.projects.length}
+                </Badge>
+              </div>
+              <div className="space-y-2.5 p-3">
+                {col.projects.map((project) => (
+                  <ProjectCard key={project._id} project={project} />
+                ))}
+                {col.projects.length === 0 ? (
+                  <div className="flex items-center justify-center rounded-lg border border-dashed py-6">
+                    <p className="text-sm text-muted-foreground/60">{col.empty}</p>
+                  </div>
+                ) : null}
+              </div>
             </div>
-          </div>
-
-          <div className="rounded-lg border bg-card p-3">
-            <h3 className="mb-3 font-medium">Active</h3>
-            <div className="space-y-3">
-              {activeProjects.map((project) => (
-                <ProjectCard key={project._id} project={project} />
-              ))}
-              {activeProjects.length === 0 ? (
-                <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">No active projects.</div>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="rounded-lg border bg-card p-3">
-            <h3 className="mb-3 font-medium">Done/Archived</h3>
-            <div className="space-y-3">
-              {doneProjects.map((project) => (
-                <ProjectCard key={project._id} project={project} />
-              ))}
-              {doneProjects.length === 0 ? (
-                <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">No archived projects.</div>
-              ) : null}
-            </div>
-          </div>
+          ))}
         </div>
       </section>
     </div>

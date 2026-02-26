@@ -378,3 +378,21 @@
 .ProseMirror [style*="text-align: left"] {
   text-align: left;
 }
+
+/* === IDEAS VAULT === */
+@keyframes idea-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@layer utilities {
+  .idea-card-enter {
+    animation: idea-card-enter 0.35s ease-out both;
+  }
+}
