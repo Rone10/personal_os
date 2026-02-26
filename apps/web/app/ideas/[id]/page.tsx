@@ -332,7 +332,7 @@ export default function IdeaDetailPage() {
               value={selectedProjectId}
               onValueChange={setSelectedProjectId}
             >
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-8 text-xs flex-1 min-w-40">
                 <SelectValue placeholder="Choose project" />
               </SelectTrigger>
               <SelectContent>
@@ -415,7 +415,7 @@ export default function IdeaDetailPage() {
               value={selectedPromptId}
               onValueChange={setSelectedPromptId}
             >
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-8 text-xs flex-1 min-w-[12rem]">
                 <SelectValue placeholder="Choose prompt" />
               </SelectTrigger>
               <SelectContent>
@@ -495,7 +495,7 @@ export default function IdeaDetailPage() {
 
           <div className="flex gap-2">
             <Select value={selectedIdeaId} onValueChange={setSelectedIdeaId}>
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-8 text-xs flex-1 min-w-[12rem]">
                 <SelectValue placeholder="Choose related idea" />
               </SelectTrigger>
               <SelectContent>
