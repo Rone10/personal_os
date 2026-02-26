@@ -20,7 +20,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
-import { Doc } from '@/convex/_generated/dataModel';
 
 export default function ProjectsPage() {
   const projects = useQuery(api.projects.get, { status: 'active' });
@@ -204,7 +203,7 @@ export default function ProjectsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projects.map((project: Doc<"projects">) => (
+        {projects.map((project) => (
           <ProjectCard key={project._id} project={project} />
         ))}
         {projects.length === 0 && (

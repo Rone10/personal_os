@@ -198,6 +198,55 @@ export default defineSchema({
   .searchIndex("search_content", { searchField: "content", filterFields: ["userId"] })
   .index("by_user", ["userId"]),
 
+  // --- IDEAS VAULT ---
+  ideas: defineTable({
+    userId: v.string(),
+    title: v.string(),
+    problemOneLiner: v.string(),
+    status: v.union(
+      v.literal("captured"),
+      v.literal("worth_exploring"),
+      v.literal("parked"),
+    ),
+    referenceUrl: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_status", ["userId", "status"]),
+
+  ideaLinks: defineTable({
+    userId: v.string(),
+    fromIdeaId: v.id("ideas"),
+    toIdeaId: v.id("ideas"),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_from_idea", ["fromIdeaId"])
+    .index("by_to_idea", ["toIdeaId"]),
+
+  ideaProjectLinks: defineTable({
+    userId: v.string(),
+    ideaId: v.id("ideas"),
+    projectId: v.id("projects"),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_idea", ["ideaId"])
+    .index("by_project", ["projectId"])
+    .index("by_user_project", ["userId", "projectId"]),
+
+  ideaPromptLinks: defineTable({
+    userId: v.string(),
+    ideaId: v.id("ideas"),
+    promptId: v.id("prompts"),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_idea", ["ideaId"])
+    .index("by_prompt", ["promptId"]),
+
   // =============================================================================
   // ARABIC KNOWLEDGE RETENTION SYSTEM
   // =============================================================================

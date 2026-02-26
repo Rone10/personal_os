@@ -86,6 +86,30 @@ describe("projects", () => {
       expect(ideas).toHaveLength(1);
       expect(ideas[0].name).toBe("Idea Project");
     });
+
+    it("includes linked ideas count for each project", async () => {
+      const t = convexTest(schema, modules);
+      const asUser = t.withIdentity({ subject: "user_1" });
+
+      const projectId = await asUser.mutation(api.projects.create, {
+        name: "Counted Project",
+        slug: "counted-project",
+      });
+
+      const ideaId = await asUser.mutation(api.ideas.create, {
+        title: "Idea for project count",
+        problemOneLiner: "Need a quick linkage metric",
+      });
+
+      await asUser.mutation(api.ideas.linkProject, {
+        ideaId,
+        projectId,
+      });
+
+      const projects = await asUser.query(api.projects.get, {});
+      expect(projects).toHaveLength(1);
+      expect(projects[0].linkedIdeasCount).toBe(1);
+    });
   });
 
   describe("create", () => {

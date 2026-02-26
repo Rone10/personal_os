@@ -21,7 +21,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 
 interface ProjectCardProps {
-  project: Doc<"projects">;
+  project: Doc<"projects"> & { linkedIdeasCount?: number };
 }
 
 export function ProjectCard({ project }: ProjectCardProps) {
@@ -146,6 +146,10 @@ export function ProjectCard({ project }: ProjectCardProps) {
             
             <p className="text-slate-500 text-sm line-clamp-2 mb-4 flex-1">
               {project.description || "No description provided."}
+            </p>
+
+            <p className="text-xs text-slate-500 mb-3">
+              Linked ideas: {project.linkedIdeasCount ?? 0}
             </p>
 
             <div className="flex items-center text-sm text-blue-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">

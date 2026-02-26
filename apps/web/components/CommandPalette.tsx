@@ -7,6 +7,7 @@ import {
   Settings,
   Smile,
   Plus,
+  Lightbulb,
   Bug,
   BookOpen,
   Languages,
@@ -70,6 +71,10 @@ export function CommandPalette() {
               <span>Create Task</span>
               <CommandShortcut>⌘T</CommandShortcut>
             </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => router.push('/ideas'))}>
+              <Lightbulb className="mr-2 h-4 w-4" />
+              <span>Create Idea</span>
+            </CommandItem>
             <CommandItem onSelect={() => runCommand(() => router.push('/bugs?new=true'))}>
               <Bug className="mr-2 h-4 w-4" />
               <span>Log Bug</span>
@@ -101,6 +106,10 @@ export function CommandPalette() {
             <CommandItem onSelect={() => runCommand(() => router.push('/projects'))}>
               <Calendar className="mr-2 h-4 w-4" />
               <span>Projects</span>
+            </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => router.push('/ideas'))}>
+              <Lightbulb className="mr-2 h-4 w-4" />
+              <span>Ideas</span>
             </CommandItem>
             <CommandItem onSelect={() => runCommand(() => router.push('/prompts'))}>
               <Smile className="mr-2 h-4 w-4" />

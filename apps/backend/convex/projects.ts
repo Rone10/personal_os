@@ -10,13 +10,30 @@ export const get = query({
     if (!identity) return [];
 
     const status = args.status ?? "active";
-    
-    return await ctx.db
+
+    const projects = await ctx.db
       .query("projects")
       .withIndex("by_user_status", (q) => 
         q.eq("userId", identity.subject).eq("status", status)
       )
       .collect();
+
+    return await Promise.all(
+      projects.map(async (project) => {
+        const linkedIdeasCount = await ctx.db
+          .query("ideaProjectLinks")
+          .withIndex("by_user_project", (q) =>
+            q.eq("userId", identity.subject).eq("projectId", project._id),
+          )
+          .collect()
+          .then((links) => links.length);
+
+        return {
+          ...project,
+          linkedIdeasCount,
+        };
+      }),
+    );
   },
 });
 

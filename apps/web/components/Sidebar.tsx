@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   FolderKanban,
   CheckSquare,
+  Lightbulb,
   BookOpen,
   Terminal,
   Bug,
@@ -18,6 +19,7 @@ import { useAuth } from '@workos-inc/authkit-nextjs/components';
 const navItems = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Projects', href: '/projects', icon: FolderKanban },
+  { name: 'Ideas', href: '/ideas', icon: Lightbulb },
   { name: 'Tasks', href: '/tasks', icon: CheckSquare },
   { name: 'Study', href: '/study', icon: BookOpen },
   { name: 'Prompts', href: '/prompts', icon: Terminal },
