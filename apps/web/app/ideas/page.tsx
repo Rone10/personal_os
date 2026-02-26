@@ -1,19 +1,24 @@
 'use client';
 
+import { useState } from 'react';
 import { useMutation, useQuery } from 'convex/react';
-import { Loader2, Lightbulb, FolderKanban } from 'lucide-react';
+import { Loader2, Lightbulb, FolderKanban, LayoutGrid, Table2 } from 'lucide-react';
 import { api } from '@/convex/_generated/api';
 import { IdeaQuickCreate } from './_components/IdeaQuickCreate';
 import { IdeasList } from './_components/IdeasList';
+import { IdeasTable } from './_components/IdeasTable';
 import { ProjectCard } from '@/components/ProjectCard';
 import { Id } from '@/convex/_generated/dataModel';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type IdeaStatus = 'captured' | 'worth_exploring' | 'parked';
+type IdeasViewMode = 'kanban' | 'table';
 
 export default function IdeasPage() {
   const ideas = useQuery(api.ideas.list, {});
   const setIdea = useMutation(api.ideas.update);
+  const [viewMode, setViewMode] = useState<IdeasViewMode>('kanban');
 
   const ideaProjects = useQuery(api.projects.get, { status: 'idea' }) ?? [];
   const activeProjects = useQuery(api.projects.get, { status: 'active' }) ?? [];
@@ -52,8 +57,30 @@ export default function IdeasPage() {
       {/* Quick Capture Zone */}
       <IdeaQuickCreate />
 
-      {/* Ideas Kanban */}
-      <IdeasList ideas={ideas} onStatusChange={onStatusChange} />
+      {/* Ideas Views */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold tracking-tight">Ideas Vault</h2>
+          <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as IdeasViewMode)}>
+            <TabsList>
+              <TabsTrigger value="kanban">
+                <LayoutGrid className="h-4 w-4" />
+                Kanban
+              </TabsTrigger>
+              <TabsTrigger value="table">
+                <Table2 className="h-4 w-4" />
+                Table
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+
+        {viewMode === 'kanban' ? (
+          <IdeasList ideas={ideas} onStatusChange={onStatusChange} />
+        ) : (
+          <IdeasTable ideas={ideas} onStatusChange={onStatusChange} />
+        )}
+      </section>
 
       {/* Projects Pipeline */}
       <section className="space-y-5">
