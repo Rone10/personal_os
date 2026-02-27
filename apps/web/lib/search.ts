@@ -21,7 +21,8 @@ export type EntityType =
   | "book"
   | "chapter"
   | "note"
-  | "tag";
+  | "tag"
+  | "vaultEntry";
 
 export interface SearchResult {
   type: EntityType;
@@ -487,6 +488,61 @@ function searchTags(
 }
 
 /**
+ * Search vault entries
+ */
+function searchVaultEntries(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  entries: any[],
+  query: string,
+  isArabic: boolean
+): SearchResult[] {
+  const results: SearchResult[] = [];
+  const strippedQuery = stripDiacritics(query);
+  const lowerQuery = query.toLowerCase();
+
+  for (const entry of entries) {
+    let score = 0;
+    let matchType: SearchResult["matchType"] = "fuzzy";
+
+    if (isArabic) {
+      const normalized = entry.normalizedText || stripDiacritics(entry.text);
+      if (normalized === strippedQuery) {
+        score = 1;
+        matchType = "exact";
+      } else if (normalized.startsWith(strippedQuery)) {
+        score = 0.9;
+        matchType = "prefix";
+      } else if (normalized.includes(strippedQuery)) {
+        score = 0.7;
+        matchType = "contains";
+      }
+    } else {
+      const translitScore = entry.transliteration
+        ? fuzzyScore(query, entry.transliteration)
+        : 0;
+      const textScore = fuzzyScore(lowerQuery, String(entry.text ?? ""));
+      score = Math.max(translitScore, textScore);
+      if (score >= 1) matchType = "exact";
+      else if (score >= 0.9) matchType = "prefix";
+      else if (score >= 0.7) matchType = "contains";
+    }
+
+    if (score > 0.3) {
+      results.push({
+        type: "vaultEntry",
+        id: entry._id,
+        displayText: entry.text,
+        subtitle: entry.entryType,
+        score,
+        matchType,
+      });
+    }
+  }
+
+  return results;
+}
+
+/**
  * Main search function.
  * Searches all entity types and returns ranked results.
  */
@@ -514,6 +570,7 @@ export function searchEntities(
     "chapter",
     "note",
     "tag",
+    "vaultEntry",
   ];
 
   const results: SearchResult[] = [];
@@ -569,6 +626,10 @@ export function searchEntities(
     results.push(...searchTags(data.tags, trimmedQuery));
   }
 
+  if (allowedTypes.includes("vaultEntry") && data.vaultEntries) {
+    results.push(...searchVaultEntries(data.vaultEntries, trimmedQuery, isArabic));
+  }
+
   // Sort by score (descending)
   results.sort((a, b) => b.score - a.score);
 
@@ -592,6 +653,7 @@ export function groupResultsByType(
     chapter: [],
     note: [],
     tag: [],
+    vaultEntry: [],
   };
 
   for (const result of results) {

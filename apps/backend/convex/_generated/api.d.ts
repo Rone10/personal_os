@@ -28,6 +28,7 @@ import type * as study_notes from "../study/notes.js";
 import type * as study_roots from "../study/roots.js";
 import type * as study_search from "../study/search.js";
 import type * as study_tags from "../study/tags.js";
+import type * as study_vault from "../study/vault.js";
 import type * as study_verses from "../study/verses.js";
 import type * as study_words from "../study/words.js";
 import type * as subtasks from "../subtasks.js";
@@ -61,6 +62,7 @@ declare const fullApi: ApiFromModules<{
   "study/roots": typeof study_roots;
   "study/search": typeof study_search;
   "study/tags": typeof study_tags;
+  "study/vault": typeof study_vault;
   "study/verses": typeof study_verses;
   "study/words": typeof study_words;
   subtasks: typeof subtasks;

@@ -189,6 +189,8 @@ export default function DashboardView({
                         ? "verses"
                         : item.type === "hadith"
                           ? "hadiths"
+                          : item.type === "vaultEntry"
+                            ? "vault"
                           : "notes",
                     item.type as EntityType,
                     item.id

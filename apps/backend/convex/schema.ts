@@ -457,6 +457,104 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_book", ["bookId", "order"]),
 
+  // --- ARABIC KNOWLEDGE VAULT TAXONOMY ---
+  vaultSubjects: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    slug: v.string(),
+    order: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId", "order"])
+    .index("by_user_slug", ["userId", "slug"]),
+
+  vaultCategories: defineTable({
+    userId: v.string(),
+    subjectId: v.id("vaultSubjects"),
+    name: v.string(),
+    slug: v.string(),
+    order: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId", "order"])
+    .index("by_subject", ["subjectId", "order"])
+    .index("by_user_slug", ["userId", "slug"]),
+
+  vaultTopics: defineTable({
+    userId: v.string(),
+    subjectId: v.id("vaultSubjects"),
+    categoryId: v.id("vaultCategories"),
+    name: v.string(),
+    slug: v.string(),
+    order: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId", "order"])
+    .index("by_subject", ["subjectId", "order"])
+    .index("by_category", ["categoryId", "order"])
+    .index("by_user_slug", ["userId", "slug"]),
+
+  // --- ARABIC KNOWLEDGE VAULT ENTRIES ---
+  vaultEntries: defineTable({
+    userId: v.string(),
+    entryType: v.union(v.literal("word"), v.literal("phrase")),
+    text: v.string(),
+    normalizedText: v.string(),
+    transliteration: v.optional(v.string()),
+    subjectId: v.id("vaultSubjects"),
+    categoryId: v.id("vaultCategories"),
+    topicId: v.id("vaultTopics"),
+    bookId: v.optional(v.id("books")),
+    chapterId: v.optional(v.id("chapters")),
+    sourcePage: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_entryType", ["userId", "entryType"])
+    .index("by_user_subject", ["userId", "subjectId"])
+    .index("by_user_category", ["userId", "categoryId"])
+    .index("by_user_topic", ["userId", "topicId"])
+    .index("by_user_book", ["userId", "bookId"])
+    .index("by_user_chapter", ["userId", "chapterId"])
+    .index("by_user_updatedAt", ["userId", "updatedAt"]),
+
+  vaultEntryReferences: defineTable({
+    userId: v.string(),
+    entryId: v.id("vaultEntries"),
+    referenceType: v.union(v.literal("internal"), v.literal("external")),
+    targetType: v.optional(
+      v.union(
+        v.literal("word"),
+        v.literal("verse"),
+        v.literal("hadith"),
+        v.literal("lesson"),
+        v.literal("chapter"),
+        v.literal("root"),
+        v.literal("tag"),
+        v.literal("course"),
+        v.literal("book"),
+        v.literal("note"),
+        v.literal("collection"),
+        v.literal("topic"),
+        v.literal("vaultEntry"),
+      ),
+    ),
+    targetId: v.optional(v.string()),
+    url: v.optional(v.string()),
+    label: v.string(),
+    note: v.optional(v.string()),
+    order: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_entry", ["entryId", "order"]),
+
   // --- NOTES ---
   // Free-text notes with inline references. Can belong to a Lesson, Chapter, or stand alone.
   studyNotes: defineTable({
@@ -591,6 +689,7 @@ export default defineSchema({
       v.literal("explanation"),
       v.literal("course"),
       v.literal("book"),
+      v.literal("vaultEntry"),
     ),
     entityId: v.string(),
   })

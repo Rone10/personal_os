@@ -14,6 +14,7 @@ import {
   Plus,
   Tag,
   FolderOpen,
+  Table2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,7 @@ interface NavigationTreeProps {
     notes: Array<{ _id: string; title?: string; content: string }>;
     tags: Array<{ _id: string; name: string }>;
     collections: Array<{ _id: string; title: string; description?: string }>;
+    vaultEntries?: Array<{ _id: string; text: string; entryType: "word" | "phrase" }>;
   };
   currentView: ViewType;
   currentEntityType?: EntityType;
@@ -221,6 +223,31 @@ export default function NavigationTree({
             onClick={() => onNavigate("words")}
           >
             View all {data.words.length} words...
+          </div>
+        )}
+      </TreeSection>
+
+      <TreeSection
+        title={`Vault (${data.vaultEntries?.length ?? 0})`}
+        icon={<Table2 className="h-4 w-4" />}
+        defaultOpen={currentView === "vault"}
+      >
+        {(data.vaultEntries ?? []).slice(0, 20).map((entry) => (
+          <TreeItem
+            key={entry._id}
+            label={entry.text}
+            sublabel={entry.entryType}
+            isActive={currentEntityType === "vaultEntry" && currentEntityId === entry._id}
+            onClick={() => onNavigate("vault", "vaultEntry", entry._id)}
+            isArabic
+          />
+        ))}
+        {(data.vaultEntries?.length ?? 0) > 20 && (
+          <div
+            className="px-2 py-1 text-xs text-slate-400 cursor-pointer hover:text-slate-600"
+            onClick={() => onNavigate("vault")}
+          >
+            View all {data.vaultEntries?.length} entries...
           </div>
         )}
       </TreeSection>

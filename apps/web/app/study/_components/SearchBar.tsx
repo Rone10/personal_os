@@ -14,6 +14,7 @@ import {
   BookText,
   StickyNote,
   Tag,
+  Table2,
   X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -113,6 +114,13 @@ const FILTER_CHIPS: FilterChip[] = [
     icon: <Tag className="h-3 w-3" />,
     color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
   },
+  {
+    type: "vaultEntry",
+    label: "Vault",
+    icon: <Table2 className="h-3 w-3" />,
+    color:
+      "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300",
+  },
 ];
 
 const TYPE_LABELS: Record<EntityType, string> = {
@@ -126,6 +134,7 @@ const TYPE_LABELS: Record<EntityType, string> = {
   chapter: "Chapters",
   note: "Notes",
   tag: "Tags",
+  vaultEntry: "Vault",
 };
 
 export default function SearchBar({
@@ -264,6 +273,7 @@ export default function SearchBar({
                       "chapter",
                       "note",
                       "tag",
+                      "vaultEntry",
                     ] as EntityType[]
                   ).map((type) => {
                     const items = groupedResults[type] || [];

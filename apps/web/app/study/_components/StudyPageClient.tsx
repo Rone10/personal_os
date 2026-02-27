@@ -24,7 +24,8 @@ export type ViewType =
   | "notes"
   | "flashcards"
   | "tags"
-  | "collections";
+  | "collections"
+  | "vault";
 
 export type EntityType =
   | "root"
@@ -37,7 +38,8 @@ export type EntityType =
   | "chapter"
   | "note"
   | "tag"
-  | "collection";
+  | "collection"
+  | "vaultEntry";
 
 export interface ViewState {
   view: ViewType;
@@ -91,6 +93,7 @@ export default function StudyPageClient() {
     { label: "Lessons", value: searchData.lessons.length },
     { label: "Notes", value: searchData.notes.length },
     { label: "Words", value: searchData.words.length },
+    { label: "Vault", value: searchData.vaultEntries?.length ?? 0 },
     { label: "Verses", value: searchData.verses.length },
     { label: "Hadiths", value: searchData.hadiths.length },
   ];
@@ -164,6 +167,7 @@ export default function StudyPageClient() {
                     book: "books",
                     tag: "tags",
                     collection: "collections",
+                    vaultEntry: "vault",
                   };
                   navigateTo(
                     viewMap[type] ?? "dashboard",
@@ -192,6 +196,13 @@ export default function StudyPageClient() {
                       onClick={() => navigateTo("flashcards")}
                     >
                       Flashcards
+                    </TabsTrigger>
+                    <TabsTrigger
+                      className="study-tabs-trigger"
+                      value="vault"
+                      onClick={() => navigateTo("vault")}
+                    >
+                      Vault
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
@@ -246,7 +257,7 @@ export default function StudyPageClient() {
         </div>
 
         {/* Right panel - Context (backlinks, tags, explanations) */}
-        {rightPanelOpen && entityType && entityId && (
+        {rightPanelOpen && entityType && entityId && entityType !== "vaultEntry" && (
           <div className="w-80 flex-shrink-0 overflow-hidden">
             <div className="study-panel study-panel-muted h-full overflow-y-auto">
               <ContextPanel

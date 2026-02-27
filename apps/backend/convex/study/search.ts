@@ -28,6 +28,7 @@ export const getSearchData = query({
         chapters: [],
         tags: [],
         collections: [],
+        vaultEntries: [],
       };
     }
 
@@ -47,6 +48,7 @@ export const getSearchData = query({
       chapters,
       tags,
       collections,
+      vaultEntries,
     ] = await Promise.all([
       ctx.db
         .query("words")
@@ -96,6 +98,10 @@ export const getSearchData = query({
         .query("collections")
         .withIndex("by_user", (q) => q.eq("userId", userId))
         .collect(),
+      ctx.db
+        .query("vaultEntries")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect(),
     ]);
 
     return {
@@ -111,6 +117,7 @@ export const getSearchData = query({
       chapters,
       tags,
       collections,
+      vaultEntries,
     };
   },
 });
@@ -130,7 +137,8 @@ export const quickSearch = query({
           v.literal("hadith"),
           v.literal("lesson"),
           v.literal("chapter"),
-          v.literal("root")
+          v.literal("root"),
+          v.literal("vaultEntry")
         )
       )
     ),
@@ -150,6 +158,7 @@ export const quickSearch = query({
       "lesson",
       "chapter",
       "root",
+      "vaultEntry",
     ];
 
     const results: Array<{
@@ -295,6 +304,29 @@ export const quickSearch = query({
       }
     }
 
+    if (types.includes("vaultEntry") && results.length < limit) {
+      const entries = await ctx.db
+        .query("vaultEntries")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect();
+
+      for (const entry of entries) {
+        if (
+          entry.text.toLowerCase().includes(searchQuery) ||
+          entry.normalizedText.toLowerCase().includes(searchQuery) ||
+          entry.transliteration?.toLowerCase().includes(searchQuery)
+        ) {
+          results.push({
+            type: "vaultEntry",
+            id: entry._id,
+            displayText: entry.text,
+            subtitle: entry.entryType,
+          });
+        }
+        if (results.length >= limit) break;
+      }
+    }
+
     return results.slice(0, limit);
   },
 });
@@ -314,7 +346,7 @@ export const getRecentItems = query({
     const limit = args.limit ?? 10;
 
     // Fetch recent items from each type
-    const [words, verses, hadiths, notes] = await Promise.all([
+    const [words, verses, hadiths, notes, vaultEntries] = await Promise.all([
       ctx.db
         .query("words")
         .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -333,6 +365,11 @@ export const getRecentItems = query({
       ctx.db
         .query("studyNotes")
         .withIndex("by_user", (q) => q.eq("userId", userId))
+        .order("desc")
+        .take(limit),
+      ctx.db
+        .query("vaultEntries")
+        .withIndex("by_user_updatedAt", (q) => q.eq("userId", userId))
         .order("desc")
         .take(limit),
     ]);
@@ -362,6 +399,12 @@ export const getRecentItems = query({
         id: n._id,
         createdAt: n.createdAt ?? n.updatedAt,
         displayText: n.title ?? n.content.slice(0, 50),
+      })),
+      ...vaultEntries.map((entry) => ({
+        type: "vaultEntry" as const,
+        id: entry._id,
+        createdAt: entry.createdAt,
+        displayText: entry.text,
       })),
     ];
 

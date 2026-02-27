@@ -13,6 +13,7 @@ import BooksList from "./lists/BooksList";
 import NotesList from "./lists/NotesList";
 import TagsList from "./lists/TagsList";
 import CollectionsList from "./lists/CollectionsList";
+import VaultEntriesTable from "./lists/VaultEntriesTable";
 
 // View components
 import DashboardView from "./views/DashboardView";
@@ -30,6 +31,7 @@ import ChapterDetail from "./details/ChapterDetail";
 import NoteDetail from "./details/NoteDetail";
 import TagDetail from "./details/TagDetail";
 import CollectionDetail from "./details/CollectionDetail";
+import VaultEntryDetail from "./details/VaultEntryDetail";
 
 // Form dialogs
 import WordFormDialog from "./dialogs/WordFormDialog";
@@ -227,6 +229,13 @@ export default function MainContent(props: MainContentProps) {
             onEdit={() => openEditDialog("collection", entityId!)}
           />
         );
+      case "vaultEntry":
+        return (
+          <VaultEntryDetail
+            entryId={entityId!}
+            onNavigate={onNavigate}
+          />
+        );
       default:
         return (
           <div className="p-8 text-center text-slate-500">
@@ -345,6 +354,14 @@ export default function MainContent(props: MainContentProps) {
             selectedId={undefined}
             onSelect={(id) => onNavigate("collections", "collection", id)}
             onAdd={() => openCreateDialog("collection")}
+          />
+        );
+
+      case "vault":
+        return (
+          <VaultEntriesTable
+            selectedId={undefined}
+            onSelect={(id) => onNavigate("vault", "vaultEntry", id)}
           />
         );
 

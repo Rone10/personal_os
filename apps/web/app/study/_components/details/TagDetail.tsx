@@ -17,6 +17,7 @@ import {
   GraduationCap,
   FileText,
   BookText,
+  Table2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EntityType, ViewType } from "../StudyPageClient";
@@ -141,6 +142,13 @@ export default function TagDetail({ tagId, onNavigate, onEdit }: TagDetailProps)
       items: entities.book,
       view: "books" as ViewType,
     },
+    {
+      type: "vaultEntry" as const,
+      label: "Vault Entries",
+      icon: Table2,
+      items: entities.vaultEntry,
+      view: "vault" as ViewType,
+    },
   ];
 
   // Get display text for an entity
@@ -164,6 +172,8 @@ export default function TagDetail({ tagId, onNavigate, onEdit }: TagDetailProps)
         return item.title || "Untitled Course";
       case "book":
         return item.title || "Untitled Book";
+      case "vaultEntry":
+        return item.text || "Untitled Vault Entry";
       default:
         return item.title || item.name || "Unknown";
     }
