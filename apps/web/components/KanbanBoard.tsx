@@ -32,7 +32,6 @@ import {
   DndContext, 
   DragEndEvent, 
   DragStartEvent, 
-  useDroppable, 
   DragOverlay,
   pointerWithin,
   PointerSensor,
@@ -44,10 +43,13 @@ import {
 import { 
   SortableContext, 
   verticalListSortingStrategy,
-  useSortable,
   arrayMove
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import {
+  KanbanBoard as KanbanColumn,
+  KanbanHeader,
+  KanbanCard,
+} from '@/components/kibo-ui/kanban';
 import { cn } from '@/lib/utils';
 import { FeaturePanel } from '@/app/projects/_components/FeaturePanel';
 import { SubtaskList, SubtaskProgressBadge } from '@/components/SubtaskList';
@@ -926,131 +928,6 @@ function TaskDeleteDialog({ taskTitle, onDelete }: { taskTitle: string; onDelete
   );
 }
 
-function SortableTask({
-  task,
-  onAdvance,
-  linkedTodo,
-  featureMeta,
-  onFeatureInspect,
-  onUnlinkFeature,
-  isExpanded,
-  onToggleExpand,
-  onSaveTask,
-  onDeleteTask,
-  dependencyMeta,
-  allTasks,
-  onRemoveDependency,
-  projectId,
-  milestoneMeta,
-}: {
-  task: KanbanTask;
-  onAdvance: (task: KanbanTask) => void;
-  linkedTodo?: LinkedTodoMeta;
-  featureMeta?: TaskFeatureMeta;
-  onFeatureInspect?: (featureId: Id<'projectFeatures'>) => void;
-  onUnlinkFeature?: () => Promise<void> | void;
-  isExpanded: boolean;
-  onToggleExpand: () => void;
-  onSaveTask: (payload: TaskEditPayload) => Promise<void>;
-  onDeleteTask: () => Promise<void>;
-  dependencyMeta?: TaskDependencyMeta;
-  allTasks?: KanbanTask[];
-  onRemoveDependency?: (blockedTaskId: Id<"tasks">, blockingTaskId: Id<"tasks">) => Promise<void>;
-  projectId: Id<"projects">;
-  milestoneMeta?: MilestoneMeta;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: task._id, data: { task } });
-
-  const style = {
-    transform: CSS.Translate.toString(transform),
-    transition,
-  };
-
-  if (isDragging) {
-    return (
-      <div ref={setNodeRef} style={style} className="opacity-0">
-        <TaskCard
-          task={task}
-          onAdvance={onAdvance}
-          linkedTodo={linkedTodo}
-          featureMeta={featureMeta}
-          onFeatureInspect={onFeatureInspect}
-          onUnlinkFeature={onUnlinkFeature}
-          isExpanded={isExpanded}
-          onToggleExpand={onToggleExpand}
-          onSaveTask={onSaveTask}
-          onDeleteTask={onDeleteTask}
-          dependencyMeta={dependencyMeta}
-          allTasks={allTasks}
-          onRemoveDependency={onRemoveDependency}
-          projectId={projectId}
-          milestoneMeta={milestoneMeta}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      <TaskCard
-        task={task}
-        onAdvance={onAdvance}
-        linkedTodo={linkedTodo}
-        featureMeta={featureMeta}
-        onFeatureInspect={onFeatureInspect}
-        onUnlinkFeature={onUnlinkFeature}
-        isExpanded={isExpanded}
-        onToggleExpand={onToggleExpand}
-        onSaveTask={onSaveTask}
-        onDeleteTask={onDeleteTask}
-        dependencyMeta={dependencyMeta}
-        allTasks={allTasks}
-        onRemoveDependency={onRemoveDependency}
-        projectId={projectId}
-        milestoneMeta={milestoneMeta}
-      />
-    </div>
-  );
-}
-
-function DroppableColumn({ id, title, count, children, className, headerColor }: { 
-  id: string, 
-  title: string, 
-  count: number, 
-  children: React.ReactNode, 
-  className?: string,
-  headerColor?: string
-}) {
-  const { setNodeRef } = useDroppable({
-    id: id,
-  });
-
-  return (
-    <div ref={setNodeRef} className={cn("flex h-full flex-col rounded-2xl bg-slate-50/80 dark:bg-slate-900/20 p-3 border border-slate-100 dark:border-slate-800", className)}>
-      <div className="mb-3 flex items-center justify-between px-1">
-        <div className="flex items-center gap-2">
-          <div className={cn("h-2 w-2 rounded-full", headerColor || "bg-slate-400")} />
-          <h3 className="font-semibold text-sm text-foreground">{title}</h3>
-        </div>
-        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-background px-1.5 text-[10px] font-medium text-muted-foreground shadow-sm border border-slate-100 dark:border-slate-800">
-          {count}
-        </span>
-      </div>
-      
-      <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-y-auto px-1 pb-2">
-        {children}
-      </div>
-    </div>
-  );
-}
-
 export function KanbanBoard({
   projectId,
   showFeaturePanel = false,
@@ -1578,6 +1455,46 @@ export function KanbanBoard({
 
   const activeTask = localTasks.find(t => t._id === activeId);
 
+  const renderTaskCard = (task: KanbanTask, columnId: string) => (
+    <KanbanCard
+      key={task._id}
+      id={task._id}
+      name={task.title}
+      column={columnId}
+      asChild
+    >
+      <TaskCard
+        task={task}
+        onAdvance={handleAdvance}
+        linkedTodo={linkedMetaMap.get(task._id.toString())}
+        featureMeta={taskFeatureMetaMap.get(task._id.toString())}
+        onFeatureInspect={(featureId) => setFocusedFeatureId(featureId)}
+        onUnlinkFeature={() => handleUnlinkFeature(task._id)}
+        isExpanded={expandedTasks.has(task._id.toString())}
+        onToggleExpand={() => toggleTaskExpansion(task._id)}
+        onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
+        onDeleteTask={() => deleteTaskOptimistic(task._id)}
+        dependencyMeta={dependencyMetaMap.get(task._id.toString())}
+        allTasks={localTasks}
+        onRemoveDependency={handleRemoveDependency}
+        projectId={projectId}
+        milestoneMeta={task.milestoneId ? milestoneMetaMap.get(task.milestoneId.toString()) : undefined}
+      />
+    </KanbanCard>
+  );
+
+  const renderColumnHeader = (title: string, count: number, colorClass: string) => (
+    <KanbanHeader className="flex items-center justify-between px-1">
+      <div className="flex items-center gap-2">
+        <div className={cn("h-2 w-2 rounded-full", colorClass)} />
+        <h3 className="font-semibold text-sm text-foreground">{title}</h3>
+      </div>
+      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-background px-1.5 text-[10px] font-medium text-muted-foreground shadow-sm border">
+        {count}
+      </span>
+    </KanbanHeader>
+  );
+
   return (
     <DndContext 
       sensors={sensors}
@@ -1607,35 +1524,11 @@ export function KanbanBoard({
           {viewMode === 'status' ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full overflow-hidden">
               {/* TODO Column */}
-              <div className="flex flex-col h-full">
-                <DroppableColumn
-                  id="todo"
-                  title="To Do"
-                  count={statusColumns.todo.length}
-                  headerColor="bg-slate-500"
-                  className="flex-1"
-                >
+              <KanbanColumn id="todo">
+                {renderColumnHeader("To Do", statusColumns.todo.length, "bg-slate-500")}
+                <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-y-auto p-2">
                   <SortableContext items={statusColumns.todo.map(t => t._id)} strategy={verticalListSortingStrategy}>
-                    {statusColumns.todo.map((task) => (
-                      <SortableTask
-                        key={task._id}
-                        task={task}
-                        onAdvance={handleAdvance}
-                        linkedTodo={linkedMetaMap.get(task._id.toString())}
-                        featureMeta={taskFeatureMetaMap.get(task._id.toString())}
-                        onFeatureInspect={(featureId) => setFocusedFeatureId(featureId)}
-                        onUnlinkFeature={() => handleUnlinkFeature(task._id)}
-                        isExpanded={expandedTasks.has(task._id.toString())}
-                        onToggleExpand={() => toggleTaskExpansion(task._id)}
-                        onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
-                        onDeleteTask={() => deleteTaskOptimistic(task._id)}
-                        dependencyMeta={dependencyMetaMap.get(task._id.toString())}
-                        allTasks={localTasks}
-                        onRemoveDependency={handleRemoveDependency}
-                        projectId={projectId}
-                        milestoneMeta={task.milestoneId ? milestoneMetaMap.get(task.milestoneId.toString()) : undefined}
-                      />
-                    ))}
+                    {statusColumns.todo.map((task) => renderTaskCard(task, "todo"))}
                   </SortableContext>
 
                   <form onSubmit={handleCreateTask} className="mt-2">
@@ -1656,70 +1549,28 @@ export function KanbanBoard({
                       </Button>
                     </div>
                   </form>
-                </DroppableColumn>
-              </div>
+                </div>
+              </KanbanColumn>
 
               {/* IN PROGRESS Column */}
-              <DroppableColumn
-                id="in_progress"
-                title="In Progress"
-                count={statusColumns.in_progress.length}
-                headerColor="bg-blue-500"
-              >
-                <SortableContext items={statusColumns.in_progress.map(t => t._id)} strategy={verticalListSortingStrategy}>
-                  {statusColumns.in_progress.map((task) => (
-                    <SortableTask
-                      key={task._id}
-                      task={task}
-                      onAdvance={handleAdvance}
-                      linkedTodo={linkedMetaMap.get(task._id.toString())}
-                      featureMeta={taskFeatureMetaMap.get(task._id.toString())}
-                      onFeatureInspect={(featureId) => setFocusedFeatureId(featureId)}
-                      onUnlinkFeature={() => handleUnlinkFeature(task._id)}
-                      isExpanded={expandedTasks.has(task._id.toString())}
-                      onToggleExpand={() => toggleTaskExpansion(task._id)}
-                      onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
-                      onDeleteTask={() => deleteTaskOptimistic(task._id)}
-                      dependencyMeta={dependencyMetaMap.get(task._id.toString())}
-                      allTasks={localTasks}
-                      onRemoveDependency={handleRemoveDependency}
-                      projectId={projectId}
-                      milestoneMeta={task.milestoneId ? milestoneMetaMap.get(task.milestoneId.toString()) : undefined}
-                    />
-                  ))}
-                </SortableContext>
-              </DroppableColumn>
+              <KanbanColumn id="in_progress">
+                {renderColumnHeader("In Progress", statusColumns.in_progress.length, "bg-blue-500")}
+                <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-y-auto p-2">
+                  <SortableContext items={statusColumns.in_progress.map(t => t._id)} strategy={verticalListSortingStrategy}>
+                    {statusColumns.in_progress.map((task) => renderTaskCard(task, "in_progress"))}
+                  </SortableContext>
+                </div>
+              </KanbanColumn>
 
               {/* DONE Column */}
-              <DroppableColumn
-                id="done"
-                title="Done"
-                count={statusColumns.done.length}
-                headerColor="bg-green-500"
-              >
-                <SortableContext items={statusColumns.done.map(t => t._id)} strategy={verticalListSortingStrategy}>
-                  {statusColumns.done.map((task) => (
-                    <SortableTask
-                      key={task._id}
-                      task={task}
-                      onAdvance={handleAdvance}
-                      linkedTodo={linkedMetaMap.get(task._id.toString())}
-                      featureMeta={taskFeatureMetaMap.get(task._id.toString())}
-                      onFeatureInspect={(featureId) => setFocusedFeatureId(featureId)}
-                      onUnlinkFeature={() => handleUnlinkFeature(task._id)}
-                      isExpanded={expandedTasks.has(task._id.toString())}
-                      onToggleExpand={() => toggleTaskExpansion(task._id)}
-                      onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
-                      onDeleteTask={() => deleteTaskOptimistic(task._id)}
-                      dependencyMeta={dependencyMetaMap.get(task._id.toString())}
-                      allTasks={localTasks}
-                      onRemoveDependency={handleRemoveDependency}
-                      projectId={projectId}
-                      milestoneMeta={task.milestoneId ? milestoneMetaMap.get(task.milestoneId.toString()) : undefined}
-                    />
-                  ))}
-                </SortableContext>
-              </DroppableColumn>
+              <KanbanColumn id="done">
+                {renderColumnHeader("Done", statusColumns.done.length, "bg-green-500")}
+                <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-y-auto p-2">
+                  <SortableContext items={statusColumns.done.map(t => t._id)} strategy={verticalListSortingStrategy}>
+                    {statusColumns.done.map((task) => renderTaskCard(task, "done"))}
+                  </SortableContext>
+                </div>
+              </KanbanColumn>
             </div>
           ) : (
             /* Priority Swimlanes View */
@@ -1728,36 +1579,14 @@ export function KanbanBoard({
                 const levelTasks = priorityColumns[level];
                 const { label, dot } = priorityTokens[level];
                 return (
-                  <DroppableColumn
-                    key={level}
-                    id={level}
-                    title={label}
-                    count={levelTasks.length}
-                    headerColor={dot}
-                  >
-                    <SortableContext items={levelTasks.map(t => t._id)} strategy={verticalListSortingStrategy}>
-                      {levelTasks.map((task) => (
-                        <SortableTask
-                          key={task._id}
-                          task={task}
-                          onAdvance={handleAdvance}
-                          linkedTodo={linkedMetaMap.get(task._id.toString())}
-                          featureMeta={taskFeatureMetaMap.get(task._id.toString())}
-                          onFeatureInspect={(featureId) => setFocusedFeatureId(featureId)}
-                          onUnlinkFeature={() => handleUnlinkFeature(task._id)}
-                          isExpanded={expandedTasks.has(task._id.toString())}
-                          onToggleExpand={() => toggleTaskExpansion(task._id)}
-                          onSaveTask={(payload) => persistTaskEdit(task._id, payload)}
-                          onDeleteTask={() => deleteTaskOptimistic(task._id)}
-                          dependencyMeta={dependencyMetaMap.get(task._id.toString())}
-                          allTasks={localTasks}
-                          onRemoveDependency={handleRemoveDependency}
-                          projectId={projectId}
-                          milestoneMeta={task.milestoneId ? milestoneMetaMap.get(task.milestoneId.toString()) : undefined}
-                        />
-                      ))}
-                    </SortableContext>
-                  </DroppableColumn>
+                  <KanbanColumn key={level} id={level}>
+                    {renderColumnHeader(label, levelTasks.length, dot)}
+                    <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-y-auto p-2">
+                      <SortableContext items={levelTasks.map(t => t._id)} strategy={verticalListSortingStrategy}>
+                        {levelTasks.map((task) => renderTaskCard(task, level))}
+                      </SortableContext>
+                    </div>
+                  </KanbanColumn>
                 );
               })}
             </div>

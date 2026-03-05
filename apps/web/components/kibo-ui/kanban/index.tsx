@@ -91,6 +91,8 @@ export const KanbanBoard = ({ id, children, className }: KanbanBoardProps) => {
 export type KanbanCardProps<T extends KanbanItemProps = KanbanItemProps> = T & {
   children?: ReactNode;
   className?: string;
+  /** When true, renders children directly without a Card wrapper (bring your own card styling). */
+  asChild?: boolean;
 };
 
 export const KanbanCard = <T extends KanbanItemProps = KanbanItemProps>({
@@ -98,6 +100,7 @@ export const KanbanCard = <T extends KanbanItemProps = KanbanItemProps>({
   name,
   children,
   className,
+  asChild = false,
 }: KanbanCardProps<T>) => {
   const {
     attributes,
@@ -115,6 +118,23 @@ export const KanbanCard = <T extends KanbanItemProps = KanbanItemProps>({
     transition,
     transform: CSS.Transform.toString(transform),
   };
+
+  if (asChild) {
+    return (
+      <>
+        <div
+          style={style}
+          {...listeners}
+          {...attributes}
+          ref={setNodeRef}
+          className={cn(isDragging && "opacity-0")}
+        >
+          {children}
+        </div>
+        {activeCardId === id && <t.In>{children}</t.In>}
+      </>
+    );
+  }
 
   return (
     <>
