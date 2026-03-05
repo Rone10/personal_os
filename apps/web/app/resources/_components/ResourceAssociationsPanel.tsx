@@ -36,6 +36,7 @@ type StudySearchResult = {
   displayText: string;
   subtitle?: string;
 };
+type StudyEntityType = StudySearchResult["type"];
 
 interface ResourceAssociationsPanelProps {
   resourceId: Id<"resources">;
@@ -113,15 +114,19 @@ export default function ResourceAssociationsPanel({
   const unlinkFromStudyEntity = useMutation(resourcesApi.unlinkFromStudyEntity);
 
   const [selectedProjectId, setSelectedProjectId] = useState<Id<"projects"> | "">("");
+  const [selectedStudyType, setSelectedStudyType] = useState<StudyEntityType>("word");
   const [studyQuery, setStudyQuery] = useState("");
   const [isLinkingProject, setIsLinkingProject] = useState(false);
   const [linkingStudyKey, setLinkingStudyKey] = useState<string | null>(null);
 
+  const scopedStudyQuery = useMemo(() => {
+    const query = studyQuery.trim();
+    return `__type:${selectedStudyType}__${query ? ` ${query}` : ""}`;
+  }, [selectedStudyType, studyQuery]);
+
   const searchResults = useQuery(
     resourcesApi.searchStudyEntities,
-    studyQuery.trim().length > 1
-      ? { query: studyQuery.trim(), limit: 10 }
-      : "skip",
+    { query: scopedStudyQuery, limit: 12 },
   ) as StudySearchResult[] | undefined;
 
   const projects = useMemo(() => {
@@ -138,10 +143,10 @@ export default function ResourceAssociationsPanel({
     if (!selectedProjectId) return;
     setIsLinkingProject(true);
     try {
-        await linkToProject({
-          resourceId,
-          projectId: selectedProjectId as Id<"projects">,
-        });
+      await linkToProject({
+        resourceId,
+        projectId: selectedProjectId as Id<"projects">,
+      });
       setSelectedProjectId("");
     } finally {
       setIsLinkingProject(false);
@@ -225,57 +230,81 @@ export default function ResourceAssociationsPanel({
 
       <div className="space-y-3">
         <h3 className="text-sm font-medium">Study Entities</h3>
-        <Input
-          value={studyQuery}
-          onChange={(event) => setStudyQuery(event.target.value)}
-          placeholder="Search words, verses, notes, collections…"
-        />
+        <div className="grid gap-2 md:grid-cols-2">
+          <Select
+            value={selectedStudyType}
+            onValueChange={(value) => setSelectedStudyType(value as StudyEntityType)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select entity type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="word">Word</SelectItem>
+              <SelectItem value="root">Root</SelectItem>
+              <SelectItem value="verse">Verse</SelectItem>
+              <SelectItem value="hadith">Hadith</SelectItem>
+              <SelectItem value="course">Course</SelectItem>
+              <SelectItem value="lesson">Lesson</SelectItem>
+              <SelectItem value="book">Book</SelectItem>
+              <SelectItem value="chapter">Chapter</SelectItem>
+              <SelectItem value="note">Note</SelectItem>
+              <SelectItem value="tag">Tag</SelectItem>
+              <SelectItem value="collection">Collection</SelectItem>
+              <SelectItem value="vaultEntry">Vault Entry</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input
+            value={studyQuery}
+            onChange={(event) => setStudyQuery(event.target.value)}
+            placeholder={`Filter ${selectedStudyType}s (optional)`}
+          />
+        </div>
 
-        {studyQuery.trim().length > 1 ? (
-          <div className="space-y-2 max-h-44 overflow-y-auto rounded-md border p-2">
-            {searchResults?.length ? (
-              searchResults.map((result) => {
-                const key = `${result.type}:${result.id}`;
-                return (
-                  <div
-                    key={key}
-                    className="flex items-center justify-between rounded-md border px-2 py-1.5"
-                  >
-                    <div>
-                      <p className="text-sm">{result.displayText}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {result.type}
-                        {result.subtitle ? ` • ${result.subtitle}` : ""}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={linkingStudyKey === key}
-                      onClick={async () => {
-                        setLinkingStudyKey(key);
-                        try {
-                          await linkToStudyEntity({
-                            resourceId,
-                            studyEntityType: result.type,
-                            studyEntityId: result.id,
-                          });
-                          setStudyQuery("");
-                        } finally {
-                          setLinkingStudyKey(null);
-                        }
-                      }}
-                    >
-                      Attach
-                    </Button>
+        <div className="space-y-2 max-h-44 overflow-y-auto rounded-md border p-2">
+          {searchResults?.length ? (
+            searchResults.map((result) => {
+              const key = `${result.type}:${result.id}`;
+              return (
+                <div
+                  key={key}
+                  className="flex items-center justify-between rounded-md border px-2 py-1.5"
+                >
+                  <div>
+                    <p className="text-sm">{result.displayText}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {result.type}
+                      {result.subtitle ? ` • ${result.subtitle}` : ""}
+                    </p>
                   </div>
-                );
-              })
-            ) : (
-              <p className="text-xs text-muted-foreground">No results.</p>
-            )}
-          </div>
-        ) : null}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={linkingStudyKey === key}
+                    onClick={async () => {
+                      setLinkingStudyKey(key);
+                      try {
+                        await linkToStudyEntity({
+                          resourceId,
+                          studyEntityType: result.type,
+                          studyEntityId: result.id,
+                        });
+                        setStudyQuery("");
+                      } finally {
+                        setLinkingStudyKey(null);
+                      }
+                    }}
+                  >
+                    Attach
+                  </Button>
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              No {selectedStudyType} items found.
+            </p>
+          )}
+        </div>
 
         <div className="space-y-2">
           {detail.studyLinks.length ? (

@@ -950,8 +950,24 @@ export const searchStudyEntities = query({
     const userId = await getAuthOrNull(ctx);
     if (!userId) return [];
 
-    const normalizedQuery = args.query.trim().toLowerCase();
-    if (!normalizedQuery) return [];
+    const rawQuery = args.query.trim();
+    const scopedPattern = /^__type:([a-zA-Z]+)__(.*)$/;
+    const scopedMatch = rawQuery.match(scopedPattern);
+
+    let scopedType: StudyEntityType | null = null;
+    let normalizedQuery = rawQuery.toLowerCase();
+    if (scopedMatch) {
+      const tokenType = scopedMatch[1];
+      const resolvedType = (Object.keys(studyEntityTableMap) as StudyEntityType[]).find(
+        (type) => type.toLowerCase() === tokenType.toLowerCase(),
+      );
+      if (resolvedType) {
+        scopedType = resolvedType;
+      }
+      normalizedQuery = scopedMatch[2].trim().toLowerCase();
+    }
+
+    if (!normalizedQuery && !scopedType) return [];
     const limit = Math.max(1, Math.min(args.limit ?? 20, 100));
 
     const matches: Array<{
@@ -972,198 +988,215 @@ export const searchStudyEntities = query({
       }
     }
 
-    const words = await ctx.db
-      .query("words")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
-    for (const word of words) {
-      if (matches.length >= limit) break;
-      const inText = word.text.toLowerCase().includes(normalizedQuery);
-      const inMeaning = word.meanings.some((meaning) =>
-        meaning.definition.toLowerCase().includes(normalizedQuery),
+    function shouldIncludeType(type: StudyEntityType) {
+      return !scopedType || scopedType === type;
+    }
+
+    function matchesQuery(...values: Array<string | undefined>) {
+      if (!normalizedQuery) return true;
+      return values.some(
+        (value) => typeof value === "string" && value.toLowerCase().includes(normalizedQuery),
       );
-      if (inText || inMeaning) {
-        pushMatch({
-          type: "word",
-          id: word._id,
-          displayText: word.text,
-          subtitle: word.meanings[0]?.definition,
-        });
+    }
+
+    if (shouldIncludeType("word")) {
+      const words = await ctx.db
+        .query("words")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect();
+      for (const word of words) {
+        if (matches.length >= limit) break;
+        const meaningMatch = word.meanings.some((meaning) =>
+          matchesQuery(meaning.definition),
+        );
+        if (matchesQuery(word.text, word.transliteration) || meaningMatch) {
+          pushMatch({
+            type: "word",
+            id: word._id,
+            displayText: word.text,
+            subtitle: word.meanings[0]?.definition,
+          });
+        }
       }
     }
 
-    const roots = await ctx.db
-      .query("roots")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
-    for (const root of roots) {
-      if (matches.length >= limit) break;
-      if (
-        root.letters.toLowerCase().includes(normalizedQuery) ||
-        root.latinized.toLowerCase().includes(normalizedQuery) ||
-        root.coreMeaning.toLowerCase().includes(normalizedQuery)
-      ) {
-        pushMatch({
-          type: "root",
-          id: root._id,
-          displayText: root.letters,
-          subtitle: root.coreMeaning,
-        });
+    if (shouldIncludeType("root")) {
+      const roots = await ctx.db
+        .query("roots")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect();
+      for (const root of roots) {
+        if (matches.length >= limit) break;
+        if (matchesQuery(root.letters, root.latinized, root.coreMeaning)) {
+          pushMatch({
+            type: "root",
+            id: root._id,
+            displayText: root.letters,
+            subtitle: root.coreMeaning,
+          });
+        }
       }
     }
 
-    const verses = await ctx.db
-      .query("verses")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
-    for (const verse of verses) {
-      if (matches.length >= limit) break;
-      const ref = `${verse.surahNumber}:${verse.ayahStart}${verse.ayahEnd ? `-${verse.ayahEnd}` : ""}`;
-      if (
-        verse.arabicText.toLowerCase().includes(normalizedQuery) ||
-        ref.includes(normalizedQuery)
-      ) {
-        pushMatch({
-          type: "verse",
-          id: verse._id,
-          displayText: ref,
-          subtitle: verse.arabicText.slice(0, 60),
-        });
+    if (shouldIncludeType("verse")) {
+      const verses = await ctx.db
+        .query("verses")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect();
+      for (const verse of verses) {
+        if (matches.length >= limit) break;
+        const ref = `${verse.surahNumber}:${verse.ayahStart}${verse.ayahEnd ? `-${verse.ayahEnd}` : ""}`;
+        if (matchesQuery(verse.arabicText, ref, verse.translation)) {
+          pushMatch({
+            type: "verse",
+            id: verse._id,
+            displayText: ref,
+            subtitle: verse.arabicText.slice(0, 60),
+          });
+        }
       }
     }
 
-    const hadiths = await ctx.db
-      .query("hadiths")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
-    for (const hadith of hadiths) {
-      if (matches.length >= limit) break;
-      const ref = `${hadith.collection} #${hadith.hadithNumber}`;
-      if (
-        hadith.collection.toLowerCase().includes(normalizedQuery) ||
-        hadith.arabicText.toLowerCase().includes(normalizedQuery) ||
-        ref.toLowerCase().includes(normalizedQuery)
-      ) {
-        pushMatch({
-          type: "hadith",
-          id: hadith._id,
-          displayText: ref,
-          subtitle: hadith.translation?.slice(0, 60),
-        });
+    if (shouldIncludeType("hadith")) {
+      const hadiths = await ctx.db
+        .query("hadiths")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect();
+      for (const hadith of hadiths) {
+        if (matches.length >= limit) break;
+        const ref = `${hadith.collection} #${hadith.hadithNumber}`;
+        if (matchesQuery(ref, hadith.collection, hadith.arabicText, hadith.translation)) {
+          pushMatch({
+            type: "hadith",
+            id: hadith._id,
+            displayText: ref,
+            subtitle: hadith.translation?.slice(0, 60),
+          });
+        }
       }
     }
 
-    const courses = await ctx.db
-      .query("courses")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
-    for (const course of courses) {
-      if (matches.length >= limit) break;
-      if (course.title.toLowerCase().includes(normalizedQuery)) {
-        pushMatch({ type: "course", id: course._id, displayText: course.title });
+    if (shouldIncludeType("course")) {
+      const courses = await ctx.db
+        .query("courses")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect();
+      for (const course of courses) {
+        if (matches.length >= limit) break;
+        if (matchesQuery(course.title, course.description)) {
+          pushMatch({ type: "course", id: course._id, displayText: course.title });
+        }
       }
     }
 
-    const lessons = await ctx.db
-      .query("lessons")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
-    for (const lesson of lessons) {
-      if (matches.length >= limit) break;
-      if (lesson.title.toLowerCase().includes(normalizedQuery)) {
-        pushMatch({ type: "lesson", id: lesson._id, displayText: lesson.title });
+    if (shouldIncludeType("lesson")) {
+      const lessons = await ctx.db
+        .query("lessons")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect();
+      for (const lesson of lessons) {
+        if (matches.length >= limit) break;
+        if (matchesQuery(lesson.title, lesson.content)) {
+          pushMatch({ type: "lesson", id: lesson._id, displayText: lesson.title });
+        }
       }
     }
 
-    const books = await ctx.db
-      .query("books")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
-    for (const book of books) {
-      if (matches.length >= limit) break;
-      if (book.title.toLowerCase().includes(normalizedQuery)) {
-        pushMatch({
-          type: "book",
-          id: book._id,
-          displayText: book.title,
-          subtitle: book.author,
-        });
+    if (shouldIncludeType("book")) {
+      const books = await ctx.db
+        .query("books")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect();
+      for (const book of books) {
+        if (matches.length >= limit) break;
+        if (matchesQuery(book.title, book.author, book.description)) {
+          pushMatch({
+            type: "book",
+            id: book._id,
+            displayText: book.title,
+            subtitle: book.author,
+          });
+        }
       }
     }
 
-    const chapters = await ctx.db
-      .query("chapters")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
-    for (const chapter of chapters) {
-      if (matches.length >= limit) break;
-      if (chapter.title.toLowerCase().includes(normalizedQuery)) {
-        pushMatch({ type: "chapter", id: chapter._id, displayText: chapter.title });
+    if (shouldIncludeType("chapter")) {
+      const chapters = await ctx.db
+        .query("chapters")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect();
+      for (const chapter of chapters) {
+        if (matches.length >= limit) break;
+        if (matchesQuery(chapter.title, chapter.content)) {
+          pushMatch({ type: "chapter", id: chapter._id, displayText: chapter.title });
+        }
       }
     }
 
-    const notes = await ctx.db
-      .query("studyNotes")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
-    for (const note of notes) {
-      if (matches.length >= limit) break;
-      const title = note.title ?? "";
-      if (
-        title.toLowerCase().includes(normalizedQuery) ||
-        note.content.toLowerCase().includes(normalizedQuery)
-      ) {
-        pushMatch({
-          type: "note",
-          id: note._id,
-          displayText: title || "Untitled Note",
-          subtitle: note.content.slice(0, 60),
-        });
+    if (shouldIncludeType("note")) {
+      const notes = await ctx.db
+        .query("studyNotes")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect();
+      for (const note of notes) {
+        if (matches.length >= limit) break;
+        const title = note.title ?? "";
+        if (matchesQuery(title, note.content)) {
+          pushMatch({
+            type: "note",
+            id: note._id,
+            displayText: title || "Untitled Note",
+            subtitle: note.content.slice(0, 60),
+          });
+        }
       }
     }
 
-    const tags = await ctx.db
-      .query("tags")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
-    for (const tag of tags) {
-      if (matches.length >= limit) break;
-      if (tag.name.toLowerCase().includes(normalizedQuery)) {
-        pushMatch({ type: "tag", id: tag._id, displayText: `#${tag.name}` });
+    if (shouldIncludeType("tag")) {
+      const tags = await ctx.db
+        .query("tags")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect();
+      for (const tag of tags) {
+        if (matches.length >= limit) break;
+        if (matchesQuery(tag.name, tag.description)) {
+          pushMatch({ type: "tag", id: tag._id, displayText: `#${tag.name}` });
+        }
       }
     }
 
-    const collections = await ctx.db
-      .query("collections")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
-    for (const collection of collections) {
-      if (matches.length >= limit) break;
-      if (collection.title.toLowerCase().includes(normalizedQuery)) {
-        pushMatch({
-          type: "collection",
-          id: collection._id,
-          displayText: collection.title,
-        });
+    if (shouldIncludeType("collection")) {
+      const collections = await ctx.db
+        .query("collections")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect();
+      for (const collection of collections) {
+        if (matches.length >= limit) break;
+        if (matchesQuery(collection.title, collection.description)) {
+          pushMatch({
+            type: "collection",
+            id: collection._id,
+            displayText: collection.title,
+          });
+        }
       }
     }
 
-    const vaultEntries = await ctx.db
-      .query("vaultEntries")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
-    for (const vaultEntry of vaultEntries) {
-      if (matches.length >= limit) break;
-      if (
-        vaultEntry.text.toLowerCase().includes(normalizedQuery) ||
-        vaultEntry.normalizedText.toLowerCase().includes(normalizedQuery)
-      ) {
-        pushMatch({
-          type: "vaultEntry",
-          id: vaultEntry._id,
-          displayText: vaultEntry.text,
-          subtitle: vaultEntry.entryType,
-        });
+    if (shouldIncludeType("vaultEntry")) {
+      const vaultEntries = await ctx.db
+        .query("vaultEntries")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect();
+      for (const vaultEntry of vaultEntries) {
+        if (matches.length >= limit) break;
+        if (matchesQuery(vaultEntry.text, vaultEntry.normalizedText, vaultEntry.transliteration)) {
+          pushMatch({
+            type: "vaultEntry",
+            id: vaultEntry._id,
+            displayText: vaultEntry.text,
+            subtitle: vaultEntry.entryType,
+          });
+        }
       }
     }
 

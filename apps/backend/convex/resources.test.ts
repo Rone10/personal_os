@@ -392,6 +392,39 @@ describe("resources", () => {
     }
   });
 
+  it("supports type-scoped study search without requiring text input", async () => {
+    const t = convexTest(schema, modules);
+    const asUser = t.withIdentity({ subject: "user_1" });
+
+    const studyIds = await createStudyEntities(asUser);
+
+    const wordResults = await asUser.query(resourcesApi.searchStudyEntities, {
+      query: "__type:word__",
+      limit: 10,
+    });
+    expect(wordResults.length).toBeGreaterThan(0);
+    expect(wordResults.every((result: any) => result.type === "word")).toBe(true);
+    expect(wordResults.some((result: any) => result.id === studyIds.word)).toBe(true);
+
+    const rootResults = await asUser.query(resourcesApi.searchStudyEntities, {
+      query: "__type:root__",
+      limit: 10,
+    });
+    expect(rootResults.length).toBeGreaterThan(0);
+    expect(rootResults.every((result: any) => result.type === "root")).toBe(true);
+    expect(rootResults.some((result: any) => result.id === studyIds.root)).toBe(true);
+
+    const vaultEntryResults = await asUser.query(resourcesApi.searchStudyEntities, {
+      query: "__type:vaultEntry__",
+      limit: 10,
+    });
+    expect(vaultEntryResults.length).toBeGreaterThan(0);
+    expect(vaultEntryResults.every((result: any) => result.type === "vaultEntry")).toBe(true);
+    expect(
+      vaultEntryResults.some((result: any) => result.id === studyIds.vaultEntry),
+    ).toBe(true);
+  });
+
   it("removes topic with cascading entries and target links", async () => {
     const t = convexTest(schema, modules);
     const asUser = t.withIdentity({ subject: "user_1" });
