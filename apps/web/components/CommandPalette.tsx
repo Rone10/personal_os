@@ -14,6 +14,7 @@ import {
   Hash,
   ScrollText,
   Sparkles,
+  Library,
 } from 'lucide-react';
 
 import {
@@ -79,6 +80,10 @@ export function CommandPalette() {
               <Bug className="mr-2 h-4 w-4" />
               <span>Log Bug</span>
             </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => router.push('/resources?new=true'))}>
+              <Library className="mr-2 h-4 w-4" />
+              <span>New Resource Topic</span>
+            </CommandItem>
           </CommandGroup>
           <CommandGroup heading="Study Center">
             <CommandItem onSelect={() => runCommand(() => router.push('/study?view=words'))}>
@@ -114,6 +119,10 @@ export function CommandPalette() {
             <CommandItem onSelect={() => runCommand(() => router.push('/prompts'))}>
               <Smile className="mr-2 h-4 w-4" />
               <span>Prompts</span>
+            </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => router.push('/resources'))}>
+              <Library className="mr-2 h-4 w-4" />
+              <span>Resources</span>
             </CommandItem>
             <CommandItem onSelect={() => runCommand(() => router.push('/settings'))}>
               <Settings className="mr-2 h-4 w-4" />

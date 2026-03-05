@@ -9,6 +9,7 @@ import { KanbanFilterBar } from '@/components/KanbanFilterBar';
 import { MilestoneBar } from '@/app/projects/_components/MilestoneBar';
 import { Loader2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
+import { ResourceTargetLinker } from '@/components/ResourceTargetLinker';
 
 export default function ProjectDetailPage() {
   const params = useParams();
@@ -85,6 +86,11 @@ export default function ProjectDetailPage() {
           selectedMilestoneId={selectedMilestoneId}
           filters={kanbanFilters}
           viewMode={viewMode}
+        />
+        <ResourceTargetLinker
+          scope="project"
+          projectId={projectId}
+          title="Linked Resources"
         />
       </div>
     </div>

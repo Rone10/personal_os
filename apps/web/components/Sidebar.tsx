@@ -11,6 +11,7 @@ import {
   Lightbulb,
   BookOpen,
   Terminal,
+  Library,
   Bug,
   LogOut,
   User as UserIcon,
@@ -26,6 +27,7 @@ const navItems = [
   { name: 'Tasks', href: '/tasks', icon: CheckSquare },
   { name: 'Study', href: '/study', icon: BookOpen },
   { name: 'Prompts', href: '/prompts', icon: Terminal },
+  { name: 'Resources', href: '/resources', icon: Library },
   { name: 'Bugs', href: '/bugs', icon: Bug },
 ];
 

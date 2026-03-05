@@ -16,6 +16,7 @@ import type * as ideas from "../ideas.js";
 import type * as milestones from "../milestones.js";
 import type * as projects from "../projects.js";
 import type * as prompts from "../prompts.js";
+import type * as resources from "../resources.js";
 import type * as study__helpers from "../study/_helpers.js";
 import type * as study_backlinks from "../study/backlinks.js";
 import type * as study_books from "../study/books.js";
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   milestones: typeof milestones;
   projects: typeof projects;
   prompts: typeof prompts;
+  resources: typeof resources;
   "study/_helpers": typeof study__helpers;
   "study/backlinks": typeof study_backlinks;
   "study/books": typeof study_books;

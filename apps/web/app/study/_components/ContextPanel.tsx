@@ -34,6 +34,7 @@ import { EntityType, ViewType } from "./StudyPageClient";
 import ExplanationFormDialog from "./dialogs/ExplanationFormDialog";
 import EntityLinkFormDialog from "./dialogs/EntityLinkFormDialog";
 import RichTextViewer from "@/components/rich-text/RichTextViewer";
+import { ResourceTargetLinker, StudyEntityType as ResourceStudyEntityType } from "@/components/ResourceTargetLinker";
 
 // Entity types that support tagging (subset of EntityType that backend accepts)
 type TaggableEntityType =
@@ -283,6 +284,14 @@ export default function ContextPanel({
           </div>
         )}
       </section>
+
+      {/* Entity Links Section (only for linkable entity types) */}
+      <ResourceTargetLinker
+        scope="study"
+        studyEntityType={entityType as ResourceStudyEntityType}
+        studyEntityId={entityId}
+        title="Linked Resources"
+      />
 
       {/* Entity Links Section (only for linkable entity types) */}
       {canLink && (

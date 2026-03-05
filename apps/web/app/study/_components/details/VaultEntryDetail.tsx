@@ -28,6 +28,7 @@ import { EntityType, ViewType } from "../StudyPageClient";
 import VaultEntryFormDialog from "../dialogs/VaultEntryFormDialog";
 import VaultReferenceFormDialog from "../dialogs/VaultReferenceFormDialog";
 import { VaultReference } from "../vault/types";
+import { ResourceTargetLinker } from "@/components/ResourceTargetLinker";
 
 interface VaultEntryDetailProps {
   entryId: string;
@@ -240,6 +241,13 @@ export default function VaultEntryDetail({
             : "No source linked"}
         </p>
       </div>
+
+      <ResourceTargetLinker
+        scope="study"
+        studyEntityType="vaultEntry"
+        studyEntityId={entryId}
+        title="Linked Resources"
+      />
 
       <div className="study-card p-4 space-y-3">
         <div className="flex items-center justify-between">

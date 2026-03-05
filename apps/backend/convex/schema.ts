@@ -247,6 +247,77 @@ export default defineSchema({
     .index("by_idea", ["ideaId"])
     .index("by_prompt", ["promptId"]),
 
+  // --- RESOURCES ---
+  resourceCategories: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    slug: v.string(),
+    color: v.optional(v.string()),
+    isDefault: v.boolean(),
+    order: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user_order", ["userId", "order"])
+    .index("by_user_slug", ["userId", "slug"]),
+
+  resources: defineTable({
+    userId: v.string(),
+    title: v.string(),
+    description: v.optional(v.string()),
+    categoryId: v.id("resourceCategories"),
+    tags: v.optional(v.array(v.string())),
+    isFavorite: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user_updatedAt", ["userId", "updatedAt"])
+    .index("by_user_category", ["userId", "categoryId"])
+    .index("by_user_favorite", ["userId", "isFavorite"]),
+
+  resourceEntries: defineTable({
+    userId: v.string(),
+    resourceId: v.id("resources"),
+    url: v.string(),
+    canonicalUrl: v.string(),
+    label: v.string(),
+    purpose: v.string(),
+    order: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_resource_order", ["resourceId", "order"])
+    .index("by_user_canonicalUrl", ["userId", "canonicalUrl"])
+    .index("by_user_resource", ["userId", "resourceId"]),
+
+  resourceTargetLinks: defineTable({
+    userId: v.string(),
+    resourceId: v.id("resources"),
+    targetScope: v.union(v.literal("project"), v.literal("study")),
+    projectId: v.optional(v.id("projects")),
+    studyEntityType: v.optional(
+      v.union(
+        v.literal("word"),
+        v.literal("root"),
+        v.literal("verse"),
+        v.literal("hadith"),
+        v.literal("course"),
+        v.literal("lesson"),
+        v.literal("book"),
+        v.literal("chapter"),
+        v.literal("note"),
+        v.literal("tag"),
+        v.literal("collection"),
+        v.literal("vaultEntry"),
+      ),
+    ),
+    studyEntityId: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_user_resource", ["userId", "resourceId"])
+    .index("by_project", ["userId", "projectId"])
+    .index("by_study_target", ["userId", "studyEntityType", "studyEntityId"]),
+
   // =============================================================================
   // ARABIC KNOWLEDGE RETENTION SYSTEM
   // =============================================================================
