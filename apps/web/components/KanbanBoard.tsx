@@ -25,7 +25,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { 
@@ -230,6 +230,7 @@ function TaskCard({
   onRemoveDependency,
   projectId,
   milestoneMeta,
+  bare = false,
 }: {
   task: KanbanTask;
   onAdvance?: (task: KanbanTask) => void;
@@ -247,6 +248,8 @@ function TaskCard({
   onRemoveDependency?: (blockedTaskId: Id<"tasks">, blockingTaskId: Id<"tasks">) => Promise<void>;
   projectId?: Id<"projects">;
   milestoneMeta?: MilestoneMeta;
+  /** When true, strips the outer card wrapper (relies on parent for card styling). */
+  bare?: boolean;
 }) {
   const priorityMeta = priorityTokens[task.priorityLevel];
   const expanded = Boolean(isExpanded);
@@ -254,10 +257,11 @@ function TaskCard({
   return (
     <div
       className={cn(
-        "group relative flex flex-col rounded-xl border bg-card p-3 text-card-foreground shadow-sm transition-all hover:shadow-md",
-        isOverlay
+        "group relative flex flex-col",
+        !bare && "rounded-xl border bg-card p-3 text-card-foreground shadow-sm transition-all hover:shadow-md",
+        !bare && (isOverlay
           ? "cursor-grabbing shadow-xl rotate-2 scale-105 ring-2 ring-primary/20"
-          : "cursor-grab active:cursor-grabbing",
+          : "cursor-grab active:cursor-grabbing"),
       )}
     >
       <div className="flex items-start gap-3">
@@ -1461,10 +1465,10 @@ export function KanbanBoard({
       id={task._id}
       name={task.title}
       column={columnId}
-      asChild
     >
       <TaskCard
         task={task}
+        bare
         onAdvance={handleAdvance}
         linkedTodo={linkedMetaMap.get(task._id.toString())}
         featureMeta={taskFeatureMetaMap.get(task._id.toString())}
@@ -1481,18 +1485,6 @@ export function KanbanBoard({
         milestoneMeta={task.milestoneId ? milestoneMetaMap.get(task.milestoneId.toString()) : undefined}
       />
     </KanbanCard>
-  );
-
-  const renderColumnHeader = (title: string, count: number, colorClass: string) => (
-    <KanbanHeader className="flex items-center justify-between px-1">
-      <div className="flex items-center gap-2">
-        <div className={cn("h-2 w-2 rounded-full", colorClass)} />
-        <h3 className="font-semibold text-sm text-foreground">{title}</h3>
-      </div>
-      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-background px-1.5 text-[10px] font-medium text-muted-foreground shadow-sm border">
-        {count}
-      </span>
-    </KanbanHeader>
   );
 
   return (
@@ -1525,13 +1517,14 @@ export function KanbanBoard({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full overflow-hidden">
               {/* TODO Column */}
               <KanbanColumn id="todo">
-                {renderColumnHeader("To Do", statusColumns.todo.length, "bg-slate-500")}
-                <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-y-auto p-2">
+                <KanbanHeader>{"To Do"}</KanbanHeader>
+                <ScrollArea className="overflow-hidden">
                   <SortableContext items={statusColumns.todo.map(t => t._id)} strategy={verticalListSortingStrategy}>
-                    {statusColumns.todo.map((task) => renderTaskCard(task, "todo"))}
+                    <div className="flex flex-grow flex-col gap-2 p-2">
+                      {statusColumns.todo.map((task) => renderTaskCard(task, "todo"))}
+                    </div>
                   </SortableContext>
-
-                  <form onSubmit={handleCreateTask} className="mt-2">
+                  <form onSubmit={handleCreateTask} className="px-2 pb-2">
                     <div className="relative">
                       <Input
                         placeholder="Add a task..."
@@ -1549,27 +1542,34 @@ export function KanbanBoard({
                       </Button>
                     </div>
                   </form>
-                </div>
+                  <ScrollBar orientation="vertical" />
+                </ScrollArea>
               </KanbanColumn>
 
               {/* IN PROGRESS Column */}
               <KanbanColumn id="in_progress">
-                {renderColumnHeader("In Progress", statusColumns.in_progress.length, "bg-blue-500")}
-                <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-y-auto p-2">
+                <KanbanHeader>{"In Progress"}</KanbanHeader>
+                <ScrollArea className="overflow-hidden">
                   <SortableContext items={statusColumns.in_progress.map(t => t._id)} strategy={verticalListSortingStrategy}>
-                    {statusColumns.in_progress.map((task) => renderTaskCard(task, "in_progress"))}
+                    <div className="flex flex-grow flex-col gap-2 p-2">
+                      {statusColumns.in_progress.map((task) => renderTaskCard(task, "in_progress"))}
+                    </div>
                   </SortableContext>
-                </div>
+                  <ScrollBar orientation="vertical" />
+                </ScrollArea>
               </KanbanColumn>
 
               {/* DONE Column */}
               <KanbanColumn id="done">
-                {renderColumnHeader("Done", statusColumns.done.length, "bg-green-500")}
-                <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-y-auto p-2">
+                <KanbanHeader>{"Done"}</KanbanHeader>
+                <ScrollArea className="overflow-hidden">
                   <SortableContext items={statusColumns.done.map(t => t._id)} strategy={verticalListSortingStrategy}>
-                    {statusColumns.done.map((task) => renderTaskCard(task, "done"))}
+                    <div className="flex flex-grow flex-col gap-2 p-2">
+                      {statusColumns.done.map((task) => renderTaskCard(task, "done"))}
+                    </div>
                   </SortableContext>
-                </div>
+                  <ScrollBar orientation="vertical" />
+                </ScrollArea>
               </KanbanColumn>
             </div>
           ) : (
@@ -1577,15 +1577,18 @@ export function KanbanBoard({
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 h-full overflow-hidden">
               {PRIORITY_LEVELS.map((level) => {
                 const levelTasks = priorityColumns[level];
-                const { label, dot } = priorityTokens[level];
+                const { label } = priorityTokens[level];
                 return (
                   <KanbanColumn key={level} id={level}>
-                    {renderColumnHeader(label, levelTasks.length, dot)}
-                    <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-y-auto p-2">
+                    <KanbanHeader>{label}</KanbanHeader>
+                    <ScrollArea className="overflow-hidden">
                       <SortableContext items={levelTasks.map(t => t._id)} strategy={verticalListSortingStrategy}>
-                        {levelTasks.map((task) => renderTaskCard(task, level))}
+                        <div className="flex flex-grow flex-col gap-2 p-2">
+                          {levelTasks.map((task) => renderTaskCard(task, level))}
+                        </div>
                       </SortableContext>
-                    </div>
+                      <ScrollBar orientation="vertical" />
+                    </ScrollArea>
                   </KanbanColumn>
                 );
               })}
