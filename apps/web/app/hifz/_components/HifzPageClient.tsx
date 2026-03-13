@@ -71,7 +71,7 @@ export default function HifzPageClient() {
       <div className="flex min-h-[65vh] items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-slate-500">
           <Loader2 className="h-7 w-7 animate-spin text-emerald-500" />
-          <p className="text-sm">Building your hifz board…</p>
+          <p className="text-sm font-medium tracking-wider uppercase">Building tracker…</p>
         </div>
       </div>
     );
@@ -82,7 +82,7 @@ export default function HifzPageClient() {
       <div className="flex min-h-[65vh] items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-slate-500">
           <Loader2 className="h-7 w-7 animate-spin text-emerald-500" />
-          <p className="text-sm">Initializing your memorization challenge…</p>
+          <p className="text-sm font-medium tracking-wider uppercase">Initializing challenge…</p>
         </div>
       </div>
     );
@@ -104,110 +104,114 @@ export default function HifzPageClient() {
   }
 
   return (
-    <div className="min-h-full bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.1),transparent_22%),linear-gradient(180deg,rgba(2,6,23,0.04),transparent_25%)]">
-      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
-        <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950 text-slate-50 shadow-[0_40px_120px_-48px_rgba(15,118,110,0.9)]">
-          <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(16,185,129,0.16),transparent_40%,rgba(245,158,11,0.12))]" />
-          <div className="absolute inset-y-0 right-0 hidden w-80 bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.22),transparent_65%)] md:block" />
-
-          <div className="relative flex flex-col gap-8 p-6 md:p-8">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-              <div className="max-w-3xl space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-500/10 text-emerald-200">
-                    <ScrollText className="h-5 w-5" />
+    <div className="min-h-full bg-slate-950 font-sans selection:bg-emerald-500/30 selection:text-emerald-200">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-8 px-4 py-8 md:px-8 md:py-10">
+        <section className="relative overflow-hidden rounded-[2rem] border border-slate-800 bg-slate-900/60 text-slate-50 shadow-2xl backdrop-blur-md">
+          <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(16,185,129,0.08),transparent_40%,rgba(245,158,11,0.06))]" />
+          <div className="absolute inset-y-0 right-0 hidden w-[500px] bg-[radial-gradient(circle_at_right,rgba(16,185,129,0.1),transparent_70%)] lg:block" />
+          
+          <div className="relative flex flex-col gap-8 p-8 md:p-10">
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-2xl space-y-6">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 shadow-[0_0_30px_-5px_rgba(16,185,129,0.3)]">
+                    <ScrollText className="h-6 w-6" />
                   </div>
                   <div>
-                    <p className="font-quran text-3xl leading-none text-emerald-200">حفظ</p>
-                    <p className="text-[11px] uppercase tracking-[0.3em] text-slate-400">
+                    <h1 className="text-3xl font-bold tracking-tight text-white md:text-4xl">
+                      {challenge.title}
+                    </h1>
+                    <p className="mt-1 text-sm font-medium uppercase tracking-[0.2em] text-emerald-400/80">
                       Quran Memorization Tracker
                     </p>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
-                    {challenge.title}
-                  </h1>
-                  <p className="max-w-2xl text-sm leading-relaxed text-slate-300 md:text-base">
-                    A single operational board for your 46-week memorization cycle. Log each
-                    day as it happened, keep the freeform page labels intact, and let the week
-                    view show where the challenge is holding or slipping.
-                  </p>
-                </div>
+                <p className="text-sm leading-relaxed text-slate-400 md:text-base">
+                  A single operational board for your 46-week memorization cycle. Log each day as it happened, keep the freeform page labels intact, and let the week view show where the challenge is holding or slipping.
+                </p>
               </div>
 
-              <div className="flex flex-col gap-3 rounded-[1.5rem] border border-white/10 bg-white/5 p-4 backdrop-blur">
-                <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-[320px] flex-col gap-4 rounded-2xl border border-slate-700/50 bg-slate-950/50 p-5 backdrop-blur-xl shadow-inner">
+                <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-[11px] uppercase tracking-[0.26em] text-slate-400">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
                       Active Week
                     </p>
-                    <p className="mt-1 text-xl font-semibold">
-                      Week {getChallengeWeekNumber(weekView.weekStartDate)} of{" "}
-                      {challenge.totalWeeks}
+                    <p className="mt-1 flex items-baseline gap-2">
+                      <span className="text-2xl font-bold text-white">
+                        {getChallengeWeekNumber(weekView.weekStartDate)}
+                      </span>
+                      <span className="text-sm font-medium text-slate-500">
+                        / {challenge.totalWeeks}
+                      </span>
                     </p>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-right">
-                    <p className="text-[11px] uppercase tracking-[0.26em] text-slate-500">
-                      Range
+                  <div className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-2.5 text-right">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                      Date Range
                     </p>
-                    <p className="mt-1 text-sm text-slate-200">
+                    <p className="mt-1 font-mono text-sm font-medium text-slate-300">
                       {formatWeekRangeLabel(weekView.weekStartDate)}
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                
+                <div className="h-px w-full bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
+                
+                <div className="flex flex-wrap gap-2.5">
                   <Badge
                     variant="outline"
                     className={cn(
-                      "border font-mono",
+                      "gap-1.5 border px-3 py-1 font-mono text-xs shadow-sm",
                       weeklyTargetMet
-                        ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-100"
-                        : "border-amber-400/30 bg-amber-500/10 text-amber-100",
+                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                        : "border-amber-500/30 bg-amber-500/10 text-amber-300",
                     )}
                   >
                     <Target className="h-3.5 w-3.5" />
                     {weekView.totals.weekMemorizedPages}/{weekView.totals.targetPages} pages
                   </Badge>
-                  <Badge variant="outline" className="border-slate-500/30 bg-slate-500/10">
-                    Revision {weekView.totals.weekRevisionPages}
+                  <Badge variant="outline" className="border-slate-700 bg-slate-800/80 px-3 py-1 font-mono text-xs text-slate-300">
+                    Rev {weekView.totals.weekRevisionPages}
                   </Badge>
-                  <Badge variant="outline" className="border-slate-500/30 bg-slate-500/10">
-                    Overall {challenge.overallMemorizedPages}/{challenge.totalTargetPages}
+                  <Badge variant="outline" className="border-slate-700 bg-slate-800/80 px-3 py-1 font-mono text-xs text-slate-300">
+                    Total {challenge.overallMemorizedPages}/{challenge.totalTargetPages}
                   </Badge>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-col gap-4 rounded-[1.5rem] border border-white/10 bg-slate-950/60 p-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.28em] text-slate-500">
-                  Sunday to Saturday cadence
-                </p>
-                <p className="mt-1 text-sm text-slate-300">
-                  Sunday and Saturday are revision-planned by default. Monday through Friday
-                  carry the five-page memorization target.
-                </p>
+            <div className="flex flex-col gap-5 rounded-2xl border border-slate-700/50 bg-slate-800/30 p-5 md:flex-row md:items-center md:justify-between backdrop-blur-md">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 h-2 w-2 rounded-full bg-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-300">
+                    Expected Cadence
+                  </p>
+                  <p className="mt-1 text-sm text-slate-400">
+                    Sun & Sat: Revision Focus. Mon-Fri: 5 pages new memorization.
+                  </p>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <Button
                   variant="outline"
                   onClick={() => navigateWeek(-1)}
                   disabled={!canGoPrevious}
-                  className="border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
+                  className="h-10 border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white focus-visible:ring-slate-500"
                 >
                   <ChevronLeft className="mr-2 h-4 w-4" />
-                  Previous
+                  <span className="text-xs font-medium uppercase tracking-wider">Previous</span>
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => navigateWeek(1)}
                   disabled={!canGoNext}
-                  className="border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
+                  className="h-10 border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white focus-visible:ring-slate-500"
                 >
-                  Next
+                  <span className="text-xs font-medium uppercase tracking-wider">Next</span>
                   <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
@@ -215,7 +219,7 @@ export default function HifzPageClient() {
           </div>
         </section>
 
-        <section className="rounded-[2rem] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.8),rgba(248,250,252,0.96))] p-4 shadow-[0_30px_80px_-50px_rgba(15,23,42,0.45)] dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(2,6,23,0.92))] md:p-5">
+        <section className="rounded-[2rem] border border-slate-800 bg-slate-900/40 p-5 shadow-2xl backdrop-blur-md md:p-6 lg:p-8">
           <HifzWeekBoard
             weekView={weekView}
             onSelectDay={(day) => {

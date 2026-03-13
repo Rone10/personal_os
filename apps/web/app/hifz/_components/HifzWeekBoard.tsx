@@ -45,18 +45,12 @@ type HifzWeekBoardProps = {
   onSelectDay: (day: HifzDay) => void;
 };
 
-function getPlanClasses(plan: HifzDay["plannedDayType"]) {
-  return plan === "memorization"
-    ? "text-emerald-300 border-emerald-500/30 bg-emerald-500/10"
-    : "text-amber-300 border-amber-500/30 bg-amber-500/10";
-}
-
 function getStateBadge(day: HifzDay) {
   if (day.visualState === "completed") {
     return {
       label: "Completed",
       icon: CheckCircle2,
-      className: "text-emerald-200 border-emerald-400/30 bg-emerald-500/15",
+      className: "text-emerald-300 border-emerald-500/30 bg-emerald-500/10",
     };
   }
 
@@ -64,7 +58,7 @@ function getStateBadge(day: HifzDay) {
     return {
       label: "Partial",
       icon: Clock3,
-      className: "text-amber-100 border-amber-400/30 bg-amber-500/15",
+      className: "text-amber-300 border-amber-500/30 bg-amber-500/10",
     };
   }
 
@@ -72,7 +66,7 @@ function getStateBadge(day: HifzDay) {
     return {
       label: "Skipped",
       icon: MinusCircle,
-      className: "text-rose-100 border-rose-400/30 bg-rose-500/15",
+      className: "text-rose-300 border-rose-500/30 bg-rose-500/10",
     };
   }
 
@@ -80,45 +74,46 @@ function getStateBadge(day: HifzDay) {
     return {
       label: "Upcoming",
       icon: RotateCcw,
-      className: "text-slate-300 border-slate-500/30 bg-slate-500/10",
+      className: "text-slate-400 border-slate-600/30 bg-slate-800/40",
     };
   }
 
   return {
     label: "Open",
     icon: Edit3,
-    className: "text-slate-200 border-slate-400/25 bg-white/5",
+    className: "text-slate-200 border-slate-500/40 bg-slate-700/30",
   };
 }
 
 function getCardClasses(day: HifzDay) {
   if (day.visualState === "completed") {
-    return "border-emerald-500/30 bg-[linear-gradient(180deg,rgba(16,185,129,0.15),rgba(15,23,42,0.82))] shadow-[0_24px_50px_-34px_rgba(16,185,129,0.95)]";
+    return "border-emerald-500/30 bg-gradient-to-b from-emerald-500/10 to-slate-900/80 shadow-[0_8px_32px_-12px_rgba(16,185,129,0.2)] hover:border-emerald-500/50";
   }
 
   if (day.visualState === "partial") {
-    return "border-amber-500/30 bg-[linear-gradient(180deg,rgba(245,158,11,0.14),rgba(15,23,42,0.82))] shadow-[0_24px_50px_-34px_rgba(245,158,11,0.85)]";
+    return "border-amber-500/30 bg-gradient-to-b from-amber-500/10 to-slate-900/80 shadow-[0_8px_32px_-12px_rgba(245,158,11,0.2)] hover:border-amber-500/50";
   }
 
   if (day.visualState === "skipped") {
-    return "border-rose-500/25 bg-[linear-gradient(180deg,rgba(244,63,94,0.12),rgba(15,23,42,0.8))] opacity-90";
+    return "border-rose-500/30 bg-gradient-to-b from-rose-500/10 to-slate-900/80 shadow-[0_8px_32px_-12px_rgba(244,63,94,0.2)] hover:border-rose-500/50";
   }
 
   if (day.visualState === "upcoming") {
-    return "border-slate-700/80 bg-[linear-gradient(180deg,rgba(51,65,85,0.38),rgba(15,23,42,0.88))] text-slate-300";
+    return "border-slate-800 bg-gradient-to-b from-slate-800/40 to-slate-900/60 opacity-60 hover:opacity-100 hover:border-slate-700";
   }
 
-  return "border-slate-700/80 bg-[linear-gradient(180deg,rgba(30,41,59,0.55),rgba(15,23,42,0.88))]";
+  return "border-slate-700 bg-gradient-to-b from-slate-700/40 to-slate-900/80 hover:border-slate-500 shadow-sm";
 }
 
 export default function HifzWeekBoard({ weekView, onSelectDay }: HifzWeekBoardProps) {
   return (
-    <div className="overflow-x-auto pb-2">
-      <div className="grid min-w-[960px] grid-cols-7 gap-3">
+    <div className="overflow-x-auto pb-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-800">
+      <div className="grid min-w-[1080px] grid-cols-7 gap-4">
         {weekView.days.map((day) => {
           const stateBadge = getStateBadge(day);
           const StateIcon = stateBadge.icon;
           const date = parseISO(day.date);
+          const isCompleted = day.visualState === "completed";
 
           return (
             <button
@@ -126,79 +121,84 @@ export default function HifzWeekBoard({ weekView, onSelectDay }: HifzWeekBoardPr
               type="button"
               onClick={() => onSelectDay(day)}
               className={cn(
-                "group relative flex min-h-[320px] flex-col overflow-hidden rounded-[1.6rem] border p-4 text-left transition-all duration-200 hover:-translate-y-1 hover:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60",
+                "group relative flex min-h-[340px] flex-col overflow-hidden rounded-2xl border p-5 text-left transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
                 getCardClasses(day),
               )}
             >
               <div
                 className={cn(
-                  "absolute inset-x-0 top-0 h-1.5",
-                  day.plannedDayType === "memorization" ? "bg-emerald-400/80" : "bg-amber-400/80",
+                  "absolute inset-x-0 top-0 h-1 transition-opacity duration-300 group-hover:opacity-100",
+                  day.plannedDayType === "memorization" ? "bg-emerald-500/60" : "bg-amber-500/60",
+                  isCompleted ? "opacity-100" : "opacity-40"
                 )}
               />
 
-              <div className="mb-4 flex items-start justify-between gap-3">
+              <div className="mb-5 flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-[11px] uppercase tracking-[0.28em] text-slate-400">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-medium">
                     {format(date, "EEEE")}
                   </p>
-                  <div className="mt-2 flex items-end gap-2">
-                    <span className="text-3xl font-semibold tracking-tight text-white">
+                  <div className="mt-1.5 flex items-baseline gap-1.5">
+                    <span className="text-3xl font-bold tracking-tight text-slate-100">
                       {format(date, "d")}
                     </span>
-                    <span className="pb-1 text-xs uppercase tracking-[0.24em] text-slate-400">
+                    <span className="text-xs uppercase tracking-wider text-slate-500 font-semibold">
                       {format(date, "MMM")}
                     </span>
                   </div>
                 </div>
                 <Badge
                   variant="outline"
-                  className={cn("gap-1.5 border", stateBadge.className)}
+                  className={cn("gap-1.5 border shadow-sm px-2 py-0.5", stateBadge.className)}
                 >
-                  <StateIcon className="h-3 w-3" />
-                  {stateBadge.label}
+                  <StateIcon className="h-3.5 w-3.5" />
+                  <span className="text-[10px] font-semibold tracking-wider uppercase">{stateBadge.label}</span>
                 </Badge>
               </div>
 
-              <div className="mb-4 flex flex-wrap gap-2">
-                <Badge
-                  variant="outline"
-                  className={cn("border font-medium tracking-wide", getPlanClasses(day.plannedDayType))}
-                >
-                  {day.plannedDayType === "memorization" ? "Memorization" : "Revision"}
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className="border-slate-600/80 bg-slate-900/70 font-mono text-slate-200"
-                >
-                  {day.memorizationPageCount} / {day.revisionPageCount}
-                </Badge>
-              </div>
-
-              <div className="space-y-3">
-                <div className="rounded-2xl border border-white/8 bg-black/10 p-3">
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">New</p>
-                  <p className="mt-2 min-h-10 text-sm leading-relaxed text-slate-100">
-                    {day.memorizationPages || "No memorization pages logged"}
-                  </p>
+              <div className="mb-5 grid grid-cols-2 gap-2">
+                <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-2 flex flex-col items-center justify-center">
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">New</span>
+                  <span className="font-mono text-sm font-medium text-emerald-400">{day.memorizationPageCount}</span>
                 </div>
-
-                <div className="rounded-2xl border border-white/8 bg-black/10 p-3">
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Review</p>
-                  <p className="mt-2 min-h-10 text-sm leading-relaxed text-slate-100">
-                    {day.revisionPages || "No revision pages logged"}
-                  </p>
+                <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-2 flex flex-col items-center justify-center">
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Rev</span>
+                  <span className="font-mono text-sm font-medium text-amber-400">{day.revisionPageCount}</span>
                 </div>
               </div>
 
-              <div className="mt-auto pt-4">
-                <div className="rounded-2xl border border-dashed border-white/10 bg-slate-950/30 p-3">
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Note</p>
-                  <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-300">
-                    {day.note || "Add an observation, weak spot, or revision reminder."}
+              <div className="space-y-2.5 flex-1 w-full">
+                <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-3.5 transition-colors group-hover:bg-slate-900/60">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                    <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400 font-medium">Memorization</p>
+                  </div>
+                  <p className="line-clamp-2 text-sm text-slate-300 min-h-[2.5rem]">
+                    {day.memorizationPages || <span className="text-slate-600 italic">No target logged</span>}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-3.5 transition-colors group-hover:bg-slate-900/60">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className="h-1.5 w-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
+                    <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400 font-medium">Revision</p>
+                  </div>
+                  <p className="line-clamp-2 text-sm text-slate-300 min-h-[2.5rem]">
+                    {day.revisionPages || <span className="text-slate-600 italic">No targets logged</span>}
                   </p>
                 </div>
               </div>
+
+              {day.note && (
+                <div className="mt-4 w-full">
+                  <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/30 p-3">
+                    <p className="text-[10px] uppercase tracking-[0.15em] text-slate-500 mb-1">Note</p>
+                    <p className="line-clamp-2 text-xs text-slate-400 italic">
+                      &quot;{day.note}&quot;
+                    </p>
+                  </div>
+                </div>
+              )}
             </button>
           );
         })}
