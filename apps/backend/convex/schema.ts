@@ -318,6 +318,52 @@ export default defineSchema({
     .index("by_project", ["userId", "projectId"])
     .index("by_study_target", ["userId", "studyEntityType", "studyEntityId"]),
 
+  // --- HIFZ TRACKING ---
+  hifzChallenges: defineTable({
+    userId: v.string(),
+    title: v.string(),
+    startDate: v.string(),
+    endDate: v.string(),
+    totalWeeks: v.number(),
+    pagesPerWeek: v.number(),
+    totalTargetPages: v.number(),
+    status: v.union(v.literal("active"), v.literal("archived")),
+    weeklyTemplate: v.object({
+      sun: v.union(v.literal("memorization"), v.literal("revision")),
+      mon: v.union(v.literal("memorization"), v.literal("revision")),
+      tue: v.union(v.literal("memorization"), v.literal("revision")),
+      wed: v.union(v.literal("memorization"), v.literal("revision")),
+      thu: v.union(v.literal("memorization"), v.literal("revision")),
+      fri: v.union(v.literal("memorization"), v.literal("revision")),
+      sat: v.union(v.literal("memorization"), v.literal("revision")),
+    }),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user_status", ["userId", "status"])
+    .index("by_user", ["userId"]),
+
+  hifzDayLogs: defineTable({
+    userId: v.string(),
+    challengeId: v.id("hifzChallenges"),
+    date: v.string(),
+    memorizationPages: v.optional(v.string()),
+    memorizationPageCount: v.number(),
+    revisionPages: v.optional(v.string()),
+    revisionPageCount: v.number(),
+    note: v.optional(v.string()),
+    entryState: v.union(
+      v.literal("completed"),
+      v.literal("partial"),
+      v.literal("skipped"),
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_challenge_date", ["challengeId", "date"])
+    .index("by_user_date", ["userId", "date"])
+    .index("by_user_challenge", ["userId", "challengeId"]),
+
   // =============================================================================
   // ARABIC KNOWLEDGE RETENTION SYSTEM
   // =============================================================================
