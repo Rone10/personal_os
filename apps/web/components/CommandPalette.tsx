@@ -106,6 +106,10 @@ export function CommandPalette() {
               <Sparkles className="mr-2 h-4 w-4" />
               <span>Start Flashcards</span>
             </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => router.push('/hifz'))}>
+              <ScrollText className="mr-2 h-4 w-4" />
+              <span>Open Hifz Tracker</span>
+            </CommandItem>
           </CommandGroup>
           <CommandGroup heading="Navigation">
             <CommandItem onSelect={() => runCommand(() => router.push('/projects'))}>
