@@ -61,6 +61,7 @@ export default function VaultTaxonomyDialog({
   const [renameTopic, setRenameTopic] = useState("");
   const [selectedTopicId, setSelectedTopicId] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -109,8 +110,13 @@ export default function VaultTaxonomyDialog({
 
   const withSaving = async (fn: () => Promise<void>) => {
     setIsSaving(true);
+    setErrorMessage("");
     try {
       await fn();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Unable to update taxonomy"
+      );
     } finally {
       setIsSaving(false);
     }
@@ -122,6 +128,8 @@ export default function VaultTaxonomyDialog({
       const id = await createSubject({ name: newSubject.trim() });
       setNewSubject("");
       setSelectedSubjectId(id);
+      setSelectedCategoryId("");
+      setSelectedTopicId("");
     });
   };
 
@@ -134,11 +142,24 @@ export default function VaultTaxonomyDialog({
       });
       setNewCategory("");
       setSelectedCategoryId(id);
+      setSelectedTopicId("");
     });
   };
 
   const handleCreateTopic = async () => {
-    if (!selectedSubjectId || !selectedCategoryId || !newTopic.trim()) return;
+    if (!selectedSubjectId) {
+      setErrorMessage("Select a subject before creating a topic.");
+      return;
+    }
+    if (!selectedCategoryId) {
+      setErrorMessage("Select a category before creating a topic.");
+      return;
+    }
+    if (!newTopic.trim()) {
+      setErrorMessage("Enter a topic name.");
+      return;
+    }
+
     await withSaving(async () => {
       const id = await createTopic({
         subjectId: selectedSubjectId as Id<"vaultSubjects">,
@@ -147,6 +168,7 @@ export default function VaultTaxonomyDialog({
       });
       setNewTopic("");
       setSelectedTopicId(id);
+      setRenameTopic(newTopic.trim());
     });
   };
 
@@ -221,7 +243,10 @@ export default function VaultTaxonomyDialog({
                   type="button"
                   onClick={() => {
                     setSelectedSubjectId(subject._id);
+                    setSelectedCategoryId("");
+                    setSelectedTopicId("");
                     setRenameSubject(subject.name);
+                    setErrorMessage("");
                   }}
                   className={`w-full text-left px-2 py-1.5 rounded text-sm ${
                     selectedSubjectId === subject._id
@@ -269,7 +294,9 @@ export default function VaultTaxonomyDialog({
                   type="button"
                   onClick={() => {
                     setSelectedCategoryId(category._id);
+                    setSelectedTopicId("");
                     setRenameCategory(category.name);
+                    setErrorMessage("");
                   }}
                   className={`w-full text-left px-2 py-1.5 rounded text-sm ${
                     selectedCategoryId === category._id
@@ -318,6 +345,7 @@ export default function VaultTaxonomyDialog({
                   onClick={() => {
                     setSelectedTopicId(topic._id);
                     setRenameTopic(topic.name);
+                    setErrorMessage("");
                   }}
                   className={`w-full text-left px-2 py-1.5 rounded text-sm ${
                     selectedTopicId === topic._id
@@ -362,6 +390,12 @@ export default function VaultTaxonomyDialog({
           </section>
         </div>
 
+        {errorMessage && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300">
+            {errorMessage}
+          </div>
+        )}
+
         <div className="flex justify-end">
           <Button type="button" variant="outline" onClick={onClose} disabled={isSaving}>
             {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
@@ -372,4 +406,3 @@ export default function VaultTaxonomyDialog({
     </Dialog>
   );
 }
-
