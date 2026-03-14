@@ -396,3 +396,10 @@
     animation: idea-card-enter 0.35s ease-out both;
   }
 }
+
+
+
+/* === modal/dialog width === */
+.dialog-width {
+  @apply px-12 !max-w-5xl w-[calc(100%-2rem)] md:w-[90vw] lg:w-[85vw] xl:w-[80vw] 2xl:max-w-7xl max-h-[90vh] overflow-y-auto;
+}

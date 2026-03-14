@@ -140,6 +140,30 @@ function TreeItem({
   );
 }
 
+function SectionLink({
+  label,
+  isActive,
+  onClick,
+}: {
+  label: string;
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "px-2 py-1 text-xs uppercase tracking-wide cursor-pointer transition-colors",
+        isActive
+          ? "text-blue-600 dark:text-blue-300"
+          : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+      )}
+      onClick={onClick}
+    >
+      {label}
+    </div>
+  );
+}
+
 export default function NavigationTree({
   data,
   currentView,
@@ -183,6 +207,11 @@ export default function NavigationTree({
         icon={<Hash className="h-4 w-4" />}
         defaultOpen={currentView === "roots"}
       >
+        <SectionLink
+          label="All Roots"
+          isActive={currentView === "roots" && !currentEntityId}
+          onClick={() => onNavigate("roots")}
+        />
         {data.roots.slice(0, 20).map((root) => (
           <TreeItem
             key={root._id}
@@ -208,6 +237,11 @@ export default function NavigationTree({
         icon={<Languages className="h-4 w-4" />}
         defaultOpen={currentView === "words"}
       >
+        <SectionLink
+          label="All Words"
+          isActive={currentView === "words" && !currentEntityId}
+          onClick={() => onNavigate("words")}
+        />
         {data.words.slice(0, 20).map((word) => (
           <TreeItem
             key={word._id}
@@ -232,6 +266,11 @@ export default function NavigationTree({
         icon={<Table2 className="h-4 w-4" />}
         defaultOpen={currentView === "vault"}
       >
+        <SectionLink
+          label="All Entries"
+          isActive={currentView === "vault" && !currentEntityId}
+          onClick={() => onNavigate("vault")}
+        />
         {(data.vaultEntries ?? []).slice(0, 20).map((entry) => (
           <TreeItem
             key={entry._id}
@@ -258,6 +297,11 @@ export default function NavigationTree({
         icon={<BookOpen className="h-4 w-4" />}
         defaultOpen={currentView === "verses"}
       >
+        <SectionLink
+          label="All Verses"
+          isActive={currentView === "verses" && !currentEntityId}
+          onClick={() => onNavigate("verses")}
+        />
         {Object.entries(versesBySurah)
           .slice(0, 10)
           .map(([surah, verses]) => (
@@ -288,6 +332,11 @@ export default function NavigationTree({
         icon={<ScrollText className="h-4 w-4" />}
         defaultOpen={currentView === "hadiths"}
       >
+        <SectionLink
+          label="All Hadith"
+          isActive={currentView === "hadiths" && !currentEntityId}
+          onClick={() => onNavigate("hadiths")}
+        />
         {Object.entries(hadithsByCollection).map(([collection, hadiths]) => (
           <TreeItem
             key={collection}
@@ -310,6 +359,11 @@ export default function NavigationTree({
         icon={<GraduationCap className="h-4 w-4" />}
         defaultOpen={currentView === "courses"}
       >
+        <SectionLink
+          label="All Courses"
+          isActive={currentView === "courses" && !currentEntityId}
+          onClick={() => onNavigate("courses")}
+        />
         {data.courses.map((course) => {
           const lessons = data.lessons.filter((l) => l.courseId === course._id);
           const topics = data.topics
@@ -399,6 +453,11 @@ export default function NavigationTree({
         icon={<BookText className="h-4 w-4" />}
         defaultOpen={currentView === "books"}
       >
+        <SectionLink
+          label="All Books"
+          isActive={currentView === "books" && !currentEntityId}
+          onClick={() => onNavigate("books")}
+        />
         {data.books.map((book) => {
           const chapters = data.chapters.filter((c) => c.bookId === book._id);
           const isExpanded =
@@ -437,6 +496,11 @@ export default function NavigationTree({
         icon={<StickyNote className="h-4 w-4" />}
         defaultOpen={currentView === "notes"}
       >
+        <SectionLink
+          label="All Notes"
+          isActive={currentView === "notes" && !currentEntityId}
+          onClick={() => onNavigate("notes")}
+        />
         {data.notes.slice(0, 10).map((note) => (
           <TreeItem
             key={note._id}
@@ -461,6 +525,11 @@ export default function NavigationTree({
         icon={<Tag className="h-4 w-4" />}
         defaultOpen={currentView === "tags"}
       >
+        <SectionLink
+          label="All Tags"
+          isActive={currentView === "tags" && !currentEntityId}
+          onClick={() => onNavigate("tags")}
+        />
         {data.tags.slice(0, 10).map((tag) => (
           <TreeItem
             key={tag._id}
@@ -485,6 +554,11 @@ export default function NavigationTree({
         icon={<FolderOpen className="h-4 w-4" />}
         defaultOpen={currentView === "collections"}
       >
+        <SectionLink
+          label="All Collections"
+          isActive={currentView === "collections" && !currentEntityId}
+          onClick={() => onNavigate("collections")}
+        />
         {data.collections.slice(0, 10).map((collection) => (
           <TreeItem
             key={collection._id}

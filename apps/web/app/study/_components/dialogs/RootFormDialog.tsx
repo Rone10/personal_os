@@ -107,7 +107,7 @@ export default function RootFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="dialog-width">
         <DialogHeader>
           <DialogTitle>{editId ? "Edit Root" : "Add Root"}</DialogTitle>
         </DialogHeader>

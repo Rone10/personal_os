@@ -190,7 +190,7 @@ export default function VaultEntryFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && handleClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="dialog-width">
         <DialogHeader>
           <DialogTitle>{editId ? "Edit Vault Entry" : "Add Vault Entry"}</DialogTitle>
         </DialogHeader>

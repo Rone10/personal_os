@@ -136,7 +136,7 @@ export default function HadithFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="dialog-width">
         <DialogHeader>
           <DialogTitle>{editId ? "Edit Hadith" : "Add Hadith"}</DialogTitle>
         </DialogHeader>

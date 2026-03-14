@@ -156,7 +156,7 @@ export default function WordFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="dialog-width">
         <DialogHeader>
           <DialogTitle>{editId ? "Edit Word" : "Add Word"}</DialogTitle>
         </DialogHeader>

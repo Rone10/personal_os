@@ -68,7 +68,7 @@ export default function PromptsPage() {
               <Plus className="mr-2 h-4 w-4" /> New Prompt
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="dialog-width">
             <DialogHeader>
               <DialogTitle>Create Prompt</DialogTitle>
             </DialogHeader>
